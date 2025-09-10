@@ -6,7 +6,7 @@ import Home from './Pages/Home'
 import Header from './Components/Header'
 import Footer from './Components/Footer'
 import About from './Pages/About'
-import Contact from './Pages/contact'
+import ContactUS from './Pages/ContactUs'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -17,7 +17,7 @@ function App() {
     <Routes>
       <Route path='/' element={<Home/>}/>
       <Route path='/about' element={<About/>}/>
-      <Route path='/contact' element={<Contact/>}/>
+      <Route path='/contact' element={<ContactUS/>}/>
 
 
     </Routes>
