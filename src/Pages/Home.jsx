@@ -1,7 +1,53 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const Home = () => {
   const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [currentOfferIndex, setCurrentOfferIndex] = useState(0);
+
+  // Sample offers data
+  const offers = [
+    { 
+      id: 1, 
+      title: "Festival Special", 
+      discount: "20% OFF", 
+      description: "On all traditional silk sarees", 
+      code: "FEST20",
+      expiry: "Valid until Oct 30, 2023"
+    },
+    { 
+      id: 2, 
+      title: "First Purchase", 
+      discount: "15% OFF", 
+      description: "For new customers", 
+      code: "WELCOME15",
+      expiry: "No expiry"
+    },
+    { 
+      id: 3, 
+      title: "Free Shipping", 
+      discount: "FREE", 
+      description: "On orders above ₹9999", 
+      code: "SHIPFREE",
+      expiry: "Limited time offer"
+    },
+    { 
+      id: 4, 
+      title: "Bridal Package", 
+      discount: "25% OFF", 
+      description: "On bridal collection", 
+      code: "BRIDE25",
+      expiry: "Valid until Dec 31, 2023"
+    }
+  ];
+
+  // Auto-scroll offers
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentOfferIndex((prevIndex) => (prevIndex + 1) % offers.length);
+    }, 4000);
+    
+    return () => clearInterval(interval);
+  }, [offers.length]);
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">
@@ -49,6 +95,66 @@ const Home = () => {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Special Offers Section with Scrolling Effect */}
+      <section className="py-12 bg-gradient-to-r from-[#891c3c] to-amber-600 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/silk.png')]"></div>
+        
+        <div className="container mx-auto px-4 relative z-10">
+          <h2 className="text-2xl md:text-3xl font-serif font-bold text-white text-center mb-8">
+            Special Offers
+          </h2>
+          
+          <div className="relative overflow-hidden">
+            {/* Scrolling offers container */}
+            <div className="flex animate-scroll-offers space-x-6">
+              {offers.map((offer) => (
+                <div 
+                  key={offer.id} 
+                  className="flex-shrink-0 w-72 bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-lg"
+                >
+                  <div className="text-white text-center">
+                    <h3 className="text-xl font-bold mb-2">{offer.title}</h3>
+                    <div className="text-2xl font-serif font-bold text-amber-300 mb-3">
+                      {offer.discount}
+                    </div>
+                    <p className="text-amber-100 mb-4">{offer.description}</p>
+                    <div className="bg-white/20 rounded-lg p-2 mb-2">
+                      <span className="text-white font-mono">Use code: </span>
+                      <span className="font-bold text-amber-300">{offer.code}</span>
+                    </div>
+                    <p className="text-xs text-amber-200">{offer.expiry}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Gradient fades on sides */}
+            <div className="absolute left-0 top-0 bottom-0 w-20 bg-gradient-to-r from-[#891c3c] to-transparent z-10"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-20 bg-gradient-to-l from-[#891c3c] to-transparent z-10"></div>
+          </div>
+          
+          <style jsx>{`
+            @keyframes scroll-offers {
+              0% {
+                transform: translateX(0);
+              }
+              100% {
+                transform: translateX(calc(-288px * 4 - 1.5rem * 3));
+              }
+            }
+            
+            .animate-scroll-offers {
+              animation: scroll-offers 30s linear infinite;
+              width: calc(288px * 8 + 1.5rem * 7);
+            }
+            
+            .animate-scroll-offers:hover {
+              animation-play-state: paused;
+            }
+          `}</style>
         </div>
       </section>
 

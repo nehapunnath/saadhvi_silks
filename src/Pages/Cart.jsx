@@ -211,7 +211,7 @@ const Cart = () => {
                   Proceed to Checkout
                 </button>
                 <Link
-                  to="/collections"
+                  to="/products"
                   className="block text-center text-[#891c3c] font-medium hover:text-[#6a1530] transition-colors duration-300 mt-4"
                 >
                   Continue Shopping
