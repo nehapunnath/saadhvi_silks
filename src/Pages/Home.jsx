@@ -11,21 +11,21 @@ const Home = () => {
       id: 1,
       title: "Exclusive Silk Collection",
       subtitle: "Premium handcrafted sarees for every occasion",
-      image: "https://www.wholesaletextile.in/product-img/Rajpath-The-Winter-Lover-Digit2-1702537044.jpeg",
+      image: "https://www.manyavar.com/on/demandware.static/-/Library-Sites-ManyavarSharedLibrary/default/dwe6547122/Ace_Your_Saree_Banner_D.jpg",
       cta: "Shop Now"
     },
     {
       id: 2,
       title: "Bridal Special",
       subtitle: "Make your special day even more memorable",
-      image: "https://images.sagarimpex.net/664342_IMG-20241203-WA0561.jpg",
+      image: "https://kavyastyleplus.com/cdn/shop/files/Royal_20Satin_20Saroski_20Saroj_20Sarees_20_283_29_90970273-bbc2-4d06-938d-90af6cf314b2.jpg?v=1744633888&width=1946",
       cta: "Bridal Collection"
     },
     {
       id: 3,
       title: "Festival Sale",
       subtitle: "Upto 40% off on traditional wear",
-      image: "https://hutsandlooms.com/cdn/shop/files/AAG_2434.jpg?crop=center&height=1200&v=1742374928&width=1200",
+      image: "https://mysilklove.com/cdn/shop/articles/1800_26.png?v=1701089364&width=2048",
       cta: "View Offers"
     }
   ];
