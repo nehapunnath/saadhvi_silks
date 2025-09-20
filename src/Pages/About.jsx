@@ -2,20 +2,20 @@ import React from 'react';
 
 const About = () => {
   return (
-    <div className="min-h-screen bg-[#F9F1F0]">
+    <div className="min-h-screen bg-[#FFF8E1]">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-[#F9F1F0] to-[#FFF8E1] bg-opacity-90 py-20 md:py-28">
+      <section className="relative bg-gradient-to-r from-[#FFF8E1] to-[#F5E6D3] bg-opacity-90 py-20 md:py-28">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#2E2E2E] mb-6">
-              About <span className="text-[#8B5F65]">Saadhvi Silks</span>
+              About <span className="text-[#6B2D2D]">Saadhvi Silks</span>
             </h1>
             <p className="text-lg md:text-xl text-[#2E2E2E] mb-8">
               Celebrating the timeless art of saree weaving with passion, tradition, and craftsmanship.
             </p>
             <a
               href="/products"
-              className="bg-[#8B5F65] text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-[#4A2E59] transition-colors duration-300 shadow-lg"
+              className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-[#3A1A1A] transition-colors duration-300 shadow-lg"
             >
               Explore Our Collection
             </a>
@@ -31,7 +31,7 @@ const About = () => {
       </section>
 
       {/* Our Story */}
-      <section className="py-16 bg-[#F9F1F0]">
+      <section className="py-16 bg-[#FFF8E1]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#2E2E2E] mb-4">Our Story</h2>
@@ -60,7 +60,7 @@ const About = () => {
       </section>
 
       {/* Our Mission */}
-      <section className="py-16 bg-[#FFF8E1]">
+      <section className="py-16 bg-[#F5E6D3]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#2E2E2E] mb-4">Our Mission</h2>
@@ -87,7 +87,7 @@ const About = () => {
               }
             ].map((item, index) => (
               <div key={index} className="bg-white rounded-2xl shadow-lg p-6 text-center transition-transform duration-300 hover:-translate-y-2">
-                <svg className="w-12 h-12 text-[#8B5F65] mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-12 h-12 text-[#6B2D2D] mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d={item.icon} />
                 </svg>
                 <h3 className="text-xl font-semibold text-[#2E2E2E] mb-2">{item.title}</h3>
@@ -99,7 +99,7 @@ const About = () => {
       </section>
 
       {/* Our Values */}
-      <section className="py-16 bg-[#F9F1F0]">
+      <section className="py-16 bg-[#FFF8E1]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#2E2E2E] mb-4">Our Values</h2>
@@ -114,8 +114,8 @@ const About = () => {
               { title: "Innovation", description: "Blending tradition with contemporary designs" },
               { title: "Community", description: "Supporting weaving communities across India" }
             ].map((value, index) => (
-              <div key={index} className="bg-[#E8B4B8] p-6 rounded-lg text-center">
-                <h3 className="text-xl font-semibold text-[#8B5F65] mb-2">{value.title}</h3>
+              <div key={index} className="bg-[#D9A7A7] p-6 rounded-lg text-center">
+                <h3 className="text-xl font-semibold text-[#6B2D2D] mb-2">{value.title}</h3>
                 <p className="text-[#2E2E2E]">{value.description}</p>
               </div>
             ))}
@@ -124,7 +124,7 @@ const About = () => {
       </section>
 
       {/* Artisan Spotlight */}
-      <section className="py-16 bg-[#FFF8E1]">
+      <section className="py-16 bg-[#F5E6D3]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#2E2E2E] mb-4">Meet Our Artisans</h2>
@@ -154,7 +154,7 @@ const About = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 bg-[#F9F1F0]">
+      <section className="py-16 bg-[#FFF8E1]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-[#2E2E2E] mb-4">What Our Customers Say</h2>
@@ -180,9 +180,9 @@ const About = () => {
                 location: "Chennai"
               }
             ].map((testimonial, index) => (
-              <div key={index} className="bg-[#FFF8E1] p-6 rounded-lg">
+              <div key={index} className="bg-[#F5E6D3] p-6 rounded-lg">
                 <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-[#8B5F65] rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 bg-[#6B2D2D] rounded-full flex items-center justify-center text-white font-bold">
                     {testimonial.name.charAt(0)}
                   </div>
                   <div className="ml-4">
@@ -196,8 +196,6 @@ const About = () => {
           </div>
         </div>
       </section>
-
-      
     </div>
   );
 };

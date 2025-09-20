@@ -70,7 +70,7 @@ const ViewDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F1F0] py-12">
+    <div className="min-h-screen bg-[#FFF8E1] py-12">
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col lg:flex-row gap-12">
@@ -78,7 +78,7 @@ const ViewDetails = () => {
           <div className="lg:w-1/2">
             <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden">
               {product.badge && (
-                <span className="absolute top-4 left-4 bg-[#8B5F65] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
+                <span className="absolute top-4 left-4 bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
                   {product.badge}
                 </span>
               )}
@@ -92,10 +92,10 @@ const ViewDetails = () => {
                   onClick={handleImageZoom}
                 />
               </div>
-              <button className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-[#E8B4B8] transition-all duration-300">
+              <button className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-[#D9A7A7] transition-all duration-300">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-[#8B5F65]"
+                  className="h-5 w-5 text-[#6B2D2D]"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -116,7 +116,7 @@ const ViewDetails = () => {
                   key={index}
                   src={img}
                   alt={`${product.name} thumbnail ${index + 1}`}
-                  className="w-20 h-20 object-cover rounded-lg border border-[#E8B4B8] hover:border-[#8B5F65] cursor-pointer transition-all duration-300 hover:scale-105"
+                  className="w-20 h-20 object-cover rounded-lg border border-[#D9A7A7] hover:border-[#6B2D2D] cursor-pointer transition-all duration-300 hover:scale-105"
                 />
               ))}
             </div>
@@ -129,14 +129,14 @@ const ViewDetails = () => {
 
               {/* Price */}
               <div className="flex items-center mb-6">
-                <span className="text-[#8B5F65] font-bold text-2xl">{formatPrice(product.price)}</span>
+                <span className="text-[#6B2D2D] font-bold text-2xl">{formatPrice(product.price)}</span>
                 {product.originalPrice && (
                   <span className="text-[#2E2E2E] text-lg line-through ml-4">
                     {formatPrice(product.originalPrice)}
                   </span>
                 )}
                 {product.originalPrice && (
-                  <span className="ml-4 bg-[#E8B4B8] text-[#8B5F65] text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="ml-4 bg-[#D9A7A7] text-[#6B2D2D] text-xs font-semibold px-3 py-1 rounded-full">
                     {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                   </span>
                 )}
@@ -148,7 +148,7 @@ const ViewDetails = () => {
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => handleQuantityChange(-1)}
-                    className="w-10 h-10 flex items-center justify-center bg-[#E8B4B8] text-[#8B5F65] rounded-full hover:bg-[#8B5F65] hover:text-white transition-all duration-300"
+                    className="w-10 h-10 flex items-center justify-center bg-[#D9A7A7] text-[#6B2D2D] rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
                     aria-label="Decrease quantity"
                     disabled={quantity === 1}
                   >
@@ -165,7 +165,7 @@ const ViewDetails = () => {
                   <span className="text-lg font-semibold text-[#2E2E2E]">{quantity}</span>
                   <button
                     onClick={() => handleQuantityChange(1)}
-                    className="w-10 h-10 flex items-center justify-center bg-[#E8B4B8] text-[#8B5F65] rounded-full hover:bg-[#8B5F65] hover:text-white transition-all duration-300"
+                    className="w-10 h-10 flex items-center justify-center bg-[#D9A7A7] text-[#6B2D2D] rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
                     aria-label="Increase quantity"
                   >
                     <svg
@@ -188,14 +188,14 @@ const ViewDetails = () => {
 
               {/* Tabs for Description and Details */}
               <div className="mb-6">
-                <div className="flex border-b border-[#E8B4B8]">
+                <div className="flex border-b border-[#D9A7A7]">
                   {['description', 'details'].map((tab) => (
                     <button
                       key={tab}
                       className={`px-4 py-2 text-sm font-medium capitalize transition-colors duration-300 ${
                         activeTab === tab
-                          ? 'text-[#8B5F65] border-b-2 border-[#8B5F65]'
-                          : 'text-[#2E2E2E] hover:text-[#4A2E59]'
+                          ? 'text-[#6B2D2D] border-b-2 border-[#6B2D2D]'
+                          : 'text-[#2E2E2E] hover:text-[#3A1A1A]'
                       }`}
                       onClick={() => setActiveTab(tab)}
                     >
@@ -229,7 +229,7 @@ const ViewDetails = () => {
                   {product.occasion.map((occasion, index) => (
                     <span
                       key={index}
-                      className="bg-[#E8B4B8] text-[#8B5F65] text-sm font-medium px-3 py-1 rounded-full"
+                      className="bg-[#D9A7A7] text-[#6B2D2D] text-sm font-medium px-3 py-1 rounded-full"
                     >
                       {occasion}
                     </span>
@@ -242,12 +242,15 @@ const ViewDetails = () => {
 
               {/* Action Buttons */}
               <div className="flex gap-4">
-                <button className="flex-1 bg-[#8B5F65] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#4A2E59] transition-all duration-300">
+                <Link to='/cart'>
+                 <button className="flex-1 bg-[#6B2D2D] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#3A1A1A] transition-all duration-300">
                   Add to Cart
                 </button>
+                </Link>
+               
                 <Link
                   to="/products"
-                  className="flex-1 bg-[#E8B4B8] text-[#8B5F65] px-6 py-3 rounded-lg font-medium hover:bg-[#8B5F65] hover:text-white text-center transition-all duration-300"
+                  className="flex-1 bg-[#D9A7A7] text-[#6B2D2D] px-6 py-3 rounded-lg font-medium hover:bg-[#6B2D2D] hover:text-white text-center transition-all duration-300"
                 >
                   Back to Products
                 </Link>
@@ -266,11 +269,11 @@ const ViewDetails = () => {
               <Link
                 to="/viewdetails"
                 key={relatedProduct.id}
-                className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl border border-[#E8B4B8] group"
+                className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl border border-[#D9A7A7] group"
               >
                 <div className="relative">
                   {relatedProduct.badge && (
-                    <span className="absolute top-4 left-4 bg-[#8B5F65] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
+                    <span className="absolute top-4 left-4 bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
                       {relatedProduct.badge}
                     </span>
                   )}
@@ -281,10 +284,10 @@ const ViewDetails = () => {
                   />
                 </div>
                 <div className="p-5">
-                  <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#4A2E59] transition-colors duration-300">
+                  <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#3A1A1A] transition-colors duration-300">
                     {relatedProduct.name}
                   </h3>
-                  <p className="text-[#8B5F65] font-bold">{formatPrice(relatedProduct.price)}</p>
+                  <p className="text-[#6B2D2D] font-bold">{formatPrice(relatedProduct.price)}</p>
                 </div>
               </Link>
             ))}

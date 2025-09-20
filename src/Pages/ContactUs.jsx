@@ -3,12 +3,12 @@ import { FaFacebookF, FaInstagram, FaPinterestP, FaMapMarkerAlt, FaPhone, FaEnve
 
 const ContactUS = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F9F1F0] to-[#FFF8E1] bg-opacity-90">
+    <div className="min-h-screen bg-gradient-to-b from-[#FFF8E1] to-[#F5E6D3] bg-opacity-90">
       {/* Main Content */}
       <main className="container mx-auto px-4 py-12">
         {/* Page Title */}
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-[#8B5F65] mb-4">Get in Touch</h2>
+          <h2 className="text-4xl font-bold text-[#6B2D2D] mb-4">Get in Touch</h2>
           <p className="text-[#2E2E2E] max-w-2xl mx-auto">
             Visit our store or reach out to us through any of the following methods. We're here to help you find the perfect silk saree.
           </p>
@@ -18,12 +18,12 @@ const ContactUS = () => {
           {/* Contact Information */}
           <div className="space-y-8">
             <div className="bg-white rounded-2xl p-8 shadow-md">
-              <h3 className="text-2xl font-semibold text-[#2E2E2E] mb-6 pb-2 border-b border-[#E8B4B8]">Contact Information</h3>
+              <h3 className="text-2xl font-semibold text-[#2E2E2E] mb-6 pb-2 border-b border-[#D9A7A7]">Contact Information</h3>
               
               <div className="space-y-6">
                 <div className="flex items-start">
-                  <div className="bg-[#E8B4B8] p-3 rounded-lg mr-4">
-                    <FaMapMarkerAlt className="text-[#8B5F65] text-xl" />
+                  <div className="bg-[#D9A7A7] p-3 rounded-lg mr-4">
+                    <FaMapMarkerAlt className="text-[#6B2D2D] text-xl" />
                   </div>
                   <div>
                     <h4 className="font-semibold text-[#2E2E2E] mb-1">Address</h4>
@@ -36,8 +36,8 @@ const ContactUS = () => {
                 </div>
                 
                 <div className="flex items-center">
-                  <div className="bg-[#E8B4B8] p-3 rounded-lg mr-4">
-                    <FaPhone className="text-[#8B5F65] text-xl" />
+                  <div className="bg-[#D9A7A7] p-3 rounded-lg mr-4">
+                    <FaPhone className="text-[#6B2D2D] text-xl" />
                   </div>
                   <div>
                     <h4 className="font-semibold text-[#2E2E2E] mb-1">Phone Numbers</h4>
@@ -46,8 +46,8 @@ const ContactUS = () => {
                 </div>
                 
                 <div className="flex items-center">
-                  <div className="bg-[#E8B4B8] p-3 rounded-lg mr-4">
-                    <FaEnvelope className="text-[#8B5F65] text-xl" />
+                  <div className="bg-[#D9A7A7] p-3 rounded-lg mr-4">
+                    <FaEnvelope className="text-[#6B2D2D] text-xl" />
                   </div>
                   <div>
                     <h4 className="font-semibold text-[#2E2E2E] mb-1">Email Address</h4>
@@ -56,8 +56,8 @@ const ContactUS = () => {
                 </div>
                 
                 <div className="flex items-center">
-                  <div className="bg-[#E8B4B8] p-3 rounded-lg mr-4">
-                    <FaClock className="text-[#8B5F65] text-xl" />
+                  <div className="bg-[#D9A7A7] p-3 rounded-lg mr-4">
+                    <FaClock className="text-[#6B2D2D] text-xl" />
                   </div>
                   <div>
                     <h4 className="font-semibold text-[#2E2E2E] mb-1">Business Hours</h4>
@@ -69,16 +69,16 @@ const ContactUS = () => {
                 </div>
               </div>
               
-              <div className="mt-8 pt-6 border-t border-[#E8B4B8]">
+              <div className="mt-8 pt-6 border-t border-[#D9A7A7]">
                 <h4 className="font-semibold text-[#2E2E2E] mb-4">Follow Us</h4>
                 <div className="flex space-x-4">
-                  <a href="https://facebook.com" className="bg-[#E8B4B8] p-3 rounded-full text-[#8B5F65] hover:bg-[#4A2E59] hover:text-white transition-colors" aria-label="Facebook">
+                  <a href="https://facebook.com" className="bg-[#D9A7A7] p-3 rounded-full text-[#6B2D2D] hover:bg-[#3A1A1A] hover:text-white transition-colors" aria-label="Facebook">
                     <FaFacebookF className="text-lg" />
                   </a>
-                  <a href="https://instagram.com" className="bg-[#E8B4B8] p-3 rounded-full text-[#8B5F65] hover:bg-[#4A2E59] hover:text-white transition-colors" aria-label="Instagram">
+                  <a href="https://instagram.com" className="bg-[#D9A7A7] p-3 rounded-full text-[#6B2D2D] hover:bg-[#3A1A1A] hover:text-white transition-colors" aria-label="Instagram">
                     <FaInstagram className="text-lg" />
                   </a>
-                  <a href="https://pinterest.com" className="bg-[#E8B4B8] p-3 rounded-full text-[#8B5F65] hover:bg-[#4A2E59] hover:text-white transition-colors" aria-label="Pinterest">
+                  <a href="https://pinterest.com" className="bg-[#D9A7A7] p-3 rounded-full text-[#6B2D2D] hover:bg-[#3A1A1A] hover:text-white transition-colors" aria-label="Pinterest">
                     <FaPinterestP className="text-lg" />
                   </a>
                 </div>
@@ -89,19 +89,19 @@ const ContactUS = () => {
               <h3 className="text-2xl font-semibold text-[#2E2E2E] mb-4">Why Visit Our Store?</h3>
               <ul className="space-y-3 text-[#2E2E2E]">
                 <li className="flex items-start">
-                  <span className="text-[#8B5F65] mr-2">•</span>
+                  <span className="text-[#6B2D2D] mr-2">•</span>
                   <span>Expert assistance in selecting the perfect silk saree</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-[#8B5F65] mr-2">•</span>
+                  <span className="text-[#6B2D2D] mr-2">•</span>
                   <span>See and feel the quality of our fabrics in person</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-[#8B5F65] mr-2">•</span>
+                  <span className="text-[#6B2D2D] mr-2">•</span>
                   <span>Get personalized recommendations based on your preferences</span>
                 </li>
                 <li className="flex items-start">
-                  <span className="text-[#8B5F65] mr-2">•</span>
+                  <span className="text-[#6B2D2D] mr-2">•</span>
                   <span>Learn about proper saree maintenance and care</span>
                 </li>
               </ul>
@@ -111,25 +111,15 @@ const ContactUS = () => {
           {/* Map Section */}
           <div className="bg-white rounded-2xl p-8 shadow-md">
             <h3 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Our Location</h3>
-            <div className="bg-[#FFF8E1] h-96 rounded-lg overflow-hidden mb-6">
-              {/* This would be your actual map component */}
-              <div className="w-full h-full flex items-center justify-center bg-[#FFF8E1]">
+            <div className="bg-[#F5E6D3] h-96 rounded-lg overflow-hidden mb-6">
+              <div className="w-full h-full flex items-center justify-center bg-[#F5E6D3]">
                 <div className="text-center p-4">
-                  <FaMapMarkerAlt className="text-[#8B5F65] text-5xl mx-auto mb-4" />
+                  <FaMapMarkerAlt className="text-[#6B2D2D] text-5xl mx-auto mb-4" />
                   <p className="text-[#2E2E2E] font-semibold">Map would be embedded here</p>
                   <p className="text-[#2E2E2E] mt-2">#69/2, AGR Tower, Carmelaram Post, Bengaluru</p>
                 </div>
               </div>
             </div>
-            
-            {/* <div className="space-y-4">
-              <h4 className="font-semibold text-[#2E2E2E]">Directions</h4>
-              <p className="text-[#2E2E2E]">
-                We are located on Sarjapur Main Road, near Carmelaram Post. Look for the AGR Tower building, and you'll find our store on the ground floor.
-              </p>
-              
-              
-            </div> */}
           </div>
         </div>
       </main>
