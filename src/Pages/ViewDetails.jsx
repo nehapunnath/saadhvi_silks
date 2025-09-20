@@ -35,7 +35,6 @@ const ViewDetails = () => {
     image: "https://www.soosi.co.in/cdn/shop/products/IMG-20190506-WA0069_580x.jpg?v=1571711124",
     category: "Traditional",
     occasion: ["Wedding", "Festival"],
-    colors: ["#891c3c", "#d4af37", "#1e3a8a"],
     description: "This authentic Kanjivaram silk saree is a masterpiece of South Indian craftsmanship, featuring intricate traditional motifs woven with pure gold zari. Perfect for weddings and grand celebrations, its rich texture, vibrant colors, and elegant drape exude timeless elegance, making it a cherished addition to any wardrobe.",
     badge: "Bestseller",
     details: {
@@ -50,7 +49,6 @@ const ViewDetails = () => {
     sizeGuide: "Standard saree length: 5.5m (saree) + 1m (blouse piece). Suitable for all body types."
   };
 
-  const [selectedColor, setSelectedColor] = useState(product.colors[0]);
   const [quantity, setQuantity] = useState(1);
   const [zoomActive, setZoomActive] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
@@ -72,7 +70,7 @@ const ViewDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-rose-50 py-12">
+    <div className="min-h-screen bg-[#F9F1F0] py-12">
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col lg:flex-row gap-12">
@@ -80,7 +78,7 @@ const ViewDetails = () => {
           <div className="lg:w-1/2">
             <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden">
               {product.badge && (
-                <span className="absolute top-4 left-4 bg-[#891c3c] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
+                <span className="absolute top-4 left-4 bg-[#8B5F65] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
                   {product.badge}
                 </span>
               )}
@@ -94,10 +92,10 @@ const ViewDetails = () => {
                   onClick={handleImageZoom}
                 />
               </div>
-              <button className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-rose-50 transition-all duration-300">
+              <button className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-[#E8B4B8] transition-all duration-300">
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-[#891c3c]"
+                  className="h-5 w-5 text-[#8B5F65]"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -118,7 +116,7 @@ const ViewDetails = () => {
                   key={index}
                   src={img}
                   alt={`${product.name} thumbnail ${index + 1}`}
-                  className="w-20 h-20 object-cover rounded-lg border border-gray-200 hover:border-[#891c3c] cursor-pointer transition-all duration-300 hover:scale-105"
+                  className="w-20 h-20 object-cover rounded-lg border border-[#E8B4B8] hover:border-[#8B5F65] cursor-pointer transition-all duration-300 hover:scale-105"
                 />
               ))}
             </div>
@@ -127,50 +125,30 @@ const ViewDetails = () => {
           {/* Product Details */}
           <div className="lg:w-1/2">
             <div className="bg-white rounded-2xl shadow-xl p-8">
-              <h2 className="text-3xl font-semibold text-gray-800 mb-4">{product.name}</h2>
+              <h2 className="text-3xl font-semibold text-[#2E2E2E] mb-4">{product.name}</h2>
 
               {/* Price */}
               <div className="flex items-center mb-6">
-                <span className="text-[#891c3c] font-bold text-2xl">{formatPrice(product.price)}</span>
+                <span className="text-[#8B5F65] font-bold text-2xl">{formatPrice(product.price)}</span>
                 {product.originalPrice && (
-                  <span className="text-gray-400 text-lg line-through ml-4">
+                  <span className="text-[#2E2E2E] text-lg line-through ml-4">
                     {formatPrice(product.originalPrice)}
                   </span>
                 )}
                 {product.originalPrice && (
-                  <span className="ml-4 bg-rose-100 text-[#891c3c] text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="ml-4 bg-[#E8B4B8] text-[#8B5F65] text-xs font-semibold px-3 py-1 rounded-full">
                     {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                   </span>
                 )}
               </div>
 
-              {/* Colors */}
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-3">Available Colors</h3>
-                <div className="flex gap-3">
-                  {product.colors.map((color, index) => (
-                    <button
-                      key={index}
-                      className={`w-8 h-8 rounded-full border-2 transition-all duration-300 ${
-                        selectedColor === color
-                          ? 'border-gray-800 ring-2 ring-offset-2 ring-[#891c3c] scale-110'
-                          : 'border-gray-300 hover:scale-105'
-                      }`}
-                      style={{ backgroundColor: color }}
-                      onClick={() => setSelectedColor(color)}
-                      aria-label={`Select ${color} color`}
-                    />
-                  ))}
-                </div>
-              </div>
-
               {/* Quantity */}
               <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-3">Quantity</h3>
+                <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Quantity</h3>
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => handleQuantityChange(-1)}
-                    className="w-10 h-10 flex items-center justify-center bg-rose-50 text-[#891c3c] rounded-full hover:bg-[#891c3c] hover:text-white transition-all duration-300"
+                    className="w-10 h-10 flex items-center justify-center bg-[#E8B4B8] text-[#8B5F65] rounded-full hover:bg-[#8B5F65] hover:text-white transition-all duration-300"
                     aria-label="Decrease quantity"
                     disabled={quantity === 1}
                   >
@@ -184,10 +162,10 @@ const ViewDetails = () => {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
                     </svg>
                   </button>
-                  <span className="text-lg font-semibold text-gray-800">{quantity}</span>
+                  <span className="text-lg font-semibold text-[#2E2E2E]">{quantity}</span>
                   <button
                     onClick={() => handleQuantityChange(1)}
-                    className="w-10 h-10 flex items-center justify-center bg-rose-50 text-[#891c3c] rounded-full hover:bg-[#891c3c] hover:text-white transition-all duration-300"
+                    className="w-10 h-10 flex items-center justify-center bg-[#E8B4B8] text-[#8B5F65] rounded-full hover:bg-[#8B5F65] hover:text-white transition-all duration-300"
                     aria-label="Increase quantity"
                   >
                     <svg
@@ -210,14 +188,14 @@ const ViewDetails = () => {
 
               {/* Tabs for Description and Details */}
               <div className="mb-6">
-                <div className="flex border-b border-gray-200">
+                <div className="flex border-b border-[#E8B4B8]">
                   {['description', 'details'].map((tab) => (
                     <button
                       key={tab}
                       className={`px-4 py-2 text-sm font-medium capitalize transition-colors duration-300 ${
                         activeTab === tab
-                          ? 'text-[#891c3c] border-b-2 border-[#891c3c]'
-                          : 'text-gray-600 hover:text-[#891c3c]'
+                          ? 'text-[#8B5F65] border-b-2 border-[#8B5F65]'
+                          : 'text-[#2E2E2E] hover:text-[#4A2E59]'
                       }`}
                       onClick={() => setActiveTab(tab)}
                     >
@@ -225,7 +203,7 @@ const ViewDetails = () => {
                     </button>
                   ))}
                 </div>
-                <div className="mt-4 text-gray-600">
+                <div className="mt-4 text-[#2E2E2E]">
                   {activeTab === 'description' && <p>{product.description}</p>}
                   {activeTab === 'details' && (
                     <ul className="space-y-2">
@@ -246,30 +224,30 @@ const ViewDetails = () => {
 
               {/* Occasion and Category */}
               <div className="mb-6">
-                <h3 className="text-lg font-medium text-gray-800 mb-3">Suitable For</h3>
+                <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Suitable For</h3>
                 <div className="flex flex-wrap gap-2">
                   {product.occasion.map((occasion, index) => (
                     <span
                       key={index}
-                      className="bg-rose-100 text-[#891c3c] text-sm font-medium px-3 py-1 rounded-full"
+                      className="bg-[#E8B4B8] text-[#8B5F65] text-sm font-medium px-3 py-1 rounded-full"
                     >
                       {occasion}
                     </span>
                   ))}
                 </div>
-                <p className="text-gray-600 mt-2">
+                <p className="text-[#2E2E2E] mt-2">
                   <span className="font-medium">Category:</span> {product.category}
                 </p>
               </div>
 
               {/* Action Buttons */}
               <div className="flex gap-4">
-                <button className="flex-1 bg-[#891c3c] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#6a1530] transition-all duration-300">
+                <button className="flex-1 bg-[#8B5F65] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#4A2E59] transition-all duration-300">
                   Add to Cart
                 </button>
                 <Link
                   to="/products"
-                  className="flex-1 bg-rose-50 text-[#891c3c] px-6 py-3 rounded-lg font-medium hover:bg-[#891c3c] hover:text-white text-center transition-all duration-300"
+                  className="flex-1 bg-[#E8B4B8] text-[#8B5F65] px-6 py-3 rounded-lg font-medium hover:bg-[#8B5F65] hover:text-white text-center transition-all duration-300"
                 >
                   Back to Products
                 </Link>
@@ -280,7 +258,7 @@ const ViewDetails = () => {
 
         {/* Related Products */}
         <div className="mt-16">
-          <h2 className="text-3xl font-serif font-bold text-gray-800 mb-8 text-center">
+          <h2 className="text-3xl font-serif font-bold text-[#2E2E2E] mb-8 text-center">
             You May Also Like
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -288,11 +266,11 @@ const ViewDetails = () => {
               <Link
                 to="/viewdetails"
                 key={relatedProduct.id}
-                className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl border border-gray-100 group"
+                className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl border border-[#E8B4B8] group"
               >
                 <div className="relative">
                   {relatedProduct.badge && (
-                    <span className="absolute top-4 left-4 bg-[#891c3c] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
+                    <span className="absolute top-4 left-4 bg-[#8B5F65] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
                       {relatedProduct.badge}
                     </span>
                   )}
@@ -303,10 +281,10 @@ const ViewDetails = () => {
                   />
                 </div>
                 <div className="p-5">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2 group-hover:text-[#891c3c] transition-colors duration-300">
+                  <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#4A2E59] transition-colors duration-300">
                     {relatedProduct.name}
                   </h3>
-                  <p className="text-[#891c3c] font-bold">{formatPrice(relatedProduct.price)}</p>
+                  <p className="text-[#8B5F65] font-bold">{formatPrice(relatedProduct.price)}</p>
                 </div>
               </Link>
             ))}
