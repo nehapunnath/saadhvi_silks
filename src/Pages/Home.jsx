@@ -76,7 +76,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-[#FDF6E3] overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] overflow-hidden">
       {/* Carousel Section */}
       <section className="relative h-screen">
         <div className="absolute inset-0 overflow-hidden">
@@ -152,7 +152,7 @@ const Home = () => {
       </section>
 
       {/* Luxurious Hero Section */}
-      <section className="relative bg-gradient-to-br from-[#FDF6E3] via-[#F8EDE3] to-[#FDF6E3] py-20 md:py-32 overflow-hidden">
+      <section className="relative  py-20 md:py-32 overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute top-0 left-0 w-72 h-72 bg-[#800020] opacity-5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#800020] opacity-5 rounded-full translate-x-1/3 translate-y-1/3"></div>
@@ -189,19 +189,14 @@ const Home = () => {
                 alt="Elegant Silk Saree" 
                 className="relative rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-700 hover:scale-105 z-10"
               />
-              {/* Floating elements */}
-              {/* <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-[#F8EDE3] rounded-full shadow-lg flex items-center justify-center z-20">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-[#800020]" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-              </div> */}
+              
             </div>
           </div>
         </div>
       </section>
 
       {/* Enhanced Saree Collections */}
-      <section className="py-20 bg-[#FDF6E3] relative">
+      <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]relative">
         {/* Background pattern */}
         <div className="absolute inset-0 opacity-[3%] bg-[url('https://www.transparenttextures.com/patterns/silk.png')]"></div>
         
@@ -289,7 +284,7 @@ const Home = () => {
       </section>
 
       {/* Enhanced Featured Sarees - Trending Now */}
-      <section className="py-20 bg-gradient-to-b from-[#FDF6E3] to-[#F8EDE3] relative overflow-hidden">
+      <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] relative overflow-hidden">
         {/* Decorative elements */}
         <div className="absolute -top-24 -right-24 w-72 h-72 bg-[#800020] opacity-5 rounded-full"></div>
         <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-[#800020] opacity-5 rounded-full"></div>
@@ -377,7 +372,7 @@ const Home = () => {
                     )}
                   </div>
                   <Link to="/cart">
-                    <button className="w-full mt-4 bg-gradient-to-r from-[#F8EDE3] to-[#FDF6E3] text-[#800020] py-3 rounded-lg font-medium hover:from-[#800020] hover:to-[#A0002A] hover:text-white transition-all duration-300 border border-[#1A4D3E] shadow-sm">
+                    <button className="w-full mt-4 bg-gradient-to-r from-[#800020] to-[#A0002A] text-white  py-3 rounded-lg font-medium  transition-all duration-300 border border-[#1A4D3E] shadow-sm">
                       Add to Cart
                     </button>
                   </Link>
@@ -436,7 +431,7 @@ const Home = () => {
       </section>
 
       {/* Enhanced Customer Testimonials */}
-      <section className="py-20 bg-[#FDF6E3] relative">
+      <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] relative">
         <div className="absolute inset-0 bg-[#F8EDE3] opacity-10"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16">

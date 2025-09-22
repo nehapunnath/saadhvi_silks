@@ -38,7 +38,7 @@ const Wishlist = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F9F1F0] py-12">
+    <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
       <div className="container mx-auto px-4">
         {/* Page Title */}
         <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#2E2E2E] text-center mb-12">
@@ -98,7 +98,7 @@ const Wishlist = () => {
                 <div className="flex flex-col items-end gap-2">
                   <button
                     onClick={() => handleMoveToCart(item)}
-                    className="bg-[#E8B4B8] text-[#8B5F65] px-4 py-2 rounded-full text-sm font-medium hover:bg-[#8B5F65] hover:text-white transition-all duration-300"
+                    className="bg-[#800020] text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-[#8B5F65] hover:text-white transition-all duration-300"
                     aria-label={`Move ${item.name} to cart`}
                   >
                     Add to Cart

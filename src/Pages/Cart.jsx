@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import qr from '../assets/qr.jpg'
 
 const Cart = () => {
   // Sample cart data (in a real app, this would come from a state management system or context)
@@ -39,6 +40,8 @@ const Cart = () => {
   const [errors, setErrors] = useState({});
   // State for order confirmation
   const [orderConfirmed, setOrderConfirmed] = useState(false);
+  // State for payment method
+  const [paymentMethod, setPaymentMethod] = useState('card');
 
   // Format price in INR
   const formatPrice = (price) => {
@@ -81,36 +84,14 @@ const Cart = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Validate form inputs
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.name.trim()) newErrors.name = 'Name is required';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.city.trim()) newErrors.city = 'City is required';
-    if (!formData.state.trim()) newErrors.state = 'State is required';
-    if (!formData.postalCode.trim()) newErrors.postalCode = 'Postal code is required';
-    if (!/^\d{6}$/.test(formData.postalCode)) newErrors.postalCode = 'Postal code must be 6 digits';
-    if (!formData.phone.trim()) newErrors.phone = 'Phone number is required';
-    if (!/^\d{10}$/.test(formData.phone)) newErrors.phone = 'Phone number must be 10 digits';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email format';
-    if (!formData.cardNumber.trim()) newErrors.cardNumber = 'Card number is required';
-    if (!/^\d{16}$/.test(formData.cardNumber)) newErrors.cardNumber = 'Card number must be 16 digits';
-    if (!formData.expiry.trim()) newErrors.expiry = 'Expiry date is required';
-    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(formData.expiry)) newErrors.expiry = 'Invalid expiry format (MM/YY)';
-    if (!formData.cvv.trim()) newErrors.cvv = 'CVV is required';
-    if (!/^\d{3}$/.test(formData.cvv)) newErrors.cvv = 'CVV must be 3 digits';
-    return newErrors;
+  // Handle payment method change
+  const handlePaymentMethodChange = (method) => {
+    setPaymentMethod(method);
   };
 
   // Handle form submission
   const handleSubmit = (e) => {
     e.preventDefault();
-    const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      return;
-    }
     // Simulate order confirmation
     setOrderConfirmed(true);
     // Optionally clear cart after confirmation
@@ -124,10 +105,10 @@ const Cart = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF8E1] py-12">
+    <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
       <div className="container mx-auto px-4">
         {/* Page Title */}
-        <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#2E2E2E] text-center mb-12">
+        <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#800020] text-center mb-12">
           {showCheckout ? 'Checkout' : 'Your Cart'}
         </h1>
 
@@ -152,7 +133,7 @@ const Cart = () => {
             </p>
             <Link
               to="/products"
-              className="inline-block bg-[#6B2D2D] text-white px-6 py-3 rounded-full font-medium hover:bg-[#3A1A1A] transition-all duration-300"
+              className="inline-block bg-[#800020] text-white px-6 py-3 rounded-full font-medium hover:bg-[#3A1A1A] transition-all duration-300"
             >
               Continue Shopping
             </Link>
@@ -206,7 +187,7 @@ const Cart = () => {
                           <div className="flex items-center gap-2">
                             <button
                               onClick={() => handleQuantityChange(item.id, -1)}
-                              className="w-8 h-8 flex items-center justify-center bg-[#D9A7A7] text-[#6B2D2D] rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
+                              className="w-8 h-8 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
                               aria-label="Decrease quantity"
                               disabled={item.quantity === 1}
                             >
@@ -227,7 +208,7 @@ const Cart = () => {
                             <span className="text-[#2E2E2E] font-medium">{item.quantity}</span>
                             <button
                               onClick={() => handleQuantityChange(item.id, 1)}
-                              className="w-8 h-8 flex items-center justify-center bg-[#D9A7A7] text-[#6B2D2D] rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
+                              className="w-8 h-8 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
                               aria-label="Increase quantity"
                             >
                               <svg
@@ -291,7 +272,6 @@ const Cart = () => {
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
                         aria-label="Full Name"
                       />
-                      {errors.name && <p className="text-[#6B2D2D] text-sm mt-1">{errors.name}</p>}
                     </div>
                     <div>
                       <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="email">
@@ -306,7 +286,6 @@ const Cart = () => {
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
                         aria-label="Email"
                       />
-                      {errors.email && <p className="text-[#6B2D2D] text-sm mt-1">{errors.email}</p>}
                     </div>
                     <div>
                       <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="phone">
@@ -321,7 +300,6 @@ const Cart = () => {
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
                         aria-label="Phone Number"
                       />
-                      {errors.phone && <p className="text-[#6B2D2D] text-sm mt-1">{errors.phone}</p>}
                     </div>
                     <div className="md:col-span-2">
                       <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="address">
@@ -336,7 +314,6 @@ const Cart = () => {
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
                         aria-label="Address"
                       />
-                      {errors.address && <p className="text-[#6B2D2D] text-sm mt-1">{errors.address}</p>}
                     </div>
                     <div>
                       <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="city">
@@ -351,7 +328,6 @@ const Cart = () => {
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
                         aria-label="City"
                       />
-                      {errors.city && <p className="text-[#6B2D2D] text-sm mt-1">{errors.city}</p>}
                     </div>
                     <div>
                       <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="state">
@@ -366,7 +342,6 @@ const Cart = () => {
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
                         aria-label="State"
                       />
-                      {errors.state && <p className="text-[#6B2D2D] text-sm mt-1">{errors.state}</p>}
                     </div>
                     <div>
                       <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="postalCode">
@@ -381,58 +356,128 @@ const Cart = () => {
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
                         aria-label="Postal Code"
                       />
-                      {errors.postalCode && <p className="text-[#6B2D2D] text-sm mt-1">{errors.postalCode}</p>}
                     </div>
                   </div>
 
-                  <h2 className="text-xl font-semibold text-[#2E2E2E] mt-8 mb-6">Payment Details</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="md:col-span-2">
-                      <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="cardNumber">
-                        Card Number
-                      </label>
-                      <input
-                        type="text"
-                        id="cardNumber"
-                        name="cardNumber"
-                        value={formData.cardNumber}
-                        onChange={handleInputChange}
-                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
-                        aria-label="Card Number"
-                      />
-                      {errors.cardNumber && <p className="text-[#6B2D2D] text-sm mt-1">{errors.cardNumber}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="expiry">
-                        Expiry Date (MM/YY)
-                      </label>
-                      <input
-                        type="text"
-                        id="expiry"
-                        name="expiry"
-                        value={formData.expiry}
-                        onChange={handleInputChange}
-                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
-                        aria-label="Expiry Date"
-                      />
-                      {errors.expiry && <p className="text-[#6B2D2D] text-sm mt-1">{errors.expiry}</p>}
-                    </div>
-                    <div>
-                      <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="cvv">
-                        CVV
-                      </label>
-                      <input
-                        type="text"
-                        id="cvv"
-                        name="cvv"
-                        value={formData.cvv}
-                        onChange={handleInputChange}
-                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
-                        aria-label="CVV"
-                      />
-                      {errors.cvv && <p className="text-[#6B2D2D] text-sm mt-1">{errors.cvv}</p>}
-                    </div>
+                  <h2 className="text-xl font-semibold text-[#2E2E2E] mt-8 mb-6">Payment Method</h2>
+                  
+                  <div className="flex gap-4 mb-6">
+                    <button
+                      onClick={() => handlePaymentMethodChange('card')}
+                      className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${
+                        paymentMethod === 'card' 
+                          ? 'bg-[#6B2D2D] text-white' 
+                          : 'bg-gray-200 text-[#2E2E2E] hover:bg-gray-300'
+                      }`}
+                    >
+                      Card Payment
+                    </button>
+                    <button
+                      onClick={() => handlePaymentMethodChange('scanner')}
+                      className={`px-4 py-2 rounded-full font-medium transition-all duration-300 ${
+                        paymentMethod === 'scanner' 
+                          ? 'bg-[#6B2D2D] text-white' 
+                          : 'bg-gray-200 text-[#2E2E2E] hover:bg-gray-300'
+                      }`}
+                    >
+                      QR Scanner
+                    </button>
                   </div>
+
+                  {paymentMethod === 'card' ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="md:col-span-2">
+                        <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="cardNumber">
+                          Card Number
+                        </label>
+                        <input
+                          type="text"
+                          id="cardNumber"
+                          name="cardNumber"
+                          value={formData.cardNumber}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
+                          aria-label="Card Number"
+                          placeholder="1234 5678 9012 3456"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="expiry">
+                          Expiry Date (MM/YY)
+                        </label>
+                        <input
+                          type="text"
+                          id="expiry"
+                          name="expiry"
+                          value={formData.expiry}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
+                          aria-label="Expiry Date"
+                          placeholder="MM/YY"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="cvv">
+                          CVV
+                        </label>
+                        <input
+                          type="text"
+                          id="cvv"
+                          name="cvv"
+                          value={formData.cvv}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
+                          aria-label="CVV"
+                          placeholder="123"
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center p-6 border-2 border-dashed border-[#D9A7A7] rounded-lg">
+                      <div className="mb-4">
+                        {/* <svg
+                          className="w-16 h-16 text-[#6B2D2D] mx-auto"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"
+                          />
+                        </svg> */}
+                      </div>
+                      <p className="text-[#2E2E2E] mb-4">Scan the QR code to complete your payment</p>
+                      <div className="bg-gray-200 p-4 rounded-lg inline-block mb-4">
+                        {/* Increased size of QR code */}
+                        <div className="w-full h-89 bg-white flex items-center justify-center mx-auto">
+                          <img 
+                            src={qr} 
+                            alt="QR Code for Payment" 
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      </div>
+                      <p className="text-[#2E2E2E] font-bold text-lg mb-2">After payment, please share the screenshot on WhatsApp:</p>
+                      <a 
+                        href="https://wa.me/918861315710" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center justify-center bg-green-600 text-white px-4 py-2 rounded-full font-medium hover:bg-green-700 transition-all duration-300"
+                      >
+                        <svg
+                          className="w-5 h-5 mr-2"
+                          fill="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.864 3.488"/>
+                        </svg>
+                        Share on WhatsApp
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -458,7 +503,7 @@ const Cart = () => {
                         <div className="flex items-center gap-2">
                           <button
                             onClick={() => handleQuantityChange(item.id, -1)}
-                            className="w-6 h-6 flex items-center justify-center bg-[#D9A7A7] text-[#6B2D2D] rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
+                            className="w-6 h-6 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
                             aria-label="Decrease quantity"
                             disabled={item.quantity === 1}
                           >
@@ -479,7 +524,7 @@ const Cart = () => {
                           <span className="text-[#2E2E2E] text-sm">{item.quantity}</span>
                           <button
                             onClick={() => handleQuantityChange(item.id, 1)}
-                            className="w-6 h-6 flex items-center justify-center bg-[#D9A7A7] text-[#6B2D2D] rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
+                            className="w-6 h-6 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
                             aria-label="Increase quantity"
                           >
                             <svg

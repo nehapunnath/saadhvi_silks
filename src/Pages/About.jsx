@@ -2,20 +2,20 @@ import React from 'react';
 
 const About = () => {
   return (
-    <div className="min-h-screen bg-[#FFF8E1]">
+    <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-[#FFF8E1] to-[#F5E6D3] bg-opacity-90 py-20 md:py-28">
+      <section className="relative bg-gradient-to-r from-[#F9F3F3] to-[#F7F0E8] bg-opacity-90 py-20 md:py-28">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#2E2E2E] mb-6">
-              About <span className="text-[#6B2D2D]">Saadhvi Silks</span>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#5D4037] mb-6">
+              About <span className="text-[#800020]">Saadhvi Silks</span>
             </h1>
-            <p className="text-lg md:text-xl text-[#2E2E2E] mb-8">
+            <p className="text-lg md:text-xl text-[#5D4037] mb-8">
               Celebrating the timeless art of saree weaving with passion, tradition, and craftsmanship.
             </p>
             <a
               href="/products"
-              className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-[#3A1A1A] transition-colors duration-300 shadow-lg"
+              className="bg-[#800020] text-white px-8 py-3 rounded-lg text-lg font-medium hover:bg-[#5D4037] transition-colors duration-300 shadow-lg"
             >
               Explore Our Collection
             </a>
@@ -31,11 +31,11 @@ const About = () => {
       </section>
 
       {/* Our Story */}
-      <section className="py-16 bg-[#FFF8E1]">
+      <section className="py-16 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#2E2E2E] mb-4">Our Story</h2>
-            <p className="text-[#2E2E2E] max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#800020] mb-4">Our Story</h2>
+            <p className="text-[#5D4037] max-w-2xl mx-auto">
               Founded with a deep love for India's rich textile heritage, Saadhvi Silks began as a vision to preserve and promote the art of traditional saree weaving. For over two decades, we have worked with skilled artisans across India to bring you sarees that embody elegance, culture, and craftsmanship.
             </p>
           </div>
@@ -48,10 +48,10 @@ const About = () => {
               />
             </div>
             <div className="md:w-1/2">
-              <p className="text-[#2E2E2E] text-lg mb-6">
+              <p className="text-[#5D4037] text-lg mb-6">
                 Each saree tells a story of dedication, woven with threads of tradition and innovation. From the looms of Kanchipuram to the intricate designs of Banaras, our collections are a tribute to the artisans who keep this art form alive.
               </p>
-              <p className="text-[#2E2E2E] text-lg">
+              <p className="text-[#5D4037] text-lg">
                 We strive to blend timeless techniques with contemporary aesthetics to create sarees that resonate with every generation. Our journey began in 1998 when our founder, Mrs. Anjali Mehta, discovered the fading art of handloom weaving during her travels through rural India.
               </p>
             </div>
@@ -60,11 +60,11 @@ const About = () => {
       </section>
 
       {/* Our Mission */}
-      <section className="py-16 bg-[#F5E6D3]">
+      <section className="py-16 bg-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#2E2E2E] mb-4">Our Mission</h2>
-            <p className="text-[#2E2E2E] max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#800020] mb-4">Our Mission</h2>
+            <p className="text-[#5D4037] max-w-2xl mx-auto">
               At Saadhvi Silks, we are committed to delivering unparalleled quality while preserving the cultural legacy of Indian sarees. Our mission is to empower artisans, promote sustainable practices, and bring the beauty of handwoven sarees to the world.
             </p>
           </div>
@@ -87,11 +87,11 @@ const About = () => {
               }
             ].map((item, index) => (
               <div key={index} className="bg-white rounded-2xl shadow-lg p-6 text-center transition-transform duration-300 hover:-translate-y-2">
-                <svg className="w-12 h-12 text-[#6B2D2D] mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-12 h-12 text-[#800020] mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
                   <path d={item.icon} />
                 </svg>
-                <h3 className="text-xl font-semibold text-[#2E2E2E] mb-2">{item.title}</h3>
-                <p className="text-[#2E2E2E]">{item.description}</p>
+                <h3 className="text-xl font-semibold text-[#5D4037] mb-2">{item.title}</h3>
+                <p className="text-[#5D4037]">{item.description}</p>
               </div>
             ))}
           </div>
@@ -99,11 +99,11 @@ const About = () => {
       </section>
 
       {/* Our Values */}
-      <section className="py-16 bg-[#FFF8E1]">
+      <section className="py-16 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#2E2E2E] mb-4">Our Values</h2>
-            <p className="text-[#2E2E2E] max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#800020] mb-4">Our Values</h2>
+            <p className="text-[#5D4037] max-w-2xl mx-auto">
               The principles that guide everything we do at Saadhvi Silks, from design to delivery.
             </p>
           </div>
@@ -114,9 +114,9 @@ const About = () => {
               { title: "Innovation", description: "Blending tradition with contemporary designs" },
               { title: "Community", description: "Supporting weaving communities across India" }
             ].map((value, index) => (
-              <div key={index} className="bg-[#D9A7A7] p-6 rounded-lg text-center">
-                <h3 className="text-xl font-semibold text-[#6B2D2D] mb-2">{value.title}</h3>
-                <p className="text-[#2E2E2E]">{value.description}</p>
+              <div key={index} className="bg-[#F5E6D3] p-6 rounded-lg text-center">
+                <h3 className="text-xl font-semibold text-[#8D6E63] mb-2">{value.title}</h3>
+                <p className="text-[#5D4037]">{value.description}</p>
               </div>
             ))}
           </div>
@@ -124,11 +124,11 @@ const About = () => {
       </section>
 
       {/* Artisan Spotlight */}
-      <section className="py-16 bg-[#F5E6D3]">
+      <section className="py-16 bg-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#2E2E2E] mb-4">Meet Our Artisans</h2>
-            <p className="text-[#2E2E2E] max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#800020] mb-4">Meet Our Artisans</h2>
+            <p className="text-[#5D4037] max-w-2xl mx-auto">
               The talented hands behind our beautiful creations, preserving centuries-old traditions.
             </p>
           </div>
@@ -141,11 +141,11 @@ const About = () => {
               />
             </div>
             <div className="md:w-1/2">
-              <h3 className="text-2xl font-semibold text-[#2E2E2E] mb-4">Preserving Tradition, One Thread at a Time</h3>
-              <p className="text-[#2E2E2E] mb-4">
+              <h3 className="text-2xl font-semibold text-[#800020] mb-4">Preserving Tradition, One Thread at a Time</h3>
+              <p className="text-[#5D4037] mb-4">
                 Our artisans come from generations of weavers who have perfected their craft over centuries. Each saree represents hours of meticulous work, with some pieces taking weeks or even months to complete.
               </p>
-              <p className="text-[#2E2E2E]">
+              <p className="text-[#5D4037]">
                 We partner with over 200 artisans across India, ensuring they receive fair compensation and work in safe conditions. By supporting Saadhvi Silks, you're helping to keep these ancient traditions alive.
               </p>
             </div>
@@ -154,11 +154,11 @@ const About = () => {
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 bg-[#FFF8E1]">
+      <section className="py-16 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-[#2E2E2E] mb-4">What Our Customers Say</h2>
-            <p className="text-[#2E2E2E] max-w-2xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold text-[#800020] mb-4">What Our Customers Say</h2>
+            <p className="text-[#5D4037] max-w-2xl mx-auto">
               The experiences of those who have adorned our creations.
             </p>
           </div>
@@ -182,15 +182,15 @@ const About = () => {
             ].map((testimonial, index) => (
               <div key={index} className="bg-[#F5E6D3] p-6 rounded-lg">
                 <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-[#6B2D2D] rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 bg-[#800020] rounded-full flex items-center justify-center text-white font-bold">
                     {testimonial.name.charAt(0)}
                   </div>
                   <div className="ml-4">
-                    <h4 className="font-semibold text-[#2E2E2E]">{testimonial.name}</h4>
-                    <p className="text-[#2E2E2E] text-sm">{testimonial.location}</p>
+                    <h4 className="font-semibold text-[#800020]">{testimonial.name}</h4>
+                    <p className="text-[#5D4037] text-sm">{testimonial.location}</p>
                   </div>
                 </div>
-                <p className="text-[#2E2E2E]">{`"${testimonial.comment}"`}</p>
+                <p className="text-[#5D4037]">{`"${testimonial.comment}"`}</p>
               </div>
             ))}
           </div>

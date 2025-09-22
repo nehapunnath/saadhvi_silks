@@ -11,6 +11,7 @@ import Products from './Pages/Products'
 import ViewDetails from './Pages/ViewDetails'
 import Cart from './Pages/Cart'
 import Wishlist from './Pages/Wishlist'
+import ContactUs from './Pages/ContactUs'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -21,7 +22,7 @@ function App() {
     <Routes>
       <Route path='/' element={<Home/>}/>
       <Route path='/about' element={<About/>}/>
-      <Route path='/contact' element={<ContactUS/>}/>
+      <Route path='/contact' element={<ContactUs/>}/>
       <Route path='/products' element={<Products/>}/>
       <Route path='/viewdetails' element={<ViewDetails/>}/>
       <Route path='/cart' element={<Cart/>}/>

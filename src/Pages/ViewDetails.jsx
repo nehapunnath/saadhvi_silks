@@ -70,7 +70,7 @@ const ViewDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#FFF8E1] py-12">
+    <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
       {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col lg:flex-row gap-12">
@@ -136,7 +136,7 @@ const ViewDetails = () => {
                   </span>
                 )}
                 {product.originalPrice && (
-                  <span className="ml-4 bg-[#D9A7A7] text-[#6B2D2D] text-xs font-semibold px-3 py-1 rounded-full">
+                  <span className="ml-4 bg-[#D9A7A7] text-[#800020] text-xs font-semibold px-3 py-1 rounded-full">
                     {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
                   </span>
                 )}
@@ -148,7 +148,7 @@ const ViewDetails = () => {
                 <div className="flex items-center gap-4">
                   <button
                     onClick={() => handleQuantityChange(-1)}
-                    className="w-10 h-10 flex items-center justify-center bg-[#D9A7A7] text-[#6B2D2D] rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
+                    className="w-10 h-10 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
                     aria-label="Decrease quantity"
                     disabled={quantity === 1}
                   >
@@ -165,7 +165,7 @@ const ViewDetails = () => {
                   <span className="text-lg font-semibold text-[#2E2E2E]">{quantity}</span>
                   <button
                     onClick={() => handleQuantityChange(1)}
-                    className="w-10 h-10 flex items-center justify-center bg-[#D9A7A7] text-[#6B2D2D] rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
+                    className="w-10 h-10 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
                     aria-label="Increase quantity"
                   >
                     <svg
@@ -229,7 +229,7 @@ const ViewDetails = () => {
                   {product.occasion.map((occasion, index) => (
                     <span
                       key={index}
-                      className="bg-[#D9A7A7] text-[#6B2D2D] text-sm font-medium px-3 py-1 rounded-full"
+                      className="bg-[#800020] text-white text-sm font-medium px-3 py-1 rounded-full"
                     >
                       {occasion}
                     </span>
@@ -243,14 +243,14 @@ const ViewDetails = () => {
               {/* Action Buttons */}
               <div className="flex gap-4">
                 <Link to='/cart'>
-                 <button className="flex-1 bg-[#6B2D2D] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#3A1A1A] transition-all duration-300">
+                 <button className="flex-1 bg-[#800020] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#3A1A1A] transition-all duration-300">
                   Add to Cart
                 </button>
                 </Link>
                
                 <Link
                   to="/products"
-                  className="flex-1 bg-[#D9A7A7] text-[#6B2D2D] px-6 py-3 rounded-lg font-medium hover:bg-[#6B2D2D] hover:text-white text-center transition-all duration-300"
+                  className="flex-1 bg-[white] text-[#6B2D2D] px-6 py-3 rounded-lg font-medium hover:bg-[#800020] hover:text-white text-center transition-all duration-300 border border-3 border-[#800020]"
                 >
                   Back to Products
                 </Link>
