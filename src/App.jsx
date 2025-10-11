@@ -1,41 +1,55 @@
 import { useState } from 'react'
-
+import { Route, Routes, useLocation } from 'react-router-dom'
 import './App.css'
-import { Route, Routes } from 'react-router-dom'
+
 import Home from './Pages/Home'
 import Header from './Components/Header'
 import Footer from './Components/Footer'
 import About from './Pages/About'
-import ContactUS from './Pages/ContactUs'
+import ContactUs from './Pages/ContactUs'
 import Products from './Pages/Products'
 import ViewDetails from './Pages/ViewDetails'
 import Cart from './Pages/Cart'
 import Wishlist from './Pages/Wishlist'
-import ContactUs from './Pages/ContactUs'
+import Login from './Pages/Login'
+import AdminDash from './Pages/Admin/AdminDash'
+import AdminProducts from './Pages/Admin/AdminProducts'
+import AddProducts from './Pages/Admin/AddProducts'
+import EditProducts from './Pages/Admin/EditProducts'
+import ViewProducts from './Pages/Admin/ViewProducts'
 
 function App() {
   const [count, setCount] = useState(0)
+  const location = useLocation()
+
+  const hideHeaderFooter = ['/login','/admin/dash','/admin/products','/admin/addproducts','/admin/editproducts' ,'/admin/viewproducts'].includes(location.pathname)
 
   return (
     <>
-    <Header/>
-    <Routes>
-      <Route path='/' element={<Home/>}/>
-      <Route path='/about' element={<About/>}/>
-      <Route path='/contact' element={<ContactUs/>}/>
-      <Route path='/products' element={<Products/>}/>
-      <Route path='/viewdetails' element={<ViewDetails/>}/>
-      <Route path='/cart' element={<Cart/>}/>
-      <Route path='/wishlist' element={<Wishlist/>}/>
+      {!hideHeaderFooter && <Header />}
+
+      <Routes>
+        <Route path='/' element={<Home />} />
+        <Route path='/about' element={<About />} />
+        <Route path='/contact' element={<ContactUs />} />
+        <Route path='/products' element={<Products />} />
+        <Route path='/viewdetails' element={<ViewDetails />} />
+        <Route path='/cart' element={<Cart />} />
+        <Route path='/wishlist' element={<Wishlist />} />
+        <Route path='/login' element={<Login />} />
+        <Route path='/admin/dash' element={<AdminDash />} />
+        <Route path='/admin/products' element={<AdminProducts />} />
+        <Route path='/admin/addproducts' element={<AddProducts />} />
+        <Route path='/admin/editproducts' element={<EditProducts />} />
+        <Route path='/admin/viewproducts' element={<ViewProducts />} />
 
 
 
 
 
+      </Routes>
 
-    </Routes>
-    <Footer/>
-      
+      {!hideHeaderFooter && <Footer />}
     </>
   )
 }

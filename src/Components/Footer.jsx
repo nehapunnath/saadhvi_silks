@@ -45,17 +45,51 @@ const Footer = () => {
               Quick Links
             </h4>
             <ul className="space-y-2.5">
-              {['Home', 'Products', 'About Us', 'Contact Us'].map((item) => (
-                <li key={item}>
-                  <a
-                    href="/"
-                    className="text-[#2E2E2E] hover:text-[#3A1A1A] transition-colors duration-300 flex items-center group text-sm"
-                  >
-                    <span className="w-1.5 h-1.5 bg-[#D9A7A7] rounded-full mr-2 group-hover:bg-[#6B2D2D] transition-colors duration-300"></span>
-                    {item}
-                  </a>
-                </li>
-              ))}
+              <li>
+                <a
+                  href="/"
+                  className="text-[#2E2E2E] hover:text-[#3A1A1A] transition-colors duration-300 flex items-center group text-sm"
+                >
+                  <span className="w-1.5 h-1.5 bg-[#D9A7A7] rounded-full mr-2 group-hover:bg-[#6B2D2D] transition-colors duration-300"></span>
+                  Home
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/products"
+                  className="text-[#2E2E2E] hover:text-[#3A1A1A] transition-colors duration-300 flex items-center group text-sm"
+                >
+                  <span className="w-1.5 h-1.5 bg-[#D9A7A7] rounded-full mr-2 group-hover:bg-[#6B2D2D] transition-colors duration-300"></span>
+                  Products
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/about"
+                  className="text-[#2E2E2E] hover:text-[#3A1A1A] transition-colors duration-300 flex items-center group text-sm"
+                >
+                  <span className="w-1.5 h-1.5 bg-[#D9A7A7] rounded-full mr-2 group-hover:bg-[#6B2D2D] transition-colors duration-300"></span>
+                  About Us
+                </a>
+              </li>
+              <li>
+                <a
+                  href="/contact"
+                  className="text-[#2E2E2E] hover:text-[#3A1A1A] transition-colors duration-300 flex items-center group text-sm"
+                >
+                  <span className="w-1.5 h-1.5 bg-[#D9A7A7] rounded-full mr-2 group-hover:bg-[#6B2D2D] transition-colors duration-300"></span>
+                  Contact Us
+                </a>
+              </li>
+               <li>
+                <a
+                  href="/login"
+                  className="text-[#2E2E2E] hover:text-[#3A1A1A] transition-colors duration-300 flex items-center group text-sm"
+                >
+                  <span className="w-1.5 h-1.5 bg-[#D9A7A7] rounded-full mr-2 group-hover:bg-[#6B2D2D] transition-colors duration-300"></span>
+                  Login
+                </a>
+              </li>
             </ul>
           </div>
 
@@ -89,7 +123,7 @@ const Footer = () => {
 
           {/* Business Hours */}
           <div>
-            <h4 className="text-base font-semibold text-[#2E2E2E] mb-4 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-8 after:h-0.5 after:bg-[#6B2D2D]">
+            <h4 className="text-base font-semibold text-[#2E2D2E] mb-4 relative pb-2 after:absolute after:left-0 after:bottom-0 after:w-8 after:h-0.5 after:bg-[#6B2D2D]">
               Business Hours
             </h4>
             <ul className="space-y-2 text-sm text-[#2E2E2E]">
