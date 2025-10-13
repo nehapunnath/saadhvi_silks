@@ -1,46 +1,35 @@
-// src/pages/admin/ViewProduct.js
-import React, { useState, useEffect } from 'react';
+// src/pages/admin/ViewProducts.js
+import React, { useState } from 'react';
 import Sidebar from '../../Components/SideBar';
 import { Link, useParams } from 'react-router-dom';
 
-const ViewProduct = () => {
+const ViewProducts = () => {
   const { id } = useParams();
-  const [product, setProduct] = useState(null);
-  const [activeTab, setActiveTab] = useState('description');
-
-  // Sample product data - in real app, this would come from API
-  const sampleProducts = [
-    {
-      id: 1,
-      name: "Kanjivaram Silk Saree",
-      price: 12499,
-      originalPrice: 15999,
-      category: "Traditional",
-      stock: 15,
-      status: "Active",
-      image: "https://www.soosi.co.in/cdn/shop/products/IMG-20190506-WA0069_580x.jpg?v=1571711124",
-      occasion: ["Wedding", "Festival"],
-      description: "This authentic Kanjivaram silk saree is a masterpiece of South Indian craftsmanship, featuring intricate traditional motifs woven with pure gold zari. Perfect for weddings and grand celebrations, its rich texture, vibrant colors, and elegant drape exude timeless elegance, making it a cherished addition to any wardrobe.",
-      badge: "Bestseller",
-      details: {
-        material: "Pure Kanjivaram Silk",
-        length: "6.5 meters (with blouse piece)",
-        weave: "Handwoven with pure zari",
-        care: "Dry Clean Only",
-        weight: "650 grams",
-        border: "Contrast Zari Border",
-        origin: "Kanchipuram, Tamil Nadu"
-      },
-      sizeGuide: "Standard saree length: 5.5m (saree) + 1m (blouse piece). Suitable for all body types."
-    },
-    // ... other products
-  ];
-
-  useEffect(() => {
-    // In real app, fetch product by ID from API
-    const foundProduct = sampleProducts.find(p => p.id === parseInt(id));
-    setProduct(foundProduct);
-  }, [id]);
+  
+  // Sample product data - in real app, you'd fetch this by ID
+  const [product] = useState({
+    id: 1,
+    name: "Kanjivaram Silk Saree",
+    price: 12499,
+    originalPrice: 15999,
+    category: "Traditional",
+    stock: 15,
+    status: "Active",
+    image: "https://www.soosi.co.in/cdn/shop/products/IMG-20190506-WA0069_580x.jpg?v=1571711124",
+    description: "Authentic Kanjivaram silk saree with pure gold zari work. This exquisite piece features intricate traditional motifs and patterns that are characteristic of the Kanjipuram weaving tradition. The saree is crafted by master weavers with generations of expertise.",
+    occasion: ["Wedding", "Festival"],
+    badge: "Bestseller",
+    material: "Pure Kanjivaram Silk",
+    length: "6.5 meters (with blouse piece)",
+    weave: "Handwoven with pure zari",
+    care: "Dry Clean Only",
+    weight: "650 grams",
+    border: "Contrast Zari Border",
+    origin: "Kanchipuram, Tamil Nadu",
+    sizeGuide: "Standard saree length: 5.5m (saree) + 1m (blouse piece). Suitable for all body types. The drape is perfect for traditional wear and provides comfortable movement.",
+    createdAt: "2024-01-15",
+    updatedAt: "2024-03-20"
+  });
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
@@ -50,26 +39,27 @@ const ViewProduct = () => {
     }).format(price);
   };
 
-  if (!product) {
-    return (
-      <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <div className="flex-1 ml-64 p-6">
-          <div className="max-w-7xl mx-auto">
-            <div className="text-center py-12">
-              <h2 className="text-2xl font-bold text-gray-800">Product not found</h2>
-              <Link
-                to="/admin/products"
-                className="text-[#6B2D2D] hover:text-[#8B3A3A] mt-4 inline-block"
-              >
-                Back to Products
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const calculateDiscount = () => {
+    if (product.originalPrice && product.originalPrice > product.price) {
+      return Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+    }
+    return 0;
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'Active': return 'bg-green-100 text-green-800';
+      case 'Out of Stock': return 'bg-red-100 text-red-800';
+      case 'Draft': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStockColor = (stock) => {
+    if (stock > 10) return 'text-green-600';
+    if (stock > 5) return 'text-yellow-600';
+    return 'text-red-600';
+  };
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -89,15 +79,6 @@ const ViewProduct = () => {
                 </div>
                 <div className="flex space-x-4">
                   <Link
-                    to={`/admin/edit-product`}
-                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    <span>Edit Product</span>
-                  </Link>
-                  <Link
                     to="/admin/products"
                     className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2"
                   >
@@ -106,75 +87,93 @@ const ViewProduct = () => {
                     </svg>
                     <span>Back to Products</span>
                   </Link>
+                  <Link
+                    to={`/admin/editproducts`}
+                    className="bg-[#6B2D2D] text-white px-6 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    <span>Edit Product</span>
+                  </Link>
                 </div>
               </div>
 
-              {/* Product Details */}
+              {/* Product Overview */}
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                   {/* Product Image */}
-                  <div>
-                    <div className="relative bg-white rounded-2xl overflow-hidden">
-                      {product.badge && (
-                        <span className="absolute top-4 left-4 bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
-                          {product.badge}
-                        </span>
-                      )}
+                  <div className="space-y-4">
+                    <div className="relative">
                       <img
                         src={product.image}
                         alt={product.name}
-                        className="w-full h-96 object-cover rounded-lg"
+                        className="w-full h-96 object-cover rounded-2xl shadow-lg"
                       />
+                      {product.badge && (
+                        <div className="absolute top-4 left-4">
+                          <span className="bg-[#6B2D2D] text-white px-3 py-1 rounded-full text-sm font-semibold">
+                            {product.badge}
+                          </span>
+                        </div>
+                      )}
+                      {calculateDiscount() > 0 && (
+                        <div className="absolute top-4 right-4">
+                          <span className="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+                            {calculateDiscount()}% OFF
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Product Tags */}
+                    <div className="flex flex-wrap gap-2">
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(product.status)}`}>
+                        {product.status}
+                      </span>
+                      <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                        {product.category}
+                      </span>
+                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStockColor(product.stock)}`}>
+                        Stock: {product.stock}
+                      </span>
                     </div>
                   </div>
 
                   {/* Product Information */}
-                  <div>
-                    <h2 className="text-3xl font-semibold text-[#2E2E2E] mb-4">{product.name}</h2>
-
-                    {/* Price */}
-                    <div className="flex items-center mb-6">
-                      <span className="text-[#6B2D2D] font-bold text-2xl">{formatPrice(product.price)}</span>
-                      {product.originalPrice && (
-                        <span className="text-[#2E2E2E] text-lg line-through ml-4">
-                          {formatPrice(product.originalPrice)}
-                        </span>
-                      )}
-                      {product.originalPrice && (
-                        <span className="ml-4 bg-[#D9A7A7] text-[#800020] text-xs font-semibold px-3 py-1 rounded-full">
-                          {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
-                        </span>
-                      )}
+                  <div className="space-y-6">
+                    <div>
+                      <h1 className="text-3xl font-bold text-gray-800 mb-2">{product.name}</h1>
+                      <p className="text-gray-600 text-lg leading-relaxed">{product.description}</p>
                     </div>
 
-                    {/* Basic Info */}
-                    <div className="space-y-4 mb-6">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Category:</span>
-                        <span className="font-medium">{product.category}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Stock:</span>
-                        <span className={`font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {product.stock} units
+                    {/* Pricing */}
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-4">
+                        <span className="text-3xl font-bold text-[#6B2D2D]">
+                          {formatPrice(product.price)}
                         </span>
+                        {product.originalPrice && product.originalPrice > product.price && (
+                          <span className="text-xl text-gray-500 line-through">
+                            {formatPrice(product.originalPrice)}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Status:</span>
-                        <span className={`font-medium ${product.status === 'Active' ? 'text-green-600' : 'text-red-600'}`}>
-                          {product.status}
-                        </span>
-                      </div>
+                      {calculateDiscount() > 0 && (
+                        <p className="text-green-600 font-semibold">
+                          You save {formatPrice(product.originalPrice - product.price)} ({calculateDiscount()}% off)
+                        </p>
+                      )}
                     </div>
 
                     {/* Occasions */}
-                    <div className="mb-6">
-                      <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Suitable For</h3>
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800 mb-3">Suitable For</h3>
                       <div className="flex flex-wrap gap-2">
                         {product.occasion.map((occasion, index) => (
                           <span
                             key={index}
-                            className="bg-[#800020] text-white text-sm font-medium px-3 py-1 rounded-full"
+                            className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium"
                           >
                             {occasion}
                           </span>
@@ -182,43 +181,139 @@ const ViewProduct = () => {
                       </div>
                     </div>
 
-                    {/* Tabs for Description and Details */}
-                    <div className="mb-6">
-                      <div className="flex border-b border-[#D9A7A7]">
-                        {['description', 'details'].map((tab) => (
-                          <button
-                            key={tab}
-                            className={`px-4 py-2 text-sm font-medium capitalize transition-colors duration-300 ${
-                              activeTab === tab
-                                ? 'text-[#6B2D2D] border-b-2 border-[#6B2D2D]'
-                                : 'text-[#2E2E2E] hover:text-[#3A1A1A]'
-                            }`}
-                            onClick={() => setActiveTab(tab)}
-                          >
-                            {tab}
-                          </button>
-                        ))}
+                    {/* Key Specifications */}
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-200">
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500">Material</h4>
+                        <p className="text-gray-800 font-medium">{product.material}</p>
                       </div>
-                      <div className="mt-4 text-[#2E2E2E]">
-                        {activeTab === 'description' && <p className="leading-relaxed">{product.description}</p>}
-                        {activeTab === 'details' && product.details && (
-                          <ul className="space-y-2">
-                            {Object.entries(product.details).map(([key, value]) => (
-                              <li key={key} className="flex">
-                                <span className="font-medium capitalize w-1/3">{key}:</span>
-                                <span>{value}</span>
-                              </li>
-                            ))}
-                            <li className="flex">
-                              <span className="font-medium capitalize w-1/3">Size Guide:</span>
-                              <span>{product.sizeGuide}</span>
-                            </li>
-                          </ul>
-                        )}
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500">Weight</h4>
+                        <p className="text-gray-800 font-medium">{product.weight}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500">Origin</h4>
+                        <p className="text-gray-800 font-medium">{product.origin}</p>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-500">Length</h4>
+                        <p className="text-gray-800 font-medium">{product.length}</p>
                       </div>
                     </div>
                   </div>
                 </div>
+              </div>
+
+              {/* Detailed Information */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Product Details */}
+                <div className="bg-white rounded-2xl shadow-xl p-8">
+                  <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Product Details</h2>
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">Material</label>
+                        <p className="text-gray-800 font-medium">{product.material}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">Weave Type</label>
+                        <p className="text-gray-800 font-medium">{product.weave}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">Border Design</label>
+                        <p className="text-gray-800 font-medium">{product.border}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">Care Instructions</label>
+                        <p className="text-gray-800 font-medium">{product.care}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">Weight</label>
+                        <p className="text-gray-800 font-medium">{product.weight}</p>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">Place of Origin</label>
+                        <p className="text-gray-800 font-medium">{product.origin}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Size & Fit Guide */}
+                <div className="bg-white rounded-2xl shadow-xl p-8">
+                  <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Size & Fit Guide</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <p className="text-gray-700 leading-relaxed">{product.sizeGuide}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <h4 className="font-semibold text-gray-800 mb-2">Standard Saree Measurements:</h4>
+                      <ul className="text-gray-600 space-y-1 text-sm">
+                        <li>• Total Length: 6.5 meters (including blouse piece)</li>
+                        <li>• Saree Length: 5.5 meters</li>
+                        <li>• Blouse Piece: 1 meter</li>
+                        <li>• Width: 47-48 inches</li>
+                        <li>• Suitable for heights 5'0" to 5'8"</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Inventory & Meta Information */}
+              <div className="bg-white rounded-2xl shadow-xl p-8">
+                <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Inventory & Meta</h2>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Current Stock</h4>
+                    <p className={`text-2xl font-bold ${getStockColor(product.stock)}`}>{product.stock}</p>
+                    <p className="text-xs text-gray-500 mt-1">units available</p>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Product Status</h4>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(product.status)}`}>
+                      {product.status}
+                    </span>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-lg">
+                    <h4 className="text-sm font-medium text-gray-500 mb-1">Product ID</h4>
+                    <p className="text-lg font-mono font-bold text-gray-800">#{product.id.toString().padStart(6, '0')}</p>
+                  </div>
+                </div>
+                
+                {/* Timeline */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4">Product Timeline</h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Created On</span>
+                      <span className="font-medium text-gray-800">{product.createdAt}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Last Updated</span>
+                      <span className="font-medium text-gray-800">{product.updatedAt}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex justify-end space-x-4 pt-6">
+                <Link
+                  to="/admin/products"
+                  className="bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700 transition-colors duration-200"
+                >
+                  Back to List
+                </Link>
+                <Link
+                  to={`/admin/editproducts/${product.id}`}
+                  className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span>Edit Product</span>
+                </Link>
               </div>
             </div>
           </div>
@@ -228,4 +323,4 @@ const ViewProduct = () => {
   );
 };
 
-export default ViewProduct;
+export default ViewProducts;

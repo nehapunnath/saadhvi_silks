@@ -17,12 +17,16 @@ import AdminProducts from './Pages/Admin/AdminProducts'
 import AddProducts from './Pages/Admin/AddProducts'
 import EditProducts from './Pages/Admin/EditProducts'
 import ViewProducts from './Pages/Admin/ViewProducts'
+import Orders from './Pages/Admin/Orders'
+import ViewOrder from './Pages/Admin/ViewOrder'
+import Gallery from './Pages/Admin/Gallery'
+import Offers from './Pages/Admin/Offers'
 
 function App() {
   const [count, setCount] = useState(0)
   const location = useLocation()
 
-  const hideHeaderFooter = ['/login','/admin/dash','/admin/products','/admin/addproducts','/admin/editproducts' ,'/admin/viewproducts'].includes(location.pathname)
+  const hideHeaderFooter = ['/login','/admin/dash','/admin/products','/admin/addproducts','/admin/editproducts' ,'/admin/viewproducts','/admin/orders','/admin/vieworders','/admin/gallery','/admin/offers'].includes(location.pathname)
 
   return (
     <>
@@ -42,6 +46,14 @@ function App() {
         <Route path='/admin/addproducts' element={<AddProducts />} />
         <Route path='/admin/editproducts' element={<EditProducts />} />
         <Route path='/admin/viewproducts' element={<ViewProducts />} />
+        <Route path='/admin/orders' element={<Orders />} />
+        <Route path='/admin/vieworders' element={<ViewOrder/>} />
+        <Route path='/admin/gallery' element={<Gallery/>} />
+        <Route path='/admin/offers' element={<Offers/>} />
+
+
+
+
 
 
 

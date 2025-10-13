@@ -129,7 +129,7 @@ const Cart = () => {
             </svg>
             <h2 className="text-xl font-medium text-[#2E2E2E] mb-4">Order Confirmed!</h2>
             <p className="text-[#2E2E2E] mb-6">
-              Thank you for your purchase. You'll receive a confirmation email soon.
+              Thank you for your purchase. 
             </p>
             <Link
               to="/products"
