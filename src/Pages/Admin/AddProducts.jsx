@@ -2,12 +2,16 @@
 import React, { useState } from 'react';
 import Sidebar from '../../Components/SideBar';
 import { Link } from 'react-router-dom';
+import productApi from '../../Services/ProductApi';
+import authApi from '../../Services/authApi';
+import { toast } from 'react-hot-toast';
 
 const AddProducts = () => {
   const [product, setProduct] = useState({
     name: '',
     price: '',
     originalPrice: '',
+    extraCharges: '',
     category: '',
     occasion: [],
     description: '',
@@ -19,14 +23,16 @@ const AddProducts = () => {
     border: '',
     origin: '',
     sizeGuide: '',
-    image: '',
+    images: [],
     badge: ''
   });
 
   const [selectedOccasions, setSelectedOccasions] = useState([]);
-  const [imagePreview, setImagePreview] = useState('');
+  const [imagePreviews, setImagePreviews] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   const occasions = ['Wedding', 'Festival', 'Party', 'Casual', 'Office', 'Traditional'];
+  const maxImages = 5;
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -41,37 +47,65 @@ const AddProducts = () => {
       const newOccasions = prev.includes(occasion)
         ? prev.filter(item => item !== occasion)
         : [...prev, occasion];
-      
+
       setProduct(prevProduct => ({
         ...prevProduct,
         occasion: newOccasions
       }));
-      
+
       return newOccasions;
     });
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
+    const files = Array.from(e.target.files);
+    if (imagePreviews.length + files.length > maxImages) {
+     toast.error(`Maximum ${maxImages} images allowed!`);
+      return;
+    }
+
+    files.forEach(file => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(reader.result);
+        setImagePreviews(prev => [...prev, reader.result]);
         setProduct(prev => ({
           ...prev,
-          image: reader.result
+          images: [...prev.images, file]
         }));
       };
       reader.readAsDataURL(file);
-    }
+    });
   };
 
-  const handleSubmit = (e) => {
+  const removeImage = (index) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setProduct(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log('Product Data:', product);
-    alert('Product added successfully!');
-    // Reset form or redirect
+
+    // if (!authApi.isLoggedIn()) {
+    //   toast.error('Please login first!');
+    //   return;
+    // }
+
+    // setLoading(true);
+
+    try {
+      const result = await productApi.addProduct(product);
+
+      toast.success('Product added successfully!');
+      window.location.href = '/admin/products';
+
+    } catch (error) {
+      toast.error('Error: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const formatPrice = (price) => {
@@ -84,10 +118,8 @@ const AddProducts = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
       <Sidebar />
-      
-      {/* Main Content */}
+
       <div className="flex-1 ml-64">
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
@@ -112,7 +144,7 @@ const AddProducts = () => {
               <form onSubmit={handleSubmit} className="space-y-8">
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                   <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Product Information</h2>
-                  
+
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     {/* Left Column - Basic Info */}
                     <div className="space-y-6">
@@ -131,30 +163,51 @@ const AddProducts = () => {
                       </div>
 
                       {/* Price Information */}
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Current Price (₹)</label>
-                          <input
-                            type="number"
-                            name="price"
-                            value={product.price}
-                            onChange={handleInputChange}
-                            className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                            placeholder="12499"
-                            required
-                          />
+                      <div className="space-y-4">
+                        <label className="block text-sm font-medium text-[#2E2E2E]">Pricing Details (₹)</label>
+                        <div className="grid grid-cols-3 gap-4">
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Current Price</label>
+                            <input
+                              type="number"
+                              name="price"
+                              value={product.price}
+                              onChange={handleInputChange}
+                              className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                              placeholder="12499"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Original Price</label>
+                            <input
+                              type="number"
+                              name="originalPrice"
+                              value={product.originalPrice}
+                              onChange={handleInputChange}
+                              className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                              placeholder="15999"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Extra Charges</label>
+                            <input
+                              type="number"
+                              name="extraCharges"
+                              value={product.extraCharges}
+                              onChange={handleInputChange}
+                              className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                              placeholder="0"
+                            />
+                          </div>
                         </div>
-                        <div>
-                          <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Original Price (₹)</label>
-                          <input
-                            type="number"
-                            name="originalPrice"
-                            value={product.originalPrice}
-                            onChange={handleInputChange}
-                            className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                            placeholder="15999"
-                          />
-                        </div>
+                        {product.price && (
+                          <p className="text-sm text-gray-600">
+                            Current: {formatPrice(product.price)}
+                            {product.originalPrice && ` | Original: ${formatPrice(product.originalPrice)}`}
+                            {product.extraCharges && ` | Extra: ${formatPrice(product.extraCharges)}`}
+                          </p>
+                        )}
                       </div>
 
                       {/* Category */}
@@ -168,11 +221,23 @@ const AddProducts = () => {
                           required
                         >
                           <option value="">Select Category</option>
-                          <option value="Traditional">Traditional</option>
-                          <option value="Contemporary">Contemporary</option>
+                          <option value="All">All</option>
+                          <option value="Bridal collection">Bridal collection</option>
+                          <option value="Kanjivaram">Kanjivaram</option>
+                          <option value="Silk">Silk</option>
+                          <option value="Soft silk">Soft silk</option>
+                          <option value="Ikkat silk">Ikkat silk</option>
+                          <option value="Silk dhoti">Silk dhoti</option>
+                          <option value="Banaras">Banaras</option>
+                          <option value="Tussar">Tussar</option>
                           <option value="Designer">Designer</option>
-                          <option value="Bridal">Bridal</option>
-                          <option value="Casual">Casual</option>
+                          <option value="Fancy">Fancy</option>
+                          <option value="Cotton">Cotton</option>
+                          <option value="Daily wear">Daily wear</option>
+                          <option value="Lehenga">Lehenga</option>
+                          <option value="Dress material">Dress material</option>
+                          <option value="Readymade">Readymade</option>
+                          <option value="Sale">Sale</option>
                         </select>
                       </div>
 
@@ -216,40 +281,24 @@ const AddProducts = () => {
                     <div className="space-y-6">
                       {/* Image Upload */}
                       <div>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Product Image</label>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Product Images (up to 5)</label>
                         <div className="border-2 border-dashed border-[#D9A7A7] rounded-2xl p-6 text-center">
-                          {imagePreview ? (
-                            <div className="space-y-4">
-                              <img
-                                src={imagePreview}
-                                alt="Preview"
-                                className="w-full h-48 object-cover rounded-lg mx-auto"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => setImagePreview('')}
-                                className="text-red-600 hover:text-red-800 text-sm"
-                              >
-                                Remove Image
-                              </button>
+                          <div className="space-y-4">
+                            <svg className="w-12 h-12 text-[#D9A7A7] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <div>
+                              <p className="text-sm text-[#2E2E2E]">
+                                <span className="font-semibold">Click to upload</span> or drag and drop
+                              </p>
+                              <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
                             </div>
-                          ) : (
-                            <div className="space-y-4">
-                              <svg className="w-12 h-12 text-[#D9A7A7] mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                              </svg>
-                              <div>
-                                <p className="text-sm text-[#2E2E2E]">
-                                  <span className="font-semibold">Click to upload</span> or drag and drop
-                                </p>
-                                <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
-                              </div>
-                            </div>
-                          )}
+                          </div>
                           <input
                             type="file"
                             accept="image/*"
                             onChange={handleImageChange}
+                            multiple
                             className="hidden"
                             id="image-upload"
                           />
@@ -257,22 +306,28 @@ const AddProducts = () => {
                             htmlFor="image-upload"
                             className="inline-block bg-[#6B2D2D] text-white px-4 py-2 rounded-lg mt-4 cursor-pointer hover:bg-[#8B3A3A] transition-colors duration-200"
                           >
-                            Choose Image
+                            Choose Images
                           </label>
+                          {/* Previews */}
+                          <div className="grid grid-cols-5 gap-2 mt-4">
+                            {imagePreviews.map((preview, index) => (
+                              <div key={index} className="relative">
+                                <img
+                                  src={preview}
+                                  alt={`Preview ${index}`}
+                                  className="w-full h-20 object-cover rounded-lg"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeImage(index)}
+                                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-
-                      {/* Image URL Fallback */}
-                      <div>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Or Enter Image URL</label>
-                        <input
-                          type="url"
-                          name="image"
-                          value={product.image}
-                          onChange={handleInputChange}
-                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                          placeholder="https://example.com/image.jpg"
-                        />
                       </div>
                     </div>
                   </div>
@@ -295,7 +350,7 @@ const AddProducts = () => {
                 {/* Product Details Section */}
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                   <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Product Details</h2>
-                  
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                       <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Material</label>
@@ -413,9 +468,10 @@ const AddProducts = () => {
                   </Link>
                   <button
                     type="submit"
-                    className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200"
+                    disabled={loading}
+                    className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 disabled:bg-gray-400"
                   >
-                    Add Product
+                    {loading ? 'Adding...' : 'Add Product'}
                   </button>
                 </div>
               </form>

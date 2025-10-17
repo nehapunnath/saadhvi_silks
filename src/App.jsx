@@ -21,12 +21,13 @@ import Orders from './Pages/Admin/Orders'
 import ViewOrder from './Pages/Admin/ViewOrder'
 import Gallery from './Pages/Admin/Gallery'
 import Offers from './Pages/Admin/Offers'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
   const [count, setCount] = useState(0)
   const location = useLocation()
 
-  const hideHeaderFooter = ['/login','/admin/dash','/admin/products','/admin/addproducts','/admin/editproducts' ,'/admin/viewproducts','/admin/orders','/admin/vieworders','/admin/gallery','/admin/offers'].includes(location.pathname)
+  const hideHeaderFooter = ['/login', '/admin/dash', '/admin/products', '/admin/addproducts', '/admin/editproducts', '/admin/viewproducts/:id', '/admin/orders', '/admin/vieworders', '/admin/gallery', '/admin/offers',].includes(location.pathname)
 
   return (
     <>
@@ -41,15 +42,15 @@ function App() {
         <Route path='/cart' element={<Cart />} />
         <Route path='/wishlist' element={<Wishlist />} />
         <Route path='/login' element={<Login />} />
-        <Route path='/admin/dash' element={<AdminDash />} />
+        {/* <Route path='/admin/dash' element={<AdminDash />} /> */}
         <Route path='/admin/products' element={<AdminProducts />} />
         <Route path='/admin/addproducts' element={<AddProducts />} />
         <Route path='/admin/editproducts' element={<EditProducts />} />
-        <Route path='/admin/viewproducts' element={<ViewProducts />} />
+        <Route path='/admin/viewproducts/:id' element={<ViewProducts />} />
         <Route path='/admin/orders' element={<Orders />} />
-        <Route path='/admin/vieworders' element={<ViewOrder/>} />
-        <Route path='/admin/gallery' element={<Gallery/>} />
-        <Route path='/admin/offers' element={<Offers/>} />
+        <Route path='/admin/vieworders' element={<ViewOrder />} />
+        <Route path='/admin/gallery' element={<Gallery />} />
+        <Route path='/admin/offers' element={<Offers />} />
 
 
 
@@ -60,7 +61,17 @@ function App() {
 
 
       </Routes>
-
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          // style: {
+          //   background: '#6B2D2D',
+          //   color: '#fff',
+          //   fontSize: '14px',
+          // },
+        }}
+      />
       {!hideHeaderFooter && <Footer />}
     </>
   )

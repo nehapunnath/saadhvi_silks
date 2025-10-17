@@ -1,166 +1,88 @@
 // src/pages/admin/Products.js
-import React, { useState } from 'react';
-import Sidebar from '../../Components/SideBar';
+import React, { useState, useEffect } from 'react';
+import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
+import Sidebar from '../../Components/SideBar';
+import productApi from '../../Services/ProductApi';
+import authApi from '../../Services/authApi';
 
 const AdminProducts = () => {
-  const [products, setProducts] = useState([
-    {
-      id: 1,
-      name: "Kanjivaram Silk Saree",
-      price: 12499,
-      category: "Traditional",
-      stock: 15,
-      status: "Active",
-      image: "https://www.soosi.co.in/cdn/shop/products/IMG-20190506-WA0069_580x.jpg?v=1571711124",
-      description: "Authentic Kanjivaram silk saree with pure gold zari work.",
-      originalPrice: 15999,
-      occasion: ["Wedding", "Festival"],
-      badge: "Bestseller",
-      details: {
-        material: "Pure Kanjivaram Silk",
-        length: "6.5 meters (with blouse piece)",
-        weave: "Handwoven with pure zari",
-        care: "Dry Clean Only",
-        weight: "650 grams",
-        border: "Contrast Zari Border",
-        origin: "Kanchipuram, Tamil Nadu"
-      },
-      sizeGuide: "Standard saree length: 5.5m (saree) + 1m (blouse piece). Suitable for all body types."
-    },
-    {
-      id: 2,
-      name: "Banarasi Silk Saree",
-      price: 9999,
-      category: "Traditional",
-      stock: 8,
-      status: "Active",
-      image: "https://m.media-amazon.com/images/I/9176UCN4piL._UY350_.jpg",
-      description: "Pure Banarasi silk saree with intricate brocade work.",
-      originalPrice: 12999,
-      occasion: ["Wedding", "Party"],
-      badge: "Popular",
-      details: {
-        material: "Pure Banarasi Silk",
-        length: "6.0 meters (with blouse piece)",
-        weave: "Handwoven brocade",
-        care: "Dry Clean Only",
-        weight: "700 grams",
-        border: "Golden Zari Border",
-        origin: "Varanasi, Uttar Pradesh"
-      },
-      sizeGuide: "Standard saree length with intricate border design."
-    },
-    {
-      id: 3,
-      name: "Designer Art Silk Saree",
-      price: 7499,
-      category: "Contemporary",
-      stock: 0,
-      status: "Out of Stock",
-      image: "https://www.vishalprints.in/cdn/shop/files/STAR_SILK-55337-01.jpg?v=1755161577",
-      description: "Designer art silk saree with modern patterns and prints.",
-      originalPrice: 8999,
-      occasion: ["Party", "Casual"],
-      badge: "New",
-      details: {
-        material: "Art Silk",
-        length: "5.5 meters (with blouse piece)",
-        weave: "Machine woven",
-        care: "Gentle Hand Wash",
-        weight: "450 grams",
-        border: "Designer Print Border",
-        origin: "Surat, Gujarat"
-      },
-      sizeGuide: "Lightweight saree suitable for casual wear."
-    },
-    {
-      id: 4,
-      name: "Tussar Silk Saree",
-      price: 6299,
-      category: "Traditional",
-      stock: 12,
-      status: "Active",
-      image: "https://oldsilksareebuyers.com/wp-content/uploads/2021/04/Old-Wedding-pattu-saree-buyers-1.jpg",
-      description: "Pure Tussar silk saree with natural golden texture.",
-      originalPrice: 7999,
-      occasion: ["Festival", "Office"],
-      details: {
-        material: "Pure Tussar Silk",
-        length: "6.0 meters (with blouse piece)",
-        weave: "Handwoven",
-        care: "Dry Clean Only",
-        weight: "550 grams",
-        border: "Simple Zari Border",
-        origin: "Bhagalpur, Bihar"
-      },
-      sizeGuide: "Natural golden texture with comfortable drape."
-    }
-  ]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filterCategory, setFilterCategory] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const [showAddProduct, setShowAddProduct] = useState(false);
-  const [newProduct, setNewProduct] = useState({
-    name: '',
-    price: '',
-    category: '',
-    stock: '',
-    description: '',
-    image: ''
+  // 🔥 18 CATEGORIES FOR FILTER
+  const categories = [
+    'All', 'Bridal collection', 'Kanjivaram', 'Silk', 'Soft silk',
+    'Ikkat silk', 'Silk dhoti', 'Banaras', 'Tussar', 'Designer',
+    'Fancy', 'Cotton', 'Daily wear', 'Lehenga', 'Dress material',
+    'Readymade', 'Sale'
+  ];
+
+  // 🔥 FETCH PRODUCTS FROM API
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const fetchProducts = async () => {
+    // if (!authApi.isLoggedIn()) {
+    //   toast.error('Please login first!');
+    //   setLoading(false);
+    //   return;
+    // }
+
+    // setLoading(true);
+    try {
+      const result = await productApi.getProducts();
+      setProducts(result.products);
+      console.log('🔍 IMAGES:', products.map(p => ({name: p.name, images: p.images?.length})));
+      toast.success(`Loaded ${result.products.length} products!`);
+    } catch (error) {
+      toast.error('Failed to load products: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🔥 DELETE PRODUCT
+  const handleDeleteProduct = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+
+    try {
+      await productApi.deleteProduct(id);
+      setProducts(products.filter(product => product.key !== id));
+      
+      toast.success('Product deleted successfully!');
+    } catch (error) {
+      toast.error('Delete failed: ' + error.message);
+    }
+  };
+
+  // 🔥 UPDATE STOCK STATUS
+  const handleStockChange = async (productId, status) => {
+    try {
+      const newStock = status === 'Available' ? 1 : 0;
+      await productApi.updateProduct(productId, { stock: newStock });
+
+      setProducts(products.map(product =>
+        product.key === productId
+          ? { ...product, stock: newStock }
+          : product
+      ));
+
+      toast.success(`Stock updated to ${status}!`);
+    } catch (error) {
+      toast.error('Failed to update stock: ' + error.message);
+    }
+  };
+
+  // 🔥 FILTER PRODUCTS
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = filterCategory === 'All' || product.category === filterCategory;
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
   });
-
-  const [editingProduct, setEditingProduct] = useState(null);
-
-  const handleAddProduct = (e) => {
-    e.preventDefault();
-    const product = {
-      id: products.length + 1,
-      ...newProduct,
-      price: parseInt(newProduct.price),
-      stock: parseInt(newProduct.stock),
-      status: newProduct.stock > 0 ? 'Active' : 'Out of Stock'
-    };
-    setProducts([...products, product]);
-    setShowAddProduct(false);
-    setNewProduct({ name: '', price: '', category: '', stock: '', description: '', image: '' });
-  };
-
-  const handleEditProduct = (product) => {
-    setEditingProduct(product);
-    setNewProduct({
-      name: product.name,
-      price: product.price,
-      category: product.category,
-      stock: product.stock,
-      description: product.description,
-      image: product.image
-    });
-    setShowAddProduct(true);
-  };
-
-  const handleUpdateProduct = (e) => {
-    e.preventDefault();
-    const updatedProducts = products.map(product =>
-      product.id === editingProduct.id
-        ? {
-            ...product,
-            ...newProduct,
-            price: parseInt(newProduct.price),
-            stock: parseInt(newProduct.stock),
-            status: newProduct.stock > 0 ? 'Active' : 'Out of Stock'
-          }
-        : product
-    );
-    setProducts(updatedProducts);
-    setShowAddProduct(false);
-    setEditingProduct(null);
-    setNewProduct({ name: '', price: '', category: '', stock: '', description: '', image: '' });
-  };
-
-  const handleDeleteProduct = (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      setProducts(products.filter(product => product.id !== id));
-    }
-  };
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
@@ -170,18 +92,26 @@ const AdminProducts = () => {
     }).format(price);
   };
 
-  const resetForm = () => {
-    setShowAddProduct(false);
-    setEditingProduct(null);
-    setNewProduct({ name: '', price: '', category: '', stock: '', description: '', image: '' });
-  };
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B2D2D]"></div>
+              <p className="mt-4 text-gray-600">Loading products...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
       <Sidebar />
-      
-      {/* Main Content */}
+
       <div className="flex-1 ml-64">
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
@@ -203,20 +133,51 @@ const AdminProducts = () => {
                 </Link>
               </div>
 
-              {/* Products Count */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Total Products</h3>
-                    <p className="text-3xl font-bold text-[#6B2D2D] mt-1">{products.length}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Active Products</p>
-                    <p className="text-xl font-semibold text-green-600">
-                      {products.filter(p => p.status === 'Active').length}
-                    </p>
+              {/* Products Count & Filters */}
+              {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"> */}
+                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800">Total Products</h3>
+                      <p className="text-3xl font-bold text-[#6B2D2D] mt-1">{products.length}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Active Products</p>
+                      <p className="text-xl font-semibold text-green-600">
+                        {products.filter(p => p.stock > 0).length}
+                      </p>
+                    </div>
                   </div>
                 </div>
+
+                {/* Search */}
+                {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search products..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-10 pr-4 py-2 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                    />
+                    <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div> */}
+              {/* </div> */}
+
+              {/* Category Filter */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                >
+                  {categories.map(category => (
+                    <option key={category} value={category}>{category}</option>
+                  ))}
+                </select>
               </div>
 
               {/* Products Table */}
@@ -228,21 +189,22 @@ const AdminProducts = () => {
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {products.map((product) => (
-                        <tr key={product.id} className="hover:bg-gray-50">
+                      {filteredProducts.map((product) => (
+                        <tr key={product.key} className="hover:bg-gray-50">
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
                               <img
-                                src={product.image}
+                                src={product.images?.[0] || 'https://via.placeholder.com/48?text=No+Image'}
                                 alt={product.name}
                                 className="w-12 h-12 object-cover rounded-lg mr-4"
                               />
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-medium text-gray-900 truncate">{product.name}</div>
                                 <div className="text-sm text-gray-500 truncate max-w-xs">
                                   {product.description}
                                 </div>
@@ -254,18 +216,40 @@ const AdminProducts = () => {
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {product.category}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                              {product.category}
+                            </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                            {formatPrice(product.price)}
+                            <div>
+                              <div>{formatPrice(product.price)}</div>
+                              {product.originalPrice && (
+                                <div className="text-xs text-gray-500 line-through">
+                                  {formatPrice(product.originalPrice)}
+                                </div>
+                              )}
+                            </div>
                           </td>
-                         
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <select
+                              value={product.stock > 0 ? 'Available' : 'Out of Stock'}
+                              onChange={(e) => handleStockChange(product.key, e.target.value)}
+                              className="px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-[#6B2D2D] focus:outline-none"
+                              style={{
+                                backgroundColor: product.stock > 0 ? '#dcfce7' : '#fecaca',
+                                color: product.stock > 0 ? '#166534' : '#991b1b'
+                              }}
+                            >
+                              <option value="Available">Available</option>
+                              <option value="Out of Stock">Out of Stock</option>
+                            </select>
+                          </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-3">
                               {/* View Button */}
                               <Link
-                                to={`/admin/viewproducts`}
+                                to={`/admin/viewproducts/${product.key}`}
                                 className="text-green-600 hover:text-green-800 transition-colors duration-200 flex items-center space-x-1"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -274,10 +258,10 @@ const AdminProducts = () => {
                                 </svg>
                                 <span>View</span>
                               </Link>
-                              
+
                               {/* Edit Button */}
                               <Link
-                                to={`/admin/editproducts`}
+                                to={`/admin/editproduct/${product.key}`}
                                 className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -285,10 +269,10 @@ const AdminProducts = () => {
                                 </svg>
                                 <span>Edit</span>
                               </Link>
-                              
+
                               {/* Delete Button */}
-                              <button 
-                                onClick={() => handleDeleteProduct(product.id)}
+                              <button
+                                onClick={() => handleDeleteProduct(product.key)}
                                 className="text-red-600 hover:text-red-800 transition-colors duration-200 flex items-center space-x-1"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -303,27 +287,45 @@ const AdminProducts = () => {
                     </tbody>
                   </table>
                 </div>
+
+                {/* No Results */}
+                {filteredProducts.length === 0 && (
+                  <div className="text-center py-12">
+                    <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+                    <p className="text-gray-500 mb-4">
+                      {searchTerm || filterCategory !== 'All'
+                        ? 'Try adjusting your search or filter.'
+                        : 'Get started by adding your first product.'
+                      }
+                    </p>
+                    <Link
+                      to="/admin/addproducts"
+                      className="bg-[#6B2D2D] text-white px-6 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 inline-flex items-center space-x-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                      </svg>
+                      <span>Add Product</span>
+                    </Link>
+                  </div>
+                )}
               </div>
 
-              {/* Empty State */}
-              {products.length === 0 && (
-                <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-200">
-                  <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+              {/* Refresh Button */}
+              <div className="flex justify-center">
+                <button
+                  onClick={fetchProducts}
+                  className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-                  <p className="text-gray-500 mb-4">Get started by adding your first product.</p>
-                  <Link
-                    to="/admin/add-product"
-                    className="bg-[#6B2D2D] text-white px-6 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 inline-flex items-center space-x-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    <span>Add Product</span>
-                  </Link>
-                </div>
-              )}
+                  <span>Refresh Products</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
