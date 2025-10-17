@@ -27,7 +27,21 @@ function App() {
   const [count, setCount] = useState(0)
   const location = useLocation()
 
-  const hideHeaderFooter = ['/login', '/admin/dash', '/admin/products', '/admin/addproducts', '/admin/editproducts', '/admin/viewproducts/:id', '/admin/orders', '/admin/vieworders', '/admin/gallery', '/admin/offers',].includes(location.pathname)
+const hideHeaderFooterPaths = [
+  '/login',
+  '/admin/dash',
+  '/admin/products',
+  '/admin/addproducts',
+  '/admin/editproducts',
+  '/admin/orders',
+  '/admin/vieworders',
+  '/admin/gallery',
+  '/admin/offers',
+]
+
+const hideHeaderFooter =
+  hideHeaderFooterPaths.includes(location.pathname) ||
+  location.pathname.startsWith('/admin/viewproducts/')
 
   return (
     <>
