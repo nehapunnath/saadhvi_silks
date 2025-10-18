@@ -27,21 +27,12 @@ function App() {
   const [count, setCount] = useState(0)
   const location = useLocation()
 
-const hideHeaderFooterPaths = [
-  '/login',
-  '/admin/dash',
-  '/admin/products',
-  '/admin/addproducts',
-  '/admin/editproducts',
-  '/admin/orders',
-  '/admin/vieworders',
-  '/admin/gallery',
-  '/admin/offers',
-]
+  // const location = useLocation();
 
-const hideHeaderFooter =
-  hideHeaderFooterPaths.includes(location.pathname) ||
-  location.pathname.startsWith('/admin/viewproducts/')
+  // Hide Header & Footer for login and all admin routes
+  const hideHeaderFooter =
+    location.pathname === '/login' || location.pathname.startsWith('/admin');
+
 
   return (
     <>
@@ -59,7 +50,7 @@ const hideHeaderFooter =
         {/* <Route path='/admin/dash' element={<AdminDash />} /> */}
         <Route path='/admin/products' element={<AdminProducts />} />
         <Route path='/admin/addproducts' element={<AddProducts />} />
-        <Route path='/admin/editproducts' element={<EditProducts />} />
+        <Route path='/admin/editproducts/:id' element={<EditProducts />} />
         <Route path='/admin/viewproducts/:id' element={<ViewProducts />} />
         <Route path='/admin/orders' element={<Orders />} />
         <Route path='/admin/vieworders' element={<ViewOrder />} />

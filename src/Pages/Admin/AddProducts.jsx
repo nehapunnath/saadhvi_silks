@@ -2,9 +2,11 @@
 import React, { useState } from 'react';
 import Sidebar from '../../Components/SideBar';
 import { Link } from 'react-router-dom';
-import productApi from '../../Services/ProductApi';
+// import productApi from '../../Services/ProductApi';
 import authApi from '../../Services/authApi';
 import { toast } from 'react-hot-toast';
+import productApi from '../../Services/proApi';
+// import productApi from '../../Services/productApi';
 
 const AddProducts = () => {
   const [product, setProduct] = useState({
@@ -24,7 +26,8 @@ const AddProducts = () => {
     origin: '',
     sizeGuide: '',
     images: [],
-    badge: ''
+    badge: '',
+    stock: 1,
   });
 
   const [selectedOccasions, setSelectedOccasions] = useState([]);

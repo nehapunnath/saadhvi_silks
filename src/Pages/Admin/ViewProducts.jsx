@@ -3,16 +3,16 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link, useParams } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
-import productApi from '../../Services/ProductApi';
+// import productApi from '../../Services/productApi';
 import authApi from '../../Services/authApi';
+import productApi from '../../Services/proApi';
 
 const ViewProducts = () => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0); // 🔥 CAROUSEL STATE
+  const [currentImageIndex, setCurrentImageIndex] = useState(0); 
 
-  // 🔥 FETCH PRODUCT FROM API
   useEffect(() => {
     fetchProduct();
   }, [id]);
@@ -27,7 +27,7 @@ const ViewProducts = () => {
     try {
       const result = await productApi.getProduct(id);
       setProduct(result.product);
-      console.log('🔍 VIEW IMAGES:', result.product.images?.length || 0, 'images'); // 🔥 SINGLE PRODUCT
+      console.log('🔍 VIEW IMAGES:', result.product.images?.length || 0, 'images'); 
       toast.success('Product loaded successfully!');
     } catch (error) {
       toast.error('Failed to load product: ' + error.message);
@@ -113,15 +113,7 @@ const ViewProducts = () => {
                     </svg>
                     <span>Back to Products</span>
                   </Link>
-                  <Link
-                    to={`/admin/editproduct/${product.key}`}
-                    className="bg-[#6B2D2D] text-white px-6 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 flex items-center space-x-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    <span>Edit Product</span>
-                  </Link>
+            
                 </div>
               </div>
 
@@ -293,7 +285,7 @@ const ViewProducts = () => {
                     <div>
                       <p className="text-gray-700 leading-relaxed">{product.sizeGuide}</p>
                     </div>
-                    <div className="bg-gray-50 rounded-lg p-4">
+                    {/* <div className="bg-gray-50 rounded-lg p-4">
                       <h4 className="font-semibold text-gray-800 mb-2">Standard Saree Measurements:</h4>
                       <ul className="text-gray-600 space-y-1 text-sm">
                         <li>• Total Length: {product.length}</li>
@@ -302,7 +294,7 @@ const ViewProducts = () => {
                         <li>• Width: 47-48 inches</li>
                         <li>• Suitable for heights 5'0" to 5'8"</li>
                       </ul>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
               </div>
@@ -359,7 +351,7 @@ const ViewProducts = () => {
                   Back to List
                 </Link>
                 <Link
-                  to={`/admin/editproduct/${product.key}`}
+                  to={`/admin/editproducts/${product.key}`}
                   className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 flex items-center space-x-2"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

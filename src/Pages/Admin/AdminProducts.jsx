@@ -3,8 +3,11 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
-import productApi from '../../Services/ProductApi';
+// import productApi from '../../Services/ProductApi';
 import authApi from '../../Services/authApi';
+import productApi from '../../Services/proApi';
+// import productApi from '../../Services/productApi';
+
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
@@ -12,7 +15,6 @@ const AdminProducts = () => {
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // 🔥 18 CATEGORIES FOR FILTER
   const categories = [
     'All', 'Bridal collection', 'Kanjivaram', 'Silk', 'Soft silk',
     'Ikkat silk', 'Silk dhoti', 'Banaras', 'Tussar', 'Designer',
@@ -20,7 +22,6 @@ const AdminProducts = () => {
     'Readymade', 'Sale'
   ];
 
-  // 🔥 FETCH PRODUCTS FROM API
   useEffect(() => {
     fetchProducts();
   }, []);
@@ -36,7 +37,7 @@ const AdminProducts = () => {
     try {
       const result = await productApi.getProducts();
       setProducts(result.products);
-      console.log('🔍 IMAGES:', products.map(p => ({name: p.name, images: p.images?.length})));
+      console.log('🔍 IMAGES:', products.map(p => ({ name: p.name, images: p.images?.length })));
       toast.success(`Loaded ${result.products.length} products!`);
     } catch (error) {
       toast.error('Failed to load products: ' + error.message);
@@ -45,25 +46,24 @@ const AdminProducts = () => {
     }
   };
 
-  // 🔥 DELETE PRODUCT
   const handleDeleteProduct = async (id) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
 
     try {
       await productApi.deleteProduct(id);
       setProducts(products.filter(product => product.key !== id));
-      
+
       toast.success('Product deleted successfully!');
     } catch (error) {
       toast.error('Delete failed: ' + error.message);
     }
   };
 
-  // 🔥 UPDATE STOCK STATUS
   const handleStockChange = async (productId, status) => {
     try {
       const newStock = status === 'Available' ? 1 : 0;
-      await productApi.updateProduct(productId, { stock: newStock });
+
+      await productApi.updateStock(productId, newStock);
 
       setProducts(products.map(product =>
         product.key === productId
@@ -77,7 +77,6 @@ const AdminProducts = () => {
     }
   };
 
-  // 🔥 FILTER PRODUCTS
   const filteredProducts = products.filter(product => {
     const matchesCategory = filterCategory === 'All' || product.category === filterCategory;
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -135,37 +134,21 @@ const AdminProducts = () => {
 
               {/* Products Count & Filters */}
               {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"> */}
-                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-semibold text-gray-800">Total Products</h3>
-                      <p className="text-3xl font-bold text-[#6B2D2D] mt-1">{products.length}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">Active Products</p>
-                      <p className="text-xl font-semibold text-green-600">
-                        {products.filter(p => p.stock > 0).length}
-                      </p>
-                    </div>
+              <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800">Total Products</h3>
+                    <p className="text-3xl font-bold text-[#6B2D2D] mt-1">{products.length}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">Active Products</p>
+                    <p className="text-xl font-semibold text-green-600">
+                      {products.filter(p => p.stock > 0).length}
+                    </p>
                   </div>
                 </div>
+              </div>
 
-                {/* Search */}
-                {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search products..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                    />
-                    <svg className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
-                  </div>
-                </div> */}
-              {/* </div> */}
 
               {/* Category Filter */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -261,7 +244,7 @@ const AdminProducts = () => {
 
                               {/* Edit Button */}
                               <Link
-                                to={`/admin/editproduct/${product.key}`}
+                                to={`/admin/editproducts/${product.key}`}
                                 className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

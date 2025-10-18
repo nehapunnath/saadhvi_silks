@@ -1,46 +1,56 @@
 // src/pages/admin/EditProducts.js
 import React, { useState, useEffect } from 'react';
-import Sidebar from '../../Components/SideBar';
+import { toast } from 'react-hot-toast';
 import { Link, useParams, useNavigate } from 'react-router-dom';
+import Sidebar from '../../Components/SideBar';
+// import productApi from '../../Services/productApi';
+import authApi from '../../Services/authApi';
+import productApi from '../../Services/proApi';
 
 const EditProducts = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   
-  // Sample product data - in real app, this would come from API
-  const sampleProduct = {
-    id: 1,
-    name: "Kanjivaram Silk Saree",
-    price: 12499,
-    originalPrice: 15999,
-    category: "Traditional",
-    occasion: ["Wedding", "Festival"],
-    description: "This authentic Kanjivaram silk saree is a masterpiece of South Indian craftsmanship, featuring intricate traditional motifs woven with pure gold zari. Perfect for weddings and grand celebrations, its rich texture, vibrant colors, and elegant drape exude timeless elegance, making it a cherished addition to any wardrobe.",
-    badge: "Bestseller",
-    material: "Pure Kanjivaram Silk",
-    length: "6.5 meters (with blouse piece)",
-    weave: "Handwoven with pure zari",
-    care: "Dry Clean Only",
-    weight: "650 grams",
-    border: "Contrast Zari Border",
-    origin: "Kanchipuram, Tamil Nadu",
-    sizeGuide: "Standard saree length: 5.5m (saree) + 1m (blouse piece). Suitable for all body types.",
-    image: "https://www.soosi.co.in/cdn/shop/products/IMG-20190506-WA0069_580x.jpg?v=1571711124"
-  };
-
-  const [product, setProduct] = useState(sampleProduct);
-  const [selectedOccasions, setSelectedOccasions] = useState(sampleProduct.occasion);
-  const [imagePreview, setImagePreview] = useState(sampleProduct.image);
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [selectedOccasions, setSelectedOccasions] = useState([]);
+  const [newImages, setNewImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
 
   const occasions = ['Wedding', 'Festival', 'Party', 'Casual', 'Office', 'Traditional'];
 
+  const categories = [
+    'Bridal collection', 'Kanjivaram', 'Silk', 'Soft silk',
+    'Ikkat silk', 'Silk dhoti', 'Banaras', 'Tussar', 'Designer',
+    'Fancy', 'Cotton', 'Daily wear', 'Lehenga', 'Dress material',
+    'Readymade', 'Sale', 'Traditional', 'Contemporary'
+  ];
+
   useEffect(() => {
-    // In real app, fetch product data by ID
-    // For now, using sample data
-    setProduct(sampleProduct);
-    setSelectedOccasions(sampleProduct.occasion);
-    setImagePreview(sampleProduct.image);
+    fetchProduct();
   }, [id]);
+
+  const fetchProduct = async () => {
+    try {
+      setLoading(true);
+      const result = await productApi.getProduct(id);
+      const productData = result.product;
+      
+      setProduct(productData);
+      setSelectedOccasions(productData.occasion || []);
+      setImagePreviews(productData.images || []);
+      
+      console.log(' LOADED:', productData);
+      toast.success('Product loaded successfully!');
+    } catch (error) {
+      console.error(' Fetch Error:', error);
+      toast.error('Failed to load product: ' + error.message);
+      navigate('/admin/products');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -66,27 +76,45 @@ const EditProducts = () => {
   };
 
   const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-        setProduct(prev => ({
-          ...prev,
-          image: reader.result
-        }));
-      };
-      reader.readAsDataURL(file);
+    const files = Array.from(e.target.files);
+    const newFiles = [...newImages, ...files];
+    
+    if (newFiles.length > 5) {
+      toast.error('Maximum 5 images allowed!');
+      return;
     }
+
+    setNewImages(newFiles);
+    
+    const previews = files.map(file => URL.createObjectURL(file));
+    setImagePreviews(prev => [...prev, ...previews]);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle form submission here
-    console.log('Updated Product Data:', product);
-    alert('Product updated successfully!');
-    navigate('/admin/products');
+  const removeImage = (index) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    setNewImages(prev => prev.filter((_, i) => i !== index));
   };
+
+  const handleSubmit = async (e) => {
+  e.preventDefault();
+  if (saving) return;
+  
+  try {
+    setSaving(true);
+    
+    console.log('🔄 SAVING:', product);
+    
+    const result = await productApi.updateProduct(id, product, newImages);
+    
+    toast.success('Product updated successfully! ');
+    navigate('/admin/products');
+  } catch (error) {
+    console.error(' Save Error:', error);
+    toast.error('Failed to update: ' + error.message);
+  } finally {
+    setSaving(false);
+  }
+};
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
@@ -96,12 +124,37 @@ const EditProducts = () => {
     }).format(price);
   };
 
+  if (loading) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-[#6B2D2D]"></div>
+              <p className="mt-4 text-gray-600">Loading product...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!product) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <Sidebar />
+        <div className="flex-1 ml-64 p-6">
+          <div className="text-center">Product not found!</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
       <Sidebar />
       
-      {/* Main Content */}
       <div className="flex-1 ml-64">
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
@@ -110,7 +163,7 @@ const EditProducts = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-800">Edit Product</h1>
-                  <p className="text-gray-600 mt-1">Update product information</p>
+                  <p className="text-gray-600 mt-1">Update {product.name}</p>
                 </div>
                 <Link
                   to="/admin/products"
@@ -128,11 +181,10 @@ const EditProducts = () => {
                   <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Product Information</h2>
                   
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Left Column - Basic Info */}
+                    {/* Left Column */}
                     <div className="space-y-6">
-                      {/* Product Name */}
                       <div>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Product Name</label>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Product Name *</label>
                         <input
                           type="text"
                           name="name"
@@ -143,10 +195,9 @@ const EditProducts = () => {
                         />
                       </div>
 
-                      {/* Price Information */}
                       <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Current Price (₹)</label>
+                          <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Current Price (₹) *</label>
                           <input
                             type="number"
                             name="price"
@@ -161,16 +212,15 @@ const EditProducts = () => {
                           <input
                             type="number"
                             name="originalPrice"
-                            value={product.originalPrice}
+                            value={product.originalPrice || ''}
                             onChange={handleInputChange}
                             className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
                           />
                         </div>
                       </div>
 
-                      {/* Category */}
                       <div>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Category</label>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Category *</label>
                         <select
                           name="category"
                           value={product.category}
@@ -178,20 +228,17 @@ const EditProducts = () => {
                           className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
                           required
                         >
-                          <option value="Traditional">Traditional</option>
-                          <option value="Contemporary">Contemporary</option>
-                          <option value="Designer">Designer</option>
-                          <option value="Bridal">Bridal</option>
-                          <option value="Casual">Casual</option>
+                          {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
+                          ))}
                         </select>
                       </div>
 
-                      {/* Badge */}
                       <div>
                         <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Badge</label>
                         <select
                           name="badge"
-                          value={product.badge}
+                          value={product.badge || ''}
                           onChange={handleInputChange}
                           className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
                         >
@@ -203,7 +250,6 @@ const EditProducts = () => {
                         </select>
                       </div>
 
-                      {/* Occasions */}
                       <div>
                         <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Suitable For</label>
                         <div className="grid grid-cols-2 gap-2">
@@ -222,55 +268,46 @@ const EditProducts = () => {
                       </div>
                     </div>
 
-                    {/* Right Column - Image Upload */}
+                    {/* Right Column - MULTIPLE IMAGES */}
                     <div className="space-y-6">
-                      {/* Current Image */}
                       <div>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Current Image</label>
-                        <img
-                          src={imagePreview}
-                          alt={product.name}
-                          className="w-full h-48 object-cover rounded-lg border border-[#D9A7A7]"
-                        />
-                      </div>
-
-                      {/* Image Upload */}
-                      <div>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Update Image</label>
-                        <div className="border-2 border-dashed border-[#D9A7A7] rounded-2xl p-4 text-center">
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageChange}
-                            className="hidden"
-                            id="image-upload"
-                          />
-                          <label
-                            htmlFor="image-upload"
-                            className="inline-block bg-[#6B2D2D] text-white px-4 py-2 rounded-lg cursor-pointer hover:bg-[#8B3A3A] transition-colors duration-200"
-                          >
-                            Change Image
-                          </label>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Product Images ({imagePreviews.length}/5)</label>
+                        <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto">
+                          {imagePreviews.map((img, index) => (
+                            <div key={index} className="relative">
+                              <img
+                                src={img}
+                                alt={`Preview ${index + 1}`}
+                                className="w-full h-32 object-cover rounded-lg"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeImage(index)}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
                         </div>
                       </div>
 
-                      {/* Image URL */}
                       <div>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Or Update Image URL</label>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Add New Images</label>
                         <input
-                          type="url"
-                          name="image"
-                          value={product.image}
-                          onChange={handleInputChange}
-                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="w-full p-3 border border-[#D9A7A7] rounded-lg"
                         />
+                        <p className="text-xs text-gray-500 mt-1">Max 5 images total (JPG, PNG)</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Description */}
                   <div className="mt-6">
-                    <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Product Description</label>
+                    <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Description *</label>
                     <textarea
                       name="description"
                       value={product.description}
@@ -282,19 +319,19 @@ const EditProducts = () => {
                   </div>
                 </div>
 
-                {/* Product Details Section */}
+                {/* Product Details */}
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                   <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Product Details</h2>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {[
-                      { label: 'Material', name: 'material', value: product.material },
-                      { label: 'Length', name: 'length', value: product.length },
-                      { label: 'Weave', name: 'weave', value: product.weave },
-                      { label: 'Care Instructions', name: 'care', value: product.care },
-                      { label: 'Weight', name: 'weight', value: product.weight },
-                      { label: 'Border', name: 'border', value: product.border },
-                      { label: 'Origin', name: 'origin', value: product.origin },
+                      { label: 'Material', name: 'material', value: product.material || '' },
+                      { label: 'Length', name: 'length', value: product.length || '' },
+                      { label: 'Weave', name: 'weave', value: product.weave || '' },
+                      { label: 'Care Instructions', name: 'care', value: product.care || '' },
+                      { label: 'Weight', name: 'weight', value: product.weight || '' },
+                      { label: 'Border', name: 'border', value: product.border || '' },
+                      { label: 'Origin', name: 'origin', value: product.origin || '' },
                     ].map((field) => (
                       <div key={field.name}>
                         <label className="block text-sm font-medium text-[#2E2E2E] mb-2">{field.label}</label>
@@ -304,7 +341,6 @@ const EditProducts = () => {
                           value={field.value}
                           onChange={handleInputChange}
                           className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                          required
                         />
                       </div>
                     ))}
@@ -313,14 +349,27 @@ const EditProducts = () => {
                       <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Size Guide</label>
                       <textarea
                         name="sizeGuide"
-                        value={product.sizeGuide}
+                        value={product.sizeGuide || ''}
                         onChange={handleInputChange}
                         rows="3"
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                        required
                       />
                     </div>
                   </div>
+                </div>
+
+                {/* Stock */}
+                <div className="bg-white rounded-2xl shadow-xl p-8">
+                  <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Stock Status</h2>
+                  <select
+                    name="stock"
+                    value={product.stock}
+                    onChange={handleInputChange}
+                    className="w-full max-w-xs p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                  >
+                    <option value={1}>Available</option>
+                    <option value={0}>Out of Stock</option>
+                  </select>
                 </div>
 
                 {/* Action Buttons */}
@@ -333,9 +382,10 @@ const EditProducts = () => {
                   </Link>
                   <button
                     type="submit"
-                    className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200"
+                    disabled={saving}
+                    className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 disabled:opacity-50"
                   >
-                    Update Product
+                    {saving ? 'Saving...' : 'Update Product'}
                   </button>
                 </div>
               </form>
