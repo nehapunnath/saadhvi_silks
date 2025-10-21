@@ -117,6 +117,29 @@ updateStock: async (id, stock) => {
   if (!response.ok) throw new Error(data.error);
   return data;
 },
+ getPublicProducts: async () => {
+    const response = await fetch(`${BASE_URL}/products`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+
+  getPublicProduct: async (id) => {
+    const response = await fetch(`${BASE_URL}/products/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
 };
 
 export default productApi;

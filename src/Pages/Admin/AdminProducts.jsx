@@ -298,7 +298,7 @@ const AdminProducts = () => {
               </div>
 
               {/* Refresh Button */}
-              <div className="flex justify-center">
+              {/* <div className="flex justify-center">
                 <button
                   onClick={fetchProducts}
                   className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2"
@@ -308,7 +308,7 @@ const AdminProducts = () => {
                   </svg>
                   <span>Refresh Products</span>
                 </button>
-              </div>
+              </div> */}
             </div>
           </div>
         </div>
