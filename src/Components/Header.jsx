@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import saadhvi from '../assets/saadhvi_silks.png';
+import authApi from '../Services/authApi';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+
+  const isLoggedIn = authApi.isLoggedIn();
+  const username = localStorage.getItem('username') || 'User';
+  const userType = authApi.getUserType();
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -14,6 +20,7 @@ const Header = () => {
 
   const toggleSearch = () => {
     setIsSearchOpen(!isSearchOpen);
+    if (isMenuOpen) setIsMenuOpen(false);
   };
 
   const toggleMenu = () => {
@@ -21,10 +28,16 @@ const Header = () => {
     if (isSearchOpen) setIsSearchOpen(false);
   };
 
+  const handleLogout = () => {
+    authApi.logout();
+    setIsMenuOpen(false);
+    navigate('/');
+  };
+
   return (
     <header className="bg-gradient-to-r from-[#F9F3F3] to-[#F7F0E8] bg-opacity-90 shadow-xl sticky top-0 z-50">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        {/* Logo - Increased Size */}
+        {/* Logo */}
         <div className="flex items-center">
           <Link to="/" aria-label="Saadhvi Silks Home">
             <img
@@ -35,7 +48,7 @@ const Header = () => {
           </Link>
         </div>
 
-        {/* Desktop Navigation - Increased Font Size */}
+        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center space-x-1">
           <Link
             to="/"
@@ -71,7 +84,7 @@ const Header = () => {
           </Link>
         </nav>
 
-        {/* Right side icons - Increased Size */}
+        {/* Right side icons - Desktop */}
         <div className="hidden md:flex items-center space-x-5 ml-6">
           {/* Search Icon */}
           <button
@@ -108,9 +121,33 @@ const Header = () => {
               <span className="absolute -top-1 -right-1 bg-[#6B2D2D] text-white text-sm rounded-full h-5 w-5 flex items-center justify-center">0</span>
             </button>
           </Link>
+          {/* Login/Logout Section */}
+          {isLoggedIn ? (
+            <div className="flex items-center space-x-3">
+              <span className="text-[#2E2E2E] text-lg font-semibold">
+                {userType === 'admin' ? 'Admin' : username}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="text-[#2E2E2E] hover:text-[#3A1A1A] text-lg font-semibold transition-colors duration-300 p-2"
+                aria-label="Log out"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link to="/login" className="p-2">
+              <button
+                className="text-[#2E2E2E] hover:text-[#3A1A1A] text-lg font-semibold transition-colors duration-300"
+                aria-label="Log in"
+              >
+                Login
+              </button>
+            </Link>
+          )}
         </div>
 
-        {/* Mobile Menu Button - Increased Size */}
+        {/* Mobile Menu Button */}
         <button
           className="md:hidden focus:outline-none relative z-50 p-2"
           onClick={toggleMenu}
@@ -163,7 +200,7 @@ const Header = () => {
         </form>
       </div>
 
-      {/* Mobile Navigation - Increased Font Size */}
+      {/* Mobile Navigation */}
       <div
         className={`md:hidden bg-gradient-to-b from-[#FFF8E1] to-[#F5E6D3] shadow-2xl overflow-hidden transition-all duration-300 ease-in-out transform ${
           isMenuOpen ? 'max-h-96 opacity-100 translate-y-0' : 'max-h-0 opacity-0 -translate-y-4'
@@ -244,6 +281,34 @@ const Header = () => {
               <span className="ml-3 bg-[#6B2D2D] text-white text-sm rounded-full h-5 w-5 flex items-center justify-center">0</span>
             </span>
           </Link>
+          {/* Mobile Login/Logout */}
+          {isLoggedIn ? (
+            <div className="flex items-center justify-between text-[#2E2E2E] text-lg font-semibold py-4 border-l-4 border-transparent hover:border-[#6B2D2D] rounded-l-md">
+              <span className="hover:text-[#3A1A1A] transition-colors duration-300">
+                {userType === 'admin' ? 'Admin' : username}
+              </span>
+              <button
+                onClick={handleLogout}
+                className="text-[#2E2E2E] hover:text-[#3A1A1A] transition-colors duration-300"
+                aria-label="Log out"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/login"
+              className="text-[#2E2E2E] hover:text-[#3A1A1A] transition-colors duration-300 text-left py-4 border-l-4 border-transparent hover:border-[#6B2D2D] rounded-l-md"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <span className="flex items-center text-lg font-semibold">
+                <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Login
+              </span>
+            </Link>
+          )}
         </div>
       </div>
     </header>
