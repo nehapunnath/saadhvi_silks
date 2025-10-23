@@ -140,6 +140,105 @@ updateStock: async (id, stock) => {
     if (!response.ok) throw new Error(data.error);
     return data;
   },
+   getWishlist: async () => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/wishlist`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to fetch wishlist');
+    return data;
+  },
+
+  addToWishlist: async (item) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/wishlist`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(item)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to add to wishlist');
+    return data;
+  },
+
+  removeFromWishlist: async (id) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/wishlist/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to remove from wishlist');
+    return data;
+  },
+  getCart: async () => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/cart`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to fetch cart');
+    return data;
+  },
+
+  addToCart: async (item) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/cart`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(item)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to add to cart');
+    return data;
+  },
+
+  removeFromCart: async (id) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/cart/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to remove from cart');
+    return data;
+  },
+
+  updateCartQuantity: async (id, quantity) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/cart/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ quantity })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to update cart quantity');
+    return data;
+  },
 };
 
 export default productApi;

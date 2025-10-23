@@ -1,22 +1,41 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
+import productApi from '../Services/proApi';
+import authApi from '../Services/authApi';
 
 const Wishlist = () => {
-  // Sample wishlist data (in a real app, this would come from a state management system or context)
-  const [wishlistItems, setWishlistItems] = useState([
-    {
-      id: 1,
-      name: "Kanjivaram Silk Saree",
-      price: 12499,
-      image: "https://www.soosi.co.in/cdn/shop/products/IMG-20190506-WA0069_580x.jpg?v=1571711124"
-    },
-    {
-      id: 3,
-      name: "Designer Art Silk Saree",
-      price: 7499,
-      image: "https://www.vishalprints.in/cdn/shop/files/STAR_SILK-55337-01.jpg?v=1755161577"
-    }
-  ]);
+  const navigate = useNavigate();
+  const [wishlistItems, setWishlistItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const fetchWishlist = async () => {
+      if (!authApi.isLoggedIn()) {
+        setError('Please login to view your wishlist');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const result = await productApi.getWishlist();
+        if (result.success) {
+          setWishlistItems(result.items);
+        } else {
+          setError('Failed to load wishlist');
+        }
+      } catch (err) {
+        setError('Failed to load wishlist: ' + err.message);
+        console.error('Error fetching wishlist:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWishlist();
+  }, []);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
@@ -26,21 +45,83 @@ const Wishlist = () => {
     }).format(price);
   };
 
-  const handleRemoveItem = (id) => {
-    setWishlistItems((prevItems) => prevItems.filter((item) => item.id !== id));
+  const handleRemoveItem = async (id) => {
+    try {
+      await productApi.removeFromWishlist(id);
+      setWishlistItems((prevItems) => prevItems.filter((item) => item.id !== id));
+      toast.success('Removed from wishlist!');
+    } catch (err) {
+      toast.error('Failed to remove item: ' + err.message);
+    }
   };
 
-  const handleMoveToCart = (item) => {
-    // In a real app, this would add the item to the cart (e.g., via context or API)
-    setWishlistItems((prevItems) => prevItems.filter((i) => i.id !== item.id));
-    // Placeholder for adding to cart
-    console.log(`Moved ${item.name} to cart`);
+  // 🔥 Updated Add to Cart Handler
+  const handleMoveToCart = async (item) => {
+    if (!authApi.isLoggedIn()) {
+      toast.error('Please login first to add to cart!');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      await productApi.addToCart({
+        id: item.id,
+        name: item.name,
+        price: item.price,
+        image: item.image,
+        quantity: 1
+      });
+      await productApi.removeFromWishlist(item.id);
+      setWishlistItems((prevItems) => prevItems.filter((i) => i.id !== item.id));
+      toast.success(`${item.name} moved to cart!`);
+    } catch (err) {
+      toast.error('Failed to move to cart: ' + err.message);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6B2D2D] mx-auto"></div>
+          <p className="mt-4 text-[#2E2E2E]">Loading wishlist...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
+        <div className="container mx-auto px-4 text-center">
+          <svg
+            className="w-16 h-16 text-[#2E2E2E] mx-auto mb-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+          <h2 className="text-xl font-medium text-[#2E2E2E] mb-4">{error}</h2>
+          <Link
+            to={authApi.isLoggedIn() ? "/products" : "/login"}
+            className="inline-block bg-[#8B5F65] text-white px-6 py-3 rounded-full font-medium hover:bg-[#4A2E59] transition-all duration-300"
+          >
+            {authApi.isLoggedIn() ? "Shop Now" : "Login"}
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
       <div className="container mx-auto px-4">
-        {/* Page Title */}
         <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#2E2E2E] text-center mb-12">
           Your Wishlist
         </h1>
@@ -65,7 +146,7 @@ const Wishlist = () => {
               Discover our exquisite collections and add your favorite sarees to your wishlist.
             </p>
             <Link
-              to="/collections"
+              to="/products"
               className="inline-block bg-[#8B5F65] text-white px-6 py-3 rounded-full font-medium hover:bg-[#4A2E59] transition-all duration-300"
             >
               Shop Now
@@ -78,15 +159,18 @@ const Wishlist = () => {
                 key={item.id}
                 className="flex items-center border-b border-[#E8B4B8] py-6 last:border-b-0"
               >
-                <Link to="/viewdetails">
+                <Link to={`/products/${item.id}`}>
                   <img
                     src={item.image}
                     alt={item.name}
                     className="w-24 h-24 object-cover rounded-lg mr-6 transition-transform duration-300 hover:scale-105"
+                    onError={(e) => {
+                      e.target.src = '/placeholder-image.jpg';
+                    }}
                   />
                 </Link>
                 <div className="flex-1">
-                  <Link to="/viewdetails">
+                  <Link to={`/products/${item.id}`}>
                     <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 hover:text-[#4A2E59] transition-colors duration-300">
                       {item.name}
                     </h3>
@@ -127,7 +211,7 @@ const Wishlist = () => {
             ))}
             <div className="mt-6 flex justify-end">
               <Link
-                to="/collections"
+                to="/products"
                 className="text-[#8B5F65] font-medium hover:text-[#4A2E59] transition-colors duration-300"
               >
                 Continue Shopping

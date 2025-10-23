@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
+import authApi from '../Services/authApi';
 
 const ViewDetails = () => {
-  const { id } = useParams(); // Get product ID from URL
+  const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -11,9 +14,9 @@ const ViewDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [zoomActive, setZoomActive] = useState(false);
   const [activeTab, setActiveTab] = useState('description');
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0); // Track selected image
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [isInWishlist, setIsInWishlist] = useState(false);
 
-  // Fetch product details
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -21,7 +24,17 @@ const ViewDetails = () => {
         const result = await productApi.getPublicProduct(id);
         if (result.success) {
           setProduct(result.product);
-          // Fetch related products based on category
+          if (authApi.isLoggedIn()) {
+            try {
+              const wishlistResult = await productApi.getWishlist();
+              if (wishlistResult.success) {
+                const isWishlisted = wishlistResult.items.some(item => item.id === result.product.id);
+                setIsInWishlist(isWishlisted);
+              }
+            } catch (wishlistError) {
+              console.error('Wishlist check failed:', wishlistError);
+            }
+          }
           await fetchRelatedProducts(result.product.category, result.product.id);
         } else {
           setError('Product not found');
@@ -39,12 +52,10 @@ const ViewDetails = () => {
     }
   }, [id]);
 
-  // Fetch related products
   const fetchRelatedProducts = async (category, currentProductId) => {
     try {
       const result = await productApi.getPublicProducts();
       if (result.success) {
-        // Filter products by same category, exclude current product, and limit to 4
         const related = result.products
           .filter(p => p.category === category && p.id !== currentProductId)
           .slice(0, 4);
@@ -73,10 +84,58 @@ const ViewDetails = () => {
 
   const handleThumbnailClick = (index) => {
     setSelectedImageIndex(index);
-    setZoomActive(false); // Reset zoom when changing image
+    setZoomActive(false);
   };
 
-  // Get current selected image
+  const handleWishlistToggle = async () => {
+    if (!authApi.isLoggedIn()) {
+      toast.error('Please login first to add to wishlist!');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      if (isInWishlist) {
+        await productApi.removeFromWishlist(product.id);
+        setIsInWishlist(false);
+        toast.success(`${product.name} removed from wishlist!`);
+      } else {
+        await productApi.addToWishlist({
+          id: product.id,
+          name: product.name,
+          price: product.price,
+          image: product.images && product.images[0] ? product.images[0] : '/placeholder-image.jpg'
+        });
+        setIsInWishlist(true);
+        toast.success(`${product.name} added to wishlist!`);
+      }
+    } catch (err) {
+      toast.error('Failed to update wishlist: ' + err.message);
+    }
+  };
+
+  // 🔥 Add to Cart Handler
+  const handleAddToCart = async () => {
+    if (!authApi.isLoggedIn()) {
+      toast.error('Please login first to add to cart!');
+      navigate('/login');
+      return;
+    }
+
+    try {
+      await productApi.addToCart({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images && product.images[0] ? product.images[0] : '/placeholder-image.jpg',
+        quantity
+      });
+      toast.success(`${product.name} added to cart!`);
+    } catch (err) {
+      toast.error('Failed to add to cart: ' + err.message);
+    }
+  };
+
   const getSelectedImage = () => {
     if (!product || !product.images || product.images.length === 0) {
       return '/placeholder-image.jpg';
@@ -84,7 +143,6 @@ const ViewDetails = () => {
     return product.images[selectedImageIndex] || product.images[0];
   };
 
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
@@ -96,7 +154,6 @@ const ViewDetails = () => {
     );
   }
 
-  // Error state
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
@@ -128,7 +185,6 @@ const ViewDetails = () => {
     );
   }
 
-  // Product not found
   if (!product) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
@@ -159,7 +215,6 @@ const ViewDetails = () => {
     );
   }
 
-  // Prepare product details for display
   const productDetails = {
     material: product.material || 'Not specified',
     length: product.length || 'Standard 6.5 meters',
@@ -170,15 +225,12 @@ const ViewDetails = () => {
     origin: product.origin || 'Not specified'
   };
 
-  // Check if product is in stock
   const isOutOfStock = product.stock === 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col lg:flex-row gap-12">
-          {/* Product Image */}
           <div className="lg:w-1/2">
             <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden">
               {product.badge && (
@@ -199,11 +251,17 @@ const ViewDetails = () => {
                   }}
                 />
               </div>
-              <button className="absolute top-4 right-4 bg-white p-2 rounded-full shadow-md hover:bg-[#D9A7A7] transition-all duration-300">
+              <button
+                onClick={handleWishlistToggle}
+                className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${
+                  isInWishlist ? 'bg-[#6B2D2D] text-white' : 'bg-white text-[#6B2D2D] hover:bg-[#D9A7A7]'
+                }`}
+                aria-label={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+              >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 text-[#6B2D2D]"
-                  fill="none"
+                  className="h-5 w-5"
+                  fill={isInWishlist ? 'currentColor' : 'none'}
                   viewBox="0 0 24 24"
                   stroke="currentColor"
                 >
@@ -216,7 +274,6 @@ const ViewDetails = () => {
                 </svg>
               </button>
             </div>
-            {/* Thumbnail Images */}
             {product.images && product.images.length > 1 && (
               <div className="flex gap-4 mt-4 justify-center">
                 {product.images.map((img, index) => (
@@ -239,23 +296,18 @@ const ViewDetails = () => {
             )}
           </div>
 
-          {/* Product Details */}
           <div className="lg:w-1/2">
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <h2 className="text-3xl font-semibold text-[#2E2E2E] mb-4">{product.name}</h2>
-
-              {/* Stock Status - Only show "Available" or "Out of Stock" */}
               {product.stock !== undefined && (
                 <div className="mb-4">
                   {!isOutOfStock ? (
-                    <span className="text-green-600 font-medium">Available</span>
+                    <span className="text-green-600 font notification-medium">Available</span>
                   ) : (
                     <span className="text-red-600 font-medium">Out of Stock</span>
                   )}
                 </div>
               )}
-
-              {/* Price */}
               <div className="flex items-center mb-6">
                 <span className="text-[#6B2D2D] font-bold text-2xl">{formatPrice(product.price)}</span>
                 {product.originalPrice && product.originalPrice > product.price && (
@@ -269,8 +321,6 @@ const ViewDetails = () => {
                   </>
                 )}
               </div>
-
-              {/* Quantity - Only show if product is available */}
               {!isOutOfStock && (
                 <div className="mb-6">
                   <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Quantity</h3>
@@ -315,8 +365,6 @@ const ViewDetails = () => {
                   </div>
                 </div>
               )}
-
-              {/* Tabs for Description and Details */}
               <div className="mb-6">
                 <div className="flex border-b border-[#D9A7A7]">
                   {['description', 'details'].map((tab) => (
@@ -353,8 +401,6 @@ const ViewDetails = () => {
                   )}
                 </div>
               </div>
-
-              {/* Occasion and Category */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Suitable For</h3>
                 <div className="flex flex-wrap gap-2">
@@ -375,10 +421,9 @@ const ViewDetails = () => {
                   <span className="font-medium">Category:</span> {product.category || 'Not specified'}
                 </p>
               </div>
-
-              {/* Action Buttons */}
               <div className="flex gap-4">
                 <button 
+                  onClick={handleAddToCart}
                   className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
                     isOutOfStock 
                       ? 'bg-gray-400 text-white cursor-not-allowed'
@@ -398,8 +443,6 @@ const ViewDetails = () => {
             </div>
           </div>
         </div>
-
-        {/* Related Products */}
         {relatedProducts.length > 0 && (
           <div className="mt-16">
             <h2 className="text-3xl font-serif font-bold text-[#2E2E2E] mb-8 text-center">
