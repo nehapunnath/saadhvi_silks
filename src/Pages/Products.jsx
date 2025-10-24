@@ -1,195 +1,43 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { Link } from 'react-router-dom';
 import productApi from '../Services/proApi';
-import authApi from '../Services/authApi';
+import qr from '../assets/qr.jpg';
 
-const Products = () => {
-  const navigate = useNavigate();
-  const [filterOpen, setFilterOpen] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState({
-    category: [],
-    price: [],
-    occasion: [],
+const Cart = () => {
+  const [cartItems, setCartItems] = useState([]);
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    city: '',
+    state: '',
+    postalCode: '',
+    phone: '',
+    email: '',
   });
-  const [filteredProducts, setFilteredProducts] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [wishlistItems, setWishlistItems] = useState([]);
-  const productsPerPage = 20;
+  const [cartError, setCartError] = useState(null); // New state for cart-specific errors
 
-  const categories = [
-    "All",
-    "Bridal",
-    "Kanjivaram",
-    "Silk",
-    "Soft Silk",
-    "Ikkat Silk",
-    "Silk Dhoti",
-    "Banaras",
-    "Tussar",
-    "Designer",
-    "Fancy",
-    "Cotton",
-    "Daily Wear",
-    "Lehenga",
-    "Dress Material",
-    "Readymade",
-    "Sale",
-  ];
-
-  const occasions = ["Wedding", "Bridal", "Festival", "Party", "Formal", "Casual"];
-
-  const prices = [
-    { label: "Under ₹5,000", value: "0-5000" },
-    { label: "₹5,000 - ₹10,000", value: "5000-10000" },
-    { label: "₹10,000 - ₹15,000", value: "10000-15000" },
-    { label: "Over ₹15,000", value: "15000-100000" },
-  ];
-
+  // Fetch cart items on mount
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchCart = async () => {
       try {
         setLoading(true);
-        const productResult = await productApi.getPublicProducts();
-        if (productResult.success) {
-          setProducts(productResult.products);
-          setFilteredProducts(productResult.products);
-        } else {
-          setError('Failed to fetch products');
-        }
-
-        if (authApi.isLoggedIn()) {
-          try {
-            const wishlistResult = await productApi.getWishlist();
-            if (wishlistResult.success) {
-              setWishlistItems(wishlistResult.items.map(item => item.id));
-            }
-          } catch (wishlistError) {
-            console.error('Wishlist fetch failed:', wishlistError);
-          }
-        }
+        const response = await productApi.getCart();
+        setCartItems(response.items || []);
       } catch (err) {
-        setError(err.message);
-        console.error('Error fetching data:', err);
+        setError(err.message || 'Failed to load cart');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchData();
+    fetchCart();
   }, []);
 
-  useEffect(() => {
-    if (products.length === 0) return;
-
-    let result = products;
-
-    if (selectedFilters.category.length > 0 && !selectedFilters.category.includes("All")) {
-      result = result.filter(product => selectedFilters.category.includes(product.category));
-    }
-
-    if (selectedFilters.price.length > 0) {
-      result = result.filter(product => {
-        return selectedFilters.price.some(priceRange => {
-          const [min, max] = priceRange.split('-').map(Number);
-          return product.price >= min && product.price <= max;
-        });
-      });
-    }
-
-    if (selectedFilters.occasion.length > 0) {
-      result = result.filter(product =>
-        product.occasion && product.occasion.some(occ => selectedFilters.occasion.includes(occ))
-      );
-    }
-
-    setFilteredProducts(result);
-    setCurrentPage(1);
-  }, [selectedFilters, products]);
-
-  const indexOfLastProduct = currentPage * productsPerPage;
-  const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
-  const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
-  const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
-
-  const toggleFilter = () => {
-    setFilterOpen(!filterOpen);
-  };
-
-  const handleFilterChange = (filterType, value) => {
-    setSelectedFilters(prev => {
-      const newFilters = { ...prev };
-      if (newFilters[filterType].includes(value)) {
-        newFilters[filterType] = newFilters[filterType].filter(item => item !== value);
-      } else {
-        newFilters[filterType] = [...newFilters[filterType], value];
-      }
-      return newFilters;
-    });
-  };
-
-  const clearFilters = () => {
-    setSelectedFilters({
-      category: [],
-      price: [],
-      occasion: [],
-    });
-  };
-
-  const handleWishlistToggle = async (product) => {
-    if (!authApi.isLoggedIn()) {
-      toast.error('Please login first to add to wishlist!');
-      navigate('/login');
-      return;
-    }
-
-    try {
-      const isInWishlist = wishlistItems.includes(product.id);
-      if (isInWishlist) {
-        await productApi.removeFromWishlist(product.id);
-        setWishlistItems(prev => prev.filter(id => id !== product.id));
-        toast.success(`${product.name} removed from wishlist!`);
-      } else {
-        await productApi.addToWishlist({
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.images && product.images[0] ? product.images[0] : '/placeholder-image.jpg'
-        });
-        setWishlistItems(prev => [...prev, product.id]);
-        toast.success(`${product.name} added to wishlist!`);
-      }
-    } catch (err) {
-      toast.error('Failed to update wishlist: ' + err.message);
-    }
-  };
-
-  // 🔥 Add to Cart Handler
-  const handleAddToCart = async (product) => {
-    if (!authApi.isLoggedIn()) {
-      toast.error('Please login first to add to cart!');
-      navigate('/login');
-      return;
-    }
-
-    try {
-      await productApi.addToCart({
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        image: product.images && product.images[0] ? product.images[0] : '/placeholder-image.jpg',
-        quantity: 1
-      });
-      toast.success(`${product.name} added to cart!`);
-    } catch (err) {
-      toast.error('Failed to add to cart: ' + err.message);
-    }
-  };
-
-  const formatPrice = price => {
+  // Format price in INR
+  const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
@@ -197,339 +45,441 @@ const Products = () => {
     }).format(price);
   };
 
-  const paginate = pageNumber => {
-    if (pageNumber > 0 && pageNumber <= totalPages) {
-      setCurrentPage(pageNumber);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Handle quantity change
+  const handleQuantityChange = async (id, delta) => {
+    try {
+      setCartError(null); // Clear previous errors
+      const item = cartItems.find((item) => item.id === id);
+      const newQuantity = Math.max(1, item.quantity + delta);
+      const response = await productApi.updateCartItem(id, newQuantity);
+      setCartItems((prevItems) =>
+        prevItems.map((item) =>
+          item.id === id ? { ...item, quantity: response.quantity } : item
+        )
+      );
+    } catch (err) {
+      setCartError(err.message || 'Failed to update quantity');
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6B2D2D] mx-auto"></div>
-          <p className="mt-4 text-[#2E2E2E]">Loading products...</p>
-        </div>
-      </div>
-    );
-  }
+  // Handle item removal
+  const handleRemoveItem = async (id) => {
+    try {
+      setCartError(null);
+      await productApi.removeFromCart(id);
+      setCartItems((prevItems) => prevItems.filter((item) => item.id !== id));
+    } catch (err) {
+      setCartError(err.message || 'Failed to remove item');
+    }
+  };
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
-        <div className="text-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-16 w-16 mx-auto text-red-500 mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
-            />
-          </svg>
-          <h3 className="text-xl font-medium text-[#2E2E2E] mb-2">Error loading products</h3>
-          <p className="text-[#2E2E2E] mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#3A1A1A] transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+  // Calculate subtotal
+  const calculateSubtotal = () => {
+    return cartItems.reduce((total, item) => total + item.price * item.quantity, 0);
+  };
+
+  // Calculate total (with shipping)
+  const calculateTotal = () => {
+    const subtotal = calculateSubtotal();
+    const shipping = subtotal > 5000 ? 0 : 250;
+    return subtotal + shipping;
+  };
+
+  // Handle form input changes
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      // Basic form validation
+      const requiredFields = ['name', 'email', 'phone', 'address', 'city', 'state', 'postalCode'];
+      for (const field of requiredFields) {
+        if (!formData[field]) {
+          setCartError(`Please fill in the ${field} field`);
+          return;
+        }
+      }
+      // Simulate order placement (extend with API call if needed)
+      setOrderConfirmed(true);
+    } catch (err) {
+      setCartError(err.message || 'Failed to place order');
+    }
+  };
+
+  // Toggle checkout form
+  const toggleCheckout = () => {
+    setShowCheckout(!showCheckout);
+    setCartError(null);
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
-      <div className="container mx-auto px-4 py-12">
-        <div className="flex flex-col md:flex-row gap-8">
-          <div
-            className={`md:w-1/4 ${
-              filterOpen ? 'block fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden'
-            } md:block`}
-          >
-            <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-semibold text-[#2E2E2E]">Filters</h2>
-                <div className="flex items-center">
-                  <button
-                    onClick={clearFilters}
-                    className="text-sm text-[#6B2D2D] hover:text-[#3A1A1A] mr-4"
-                  >
-                    Clear All
-                  </button>
-                  {filterOpen && (
-                    <button
-                      onClick={toggleFilter}
-                      className="md:hidden text-[#2E2E2E] hover:text-[#3A1A1A]"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-6 w-6"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  )}
-                </div>
-              </div>
+    <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
+      <div className="container mx-auto px-4">
+        <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#800020] text-center mb-12">
+          {showCheckout ? 'Checkout' : 'Your Cart'}
+        </h1>
 
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Category</h3>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {categories.map((category, index) => (
-                    <label key={index} className="flex items-center py-1">
-                      <input
-                        type="checkbox"
-                        className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
-                        checked={selectedFilters.category.includes(category)}
-                        onChange={() => handleFilterChange('category', category)}
-                      />
-                      <span className="ml-3 text-[#2E2E2E]">{category}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Price Range</h3>
-                <div className="space-y-2">
-                  {prices.map((price, index) => (
-                    <label key={index} className="flex items-center py-1">
-                      <input
-                        type="checkbox"
-                        className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
-                        checked={selectedFilters.price.includes(price.value)}
-                        onChange={() => handleFilterChange('price', price.value)}
-                      />
-                      <span className="ml-3 text-[#2E2E2E]">{price.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="mb-6">
-                <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Occasion</h3>
-                <div className="space-y-2">
-                  {occasions.map((occasion, index) => (
-                    <label key={index} className="flex items-center py-1">
-                      <input
-                        type="checkbox"
-                        className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
-                        checked={selectedFilters.occasion.includes(occasion)}
-                        onChange={() => handleFilterChange('occasion', occasion)}
-                      />
-                      <span className="ml-3 text-[#2E2E2E]">{occasion}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
+        {loading ? (
+          <div className="text-center py-16">
+            <p className="text-[#2E2E2E] text-lg">Loading cart...</p>
           </div>
-
-          <div className="md:w-3/4">
-            <div className="flex justify-between items-center mb-8">
-              <button
-                onClick={toggleFilter}
-                className="md:hidden flex items-center bg-white px-4 py-2 rounded-lg shadow-sm text-[#6B2D2D] font-medium"
+        ) : error ? (
+          <div className="text-center py-16 max-w-lg mx-auto">
+            <p className="text-[#2E2E2E] text-lg">{error}</p>
+            <Link
+              to="/products"
+              className="inline-block bg-[#6B2D2D] text-white px-6 py-3 rounded-full font-medium hover:bg-[#3A1A1A] transition-all duration-300 mt-4"
+            >
+              Shop Now
+            </Link>
+          </div>
+        ) : orderConfirmed ? (
+          <div className="text-center py-16 bg-white rounded-2xl shadow-lg p-6 max-w-lg mx-auto">
+            <svg
+              className="w-16 h-16 text-[#6B2D2D] mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 13l4 4L19 7"
+              />
+            </svg>
+            <h2 className="text-xl font-medium text-[#2E2E2E] mb-4">Order Confirmed!</h2>
+            <p className="text-[#2E2E2E] mb-6">
+              Thank you for your purchase. Please share the payment screenshot on WhatsApp.
+            </p>
+            <a
+              href="https://wa.me/918861315710"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center bg-green-600 text-white px-4 py-2 rounded-full font-medium hover:bg-green-700 transition-all duration-300 mb-4"
+            >
+              <svg
+                className="w-5 h-5 mr-2"
+                fill="currentColor"
+                viewBox="0 0 24 24"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                  />
-                </svg>
-                Filters
-              </button>
-              <div className="text-[#2E2E2E]">
-                Showing {currentProducts.length} of {filteredProducts.length} products
-              </div>
-            </div>
-
-            {currentProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {currentProducts.map(product => (
-                  <div
-                    key={product.id}
-                    className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7]"
-                  >
-                    <div className="relative overflow-hidden">
-                      {product.badge && (
-                        <span className="absolute top-4 left-4 bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
-                          {product.badge}
-                        </span>
-                      )}
-                      <div className="h-80 overflow-hidden">
-                        <img
-                          src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder-image.jpg'}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => {
-                            e.target.src = '/placeholder-image.jpg';
-                          }}
-                        />
-                      </div>
-                      <button
-                        onClick={() => handleWishlistToggle(product)}
-                        className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${
-                          wishlistItems.includes(product.id)
-                            ? 'bg-[#6B2D2D] text-white'
-                            : 'bg-white text-[#6B2D2D] hover:bg-[#D9A7A7]'
-                        }`}
-                        aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'}
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                          />
-                        </svg>
-                      </button>
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.864 3.488"/>
+              </svg>
+              Share on WhatsApp
+            </a>
+            <Link
+              to="/products"
+              className="block text-center text-[#6B2D2D] font-medium hover:text-[#3A1A1A] transition-colors duration-300 mt-2"
+            >
+              Continue Shopping
+            </Link>
+          </div>
+        ) : cartItems.length === 0 ? (
+          <div className="text-center py-16 max-w-lg mx-auto">
+            <svg
+              className="w-16 h-16 text-[#2E2E2E] mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"
+              />
+            </svg>
+            <h2 className="text-xl font-medium text-[#2E2E2E] mb-4">Your cart is empty</h2>
+            <p className="text-[#2E2E2E] mb-6">
+              Explore our collections to find your perfect saree.
+            </p>
+            <Link
+              to="/products"
+              className="inline-block bg-[#6B2D2D] text-white px-6 py-3 rounded-full font-medium hover:bg-[#3A1A1A] transition-all duration-300"
+            >
+              Shop Now
+            </Link>
+          </div>
+        ) : (
+          <div className="flex justify-center">
+            <div className="w-full max-w-lg">
+              {cartError && (
+                <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg text-center">
+                  {cartError}
+                </div>
+              )}
+              {showCheckout ? (
+                <div className="bg-white rounded-2xl shadow-lg p-6">
+                  <h2 className="text-xl font-semibold text-[#2E2E2E] mb-6">Shipping Details</h2>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="name">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        id="name"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
+                        aria-label="Full Name"
+                      />
                     </div>
-                    <div className="p-5">
-                      <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#3A1A1A] transition-colors duration-300">
-                        {product.name}
-                      </h3>
-                      <p className="text-[#2E2E2E] text-sm mb-3 line-clamp-2">{product.description}</p>
-
-                      <div className="flex items-center mt-2 mb-3">
-                        <span className="text-[#6B2D2D] font-bold text-lg">{formatPrice(product.price)}</span>
-                        {product.originalPrice && product.originalPrice > product.price && (
-                          <span className="text-[#2E2E2E] text-sm line-through ml-2">
-                            {formatPrice(product.originalPrice)}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between mt-4">
-                        <div className="flex">
-                          {product.stock > 0 ? (
-                            <span className="text-green-600 text-sm">In Stock</span>
-                          ) : (
-                            <span className="text-red-600 text-sm">Out of Stock</span>
-                          )}
-                        </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleAddToCart(product)}
-                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 ${
-                              product.stock > 0
-                                ? 'bg-[#800020] text-white hover:bg-[#6B2D2D]'
-                                : 'bg-gray-400 text-white cursor-not-allowed'
-                            }`}
-                            disabled={product.stock === 0}
-                          >
-                            Add to Cart
-                          </button>
-                          <Link to={`/viewdetails/${product.id}`}>
-                            <button className="bg-[#800020] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6B2D2D] hover:text-white transition-all duration-300">
-                              View Details
-                            </button>
-                          </Link>
-                        </div>
-                      </div>
+                    <div>
+                      <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="email">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
+                        aria-label="Email"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="phone">
+                        Phone Number
+                      </label>
+                      <input
+                        type="text"
+                        id="phone"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
+                        aria-label="Phone Number"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="address">
+                        Address
+                      </label>
+                      <input
+                        type="text"
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
+                        aria-label="Address"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="city">
+                        City
+                      </label>
+                      <input
+                        type="text"
+                        id="city"
+                        name="city"
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
+                        aria-label="City"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="state">
+                        State
+                      </label>
+                      <input
+                        type="text"
+                        id="state"
+                        name="state"
+                        value={formData.state}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
+                        aria-label="State"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[#2E2E2E] font-medium mb-2" htmlFor="postalCode">
+                        Postal Code
+                      </label>
+                      <input
+                        type="text"
+                        id="postalCode"
+                        name="postalCode"
+                        value={formData.postalCode}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-[#6B2D2D] focus:border-[#6B2D2D]"
+                        aria-label="Postal Code"
+                      />
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-16 w-16 mx-auto text-[#2E2E2E] mb-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <h3 className="text-xl font-medium text-[#2E2E2E] mb-2">No products found</h3>
-                <p className="text-[#2E2E2E]">Try adjusting your filters to find what you're looking for.</p>
-                <button
-                  onClick={clearFilters}
-                  className="mt-4 bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#3A1A1A] transition-colors"
-                >
-                  Clear All Filters
-                </button>
-              </div>
-            )}
-
-            {filteredProducts.length > productsPerPage && (
-              <div className="flex justify-center mt-16">
-                <nav className="flex items-center space-x-2">
-                  <button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-4 py-2 rounded-lg border text-[#2E2E2E] hover:bg-[#D9A7A7] hover:text-[#3A1A1A] disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => paginate(page)}
-                      className={`px-4 py-2 rounded-lg border ${
-                        currentPage === page
-                          ? 'bg-[#6B2D2D] text-white'
-                          : 'text-[#2E2E2E] hover:bg-[#D9A7A7] hover:text-[#3A1A1A]'
-                      }`}
+                  <h2 className="text-xl font-semibold text-[#2E2E2E] mt-8 mb-6">Payment</h2>
+                  <div className="text-center p-6 border-2 border-dashed border-[#D9A7A7] rounded-lg">
+                    <p className="text-[#2E2E2E] mb-4">Scan the QR code to complete your payment</p>
+                    <div className="bg-gray-200 p-4 rounded-lg inline-block mb-4">
+                      <div className="w-64 h-64 bg-white flex items-center justify-center mx-auto">
+                        <img
+                          src={qr}
+                          alt="QR Code for Payment"
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[#2E2E2E] font-bold text-lg mb-2">
+                      After payment, please share the screenshot on WhatsApp:
+                    </p>
+                    <a
+                      href="https://wa.me/918861315710"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center bg-green-600 text-white px-4 py-2 rounded-full font-medium hover:bg-green-700 transition-all duration-300"
                     >
-                      {page}
-                    </button>
-                  ))}
-
+                      <svg
+                        className="w-5 h-5 mr-2"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.864 3.488"/>
+                      </svg>
+                      Share on WhatsApp
+                    </a>
+                  </div>
                   <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-4 py-2 rounded-lg border text-[#2E2E2E] hover:bg-[#D9A7A7] hover:text-[#3A1A1A] disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={handleSubmit}
+                    className="w-full bg-[#6B2D2D] text-white px-6 py-3 rounded-full font-medium hover:bg-[#3A1A1A] transition-all duration-300 mt-6"
                   >
-                    Next
+                    Place Order
                   </button>
-                </nav>
-              </div>
-            )}
+                  <button
+                    onClick={toggleCheckout}
+                    className="block text-center text-[#6B2D2D] font-medium hover:text-[#3A1A1A] transition-colors duration-300 mt-4"
+                  >
+                    Back to Cart
+                  </button>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl shadow-lg p-6">
+                  <h2 className="text-xl font-semibold text-[#2E2E2E] mb-6">Order Summary</h2>
+                  {cartItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center border-b border-[#D9A7A7] py-4 last:border-b-0"
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-16 h-16 object-cover rounded-lg mr-4"
+                      />
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-[#2E2E2E] mb-2">{item.name}</h3>
+                        <div className="flex items-center">
+                          <span className="text-[#2E2E2E] text-sm mr-2">Qty:</span>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleQuantityChange(item.id, -1)}
+                              className="w-6 h-6 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] transition-all duration-300"
+                              aria-label="Decrease quantity"
+                              disabled={item.quantity === 1}
+                            >
+                              <svg
+                                className="w-3 h-3"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M18 12H6"
+                                />
+                              </svg>
+                            </button>
+                            <span className="text-[#2E2E2E] text-sm">{item.quantity}</span>
+                            <button
+                              onClick={() => handleQuantityChange(item.id, 1)}
+                              className="w-6 h-6 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] transition-all duration-300"
+                              aria-label="Increase quantity"
+                            >
+                              <svg
+                                className="w-3 h-3"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="text-[#6B2D2D] font-bold text-sm">
+                          {formatPrice(item.price * item.quantity)}
+                        </span>
+                        <button
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="text-[#2E2E2E] hover:text-[#3A1A1A] transition-colors duration-300 mt-2"
+                          aria-label="Remove item"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <div className="space-y-4 mt-4">
+                    <div className="flex justify-between text-[#2E2E2E]">
+                      <span>Subtotal</span>
+                      <span>{formatPrice(calculateSubtotal())}</span>
+                    </div>
+                    <div className="flex justify-between text-[#2E2E2E]">
+                      <span>Shipping</span>
+                      <span>{calculateSubtotal() > 5000 ? 'Free' : formatPrice(250)}</span>
+                    </div>
+                    <div className="border-t border-[#D9A7A7] pt-4 flex justify-between font-semibold text-[#2E2E2E]">
+                      <span>Total</span>
+                      <span>{formatPrice(calculateTotal())}</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={toggleCheckout}
+                    className="w-full bg-[#6B2D2D] text-white px-6 py-3 rounded-full font-medium hover:bg-[#3A1A1A] transition-all duration-300 mt-6"
+                  >
+                    Proceed to Checkout
+                  </button>
+                  <Link
+                    to="/products"
+                    className="block text-center text-[#6B2D2D] font-medium hover:text-[#3A1A1A] transition-colors duration-300 mt-2"
+                  >
+                    Continue Shopping
+                  </Link>
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
 };
 
-export default Products;
+export default Cart;

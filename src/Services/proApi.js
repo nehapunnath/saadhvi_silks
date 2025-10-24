@@ -211,6 +211,21 @@ updateStock: async (id, stock) => {
     return data;
   },
 
+  updateCartItem: async (id, quantity) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/cart/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ quantity })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to update cart');
+    return data;
+  },
+
   removeFromCart: async (id) => {
     const token = authApi.getToken();
     const response = await fetch(`${BASE_URL}/cart/${id}`, {
@@ -223,22 +238,9 @@ updateStock: async (id, stock) => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Failed to remove from cart');
     return data;
-  },
+  }
 
-  updateCartQuantity: async (id, quantity) => {
-    const token = authApi.getToken();
-    const response = await fetch(`${BASE_URL}/cart/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ quantity })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed to update cart quantity');
-    return data;
-  },
+  
 };
 
 export default productApi;
