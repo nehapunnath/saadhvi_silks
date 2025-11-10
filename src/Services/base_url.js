@@ -5,4 +5,4 @@ const base_url='https://saadhvi-backend.onrender.com';
 
 
 
-export default base_url
+export default base_url                    

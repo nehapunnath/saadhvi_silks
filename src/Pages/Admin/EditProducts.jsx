@@ -1,4 +1,3 @@
-// src/pages/admin/EditProducts.js
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link, useParams, useNavigate } from 'react-router-dom';
