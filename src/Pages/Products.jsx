@@ -430,7 +430,7 @@ const Products = () => {
                             <span className="text-red-600 text-sm">Out of Stock</span>
                           )}
                         </div>
-                        <Link to={`/products/${product.id}`}>
+                        <Link to={`/viewdetails/${product.id}`}>
                           <button className="bg-[#800020] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6B2D2D] hover:text-white transition-all duration-300">
                             View Details
                           </button>

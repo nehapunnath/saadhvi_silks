@@ -238,7 +238,66 @@ updateStock: async (id, stock) => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'Failed to remove from cart');
     return data;
-  }
+  },
+
+  checkout: async (checkoutData) => {
+  const token = authApi.getToken();
+  const response = await fetch(`${BASE_URL}/checkout`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(checkoutData),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Checkout failed');
+  return data;
+},
+getOrders: async () => {
+    const token = authApi.getToken();
+    const res = await fetch(`${BASE_URL}/admin/orders`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  },
+  getOrderById: async (orderId) => {
+  const token = authApi.getToken();
+  const res = await fetch(`${BASE_URL}/admin/orders/${orderId}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error);
+  return data.order;
+},
+
+  updateOrder: async (orderId, updates) => {
+    const token = authApi.getToken();
+    const res = await fetch(`${BASE_URL}/admin/orders/${orderId}`, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  },
+
+  deleteOrder: async (orderId) => {
+    const token = authApi.getToken();
+    const res = await fetch(`${BASE_URL}/admin/orders/${orderId}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error);
+    return data;
+  },
 
   
 };

@@ -1,23 +1,16 @@
 // src/Components/SideBar.js
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import authApi from '../Services/authApi';
+import { signOut } from 'firebase/auth';
+import { auth } from '../Services/firebase'; 
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const menuItems = [
-    // {
-    //   id: 'dashboard',
-    //   label: 'Dashboard',
-    //   path: '/admin',
-    //   icon: (
-    //     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
-    //       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10" />
-    //     </svg>
-    //   )
-    // },
     {
       id: 'products',
       label: 'Products',
@@ -38,27 +31,25 @@ const Sidebar = () => {
         </svg>
       )
     },
-    {
-      id: 'gallery',
-      label: 'Gallery',
-      path: '/admin/gallery',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-        </svg>
-      )
-    },
-    {
-      id: 'offers',
-      label: 'Offers',
-      path: '/admin/offers',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      )
-    }
   ];
+
+  const handleLogout = async () => {
+    try {
+      // 1. Clear local storage
+      authApi.logout();
+
+      // 2. Sign out from Firebase Auth
+      await signOut(auth);
+
+      // 3. Redirect to login
+      navigate('/login', { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force logout even if Firebase fails
+      authApi.logout();
+      navigate('/login', { replace: true });
+    }
+  };
 
   return (
     <div className={`bg-[#6B2D2D] text-white h-screen fixed left-0 top-0 transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'}`}>
@@ -120,7 +111,10 @@ const Sidebar = () => {
 
       {/* Logout Section */}
       <div className="p-4 border-t border-[#8B3A3A]">
-        <button className="w-full flex items-center rounded-lg px-3 py-3 text-white hover:bg-[#8B3A3A] transition-all duration-200">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center rounded-lg px-3 py-3 text-white hover:bg-[#8B3A3A] transition-all duration-200"
+        >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
           </svg>

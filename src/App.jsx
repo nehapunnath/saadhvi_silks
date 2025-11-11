@@ -54,7 +54,7 @@ function App() {
         <Route path='/admin/editproducts/:id' element={<EditProducts />} />
         <Route path='/admin/viewproducts/:id' element={<ViewProducts />} />
         <Route path='/admin/orders' element={<Orders />} />
-        <Route path='/admin/vieworders' element={<ViewOrder />} />
+        <Route path='/admin/vieworders/:id' element={<ViewOrder />} />
         <Route path='/admin/gallery' element={<Gallery />} />
         <Route path='/admin/offers' element={<Offers />} />
 
