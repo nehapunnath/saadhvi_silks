@@ -2,11 +2,9 @@
 import React, { useState } from 'react';
 import Sidebar from '../../Components/SideBar';
 import { Link } from 'react-router-dom';
-// import productApi from '../../Services/ProductApi';
 import authApi from '../../Services/authApi';
 import { toast } from 'react-hot-toast';
 import productApi from '../../Services/proApi';
-// import productApi from '../../Services/productApi';
 
 const AddProducts = () => {
   const [product, setProduct] = useState({
@@ -27,7 +25,7 @@ const AddProducts = () => {
     sizeGuide: '',
     images: [],
     badge: '',
-    stock: 1,
+    stock: '', // ← NEW: Stock field
   });
 
   const [selectedOccasions, setSelectedOccasions] = useState([]);
@@ -63,7 +61,7 @@ const AddProducts = () => {
   const handleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (imagePreviews.length + files.length > maxImages) {
-     toast.error(`Maximum ${maxImages} images allowed!`);
+      toast.error(`Maximum ${maxImages} images allowed!`);
       return;
     }
 
@@ -91,12 +89,7 @@ const AddProducts = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // if (!authApi.isLoggedIn()) {
-    //   toast.error('Please login first!');
-    //   return;
-    // }
-
-    // setLoading(true);
+    setLoading(true);
 
     try {
       const result = await productApi.addProduct(product);
@@ -168,7 +161,7 @@ const AddProducts = () => {
                       {/* Price Information */}
                       <div className="space-y-4">
                         <label className="block text-sm font-medium text-[#2E2E2E]">Pricing Details (₹)</label>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                           <div>
                             <label className="block text-xs text-gray-500 mb-1">Current Price</label>
                             <input
@@ -203,12 +196,25 @@ const AddProducts = () => {
                               placeholder="0"
                             />
                           </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">Stock</label>
+                            <input
+                              type="number"
+                              name="stock"
+                              value={product.stock}
+                              onChange={handleInputChange}
+                              className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                              placeholder="50"
+                              required
+                            />
+                          </div>
                         </div>
                         {product.price && (
                           <p className="text-sm text-gray-600">
                             Current: {formatPrice(product.price)}
                             {product.originalPrice && ` | Original: ${formatPrice(product.originalPrice)}`}
                             {product.extraCharges && ` | Extra: ${formatPrice(product.extraCharges)}`}
+                            {product.stock && ` | Stock: ${product.stock} pcs`}
                           </p>
                         )}
                       </div>
@@ -282,7 +288,6 @@ const AddProducts = () => {
 
                     {/* Right Column - Image Upload */}
                     <div className="space-y-6">
-                      {/* Image Upload */}
                       <div>
                         <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Product Images (up to 5)</label>
                         <div className="border-2 border-dashed border-[#D9A7A7] rounded-2xl p-6 text-center">

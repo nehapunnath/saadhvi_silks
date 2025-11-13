@@ -196,20 +196,23 @@ updateStock: async (id, stock) => {
     return data;
   },
 
-  addToCart: async (item) => {
-    const token = authApi.getToken();
-    const response = await fetch(`${BASE_URL}/cart`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(item)
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || 'Failed to add to cart');
-    return data;
-  },
+addToCart: async (item) => {
+  const token = authApi.getToken();
+  const { id, name, price, image, quantity } = item;
+
+  const response = await fetch(`${BASE_URL}/cart`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ id, name, price, image, quantity })
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to add to cart');
+  return data;
+},
 
   updateCartItem: async (id, quantity) => {
     const token = authApi.getToken();

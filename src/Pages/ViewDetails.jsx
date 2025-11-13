@@ -7,6 +7,7 @@ import authApi from '../Services/authApi';
 const ViewDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [product, setProduct] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,6 +18,9 @@ const ViewDetails = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isInWishlist, setIsInWishlist] = useState(false);
 
+  /* ------------------------------------------------------------------ */
+  /*  FETCH PRODUCT + WISHLIST + RELATED                               */
+  /* ------------------------------------------------------------------ */
   useEffect(() => {
     const fetchProduct = async () => {
       try {
@@ -24,17 +28,22 @@ const ViewDetails = () => {
         const result = await productApi.getPublicProduct(id);
         if (result.success) {
           setProduct(result.product);
+          setQuantity(1);               // ← reset quantity when product changes
+
+          /* ---- Wishlist check ---- */
           if (authApi.isLoggedIn()) {
             try {
-              const wishlistResult = await productApi.getWishlist();
-              if (wishlistResult.success) {
-                const isWishlisted = wishlistResult.items.some(item => item.id === result.product.id);
-                setIsInWishlist(isWishlisted);
+              const wl = await productApi.getWishlist();
+              if (wl.success) {
+                const wish = wl.items.some(i => i.id === result.product.id);
+                setIsInWishlist(wish);
               }
-            } catch (wishlistError) {
-              console.error('Wishlist check failed:', wishlistError);
+            } catch (e) {
+              console.error('Wishlist check failed', e);
             }
           }
+
+          /* ---- Related products ---- */
           await fetchRelatedProducts(result.product.category, result.product.id);
         } else {
           setError('Product not found');
@@ -47,46 +56,58 @@ const ViewDetails = () => {
       }
     };
 
-    if (id) {
-      fetchProduct();
-    }
+    if (id) fetchProduct();
   }, [id]);
 
-  const fetchRelatedProducts = async (category, currentProductId) => {
+  const fetchRelatedProducts = async (category, currentId) => {
     try {
-      const result = await productApi.getPublicProducts();
-      if (result.success) {
-        const related = result.products
-          .filter(p => p.category === category && p.id !== currentProductId)
+      const res = await productApi.getPublicProducts();
+      if (res.success) {
+        const related = res.products
+          .filter(p => p.category === category && p.id !== currentId)
           .slice(0, 4);
         setRelatedProducts(related);
       }
-    } catch (err) {
-      console.error('Error fetching related products:', err);
+    } catch (e) {
+      console.error('Related products error', e);
     }
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-IN', {
+  /* ------------------------------------------------------------------ */
+  /*  HELPERS                                                          */
+  /* ------------------------------------------------------------------ */
+  const formatPrice = price =>
+    new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
-      maximumFractionDigits: 0
+      maximumFractionDigits: 0,
     }).format(price);
+
+  const getSelectedImage = () => {
+    if (!product?.images?.length) return '/placeholder-image.jpg';
+    return product.images[selectedImageIndex] || product.images[0];
   };
 
-  const handleQuantityChange = (delta) => {
-    setQuantity((prev) => Math.max(1, prev + delta));
+  const isOutOfStock = product?.stock === 0;
+
+  /* ------------------------------------------------------------------ */
+  /*  QUANTITY HANDLERS (with stock limit)                             */
+  /* ------------------------------------------------------------------ */
+  const handleQuantityChange = delta => {
+    setQuantity(prev => {
+      const next = prev + delta;
+      if (next < 1) return 1;
+      if (next > product.stock) {
+        toast.error(`Only ${product.stock} left in stock!`);
+        return prev;
+      }
+      return next;
+    });
   };
 
-  const handleImageZoom = () => {
-    setZoomActive(!zoomActive);
-  };
-
-  const handleThumbnailClick = (index) => {
-    setSelectedImageIndex(index);
-    setZoomActive(false);
-  };
-
+  /* ------------------------------------------------------------------ */
+  /*  WISHLIST                                                          */
+  /* ------------------------------------------------------------------ */
   const handleWishlistToggle = async () => {
     if (!authApi.isLoggedIn()) {
       toast.error('Please login first to add to wishlist!');
@@ -104,21 +125,28 @@ const ViewDetails = () => {
           id: product.id,
           name: product.name,
           price: product.price,
-          image: product.images && product.images[0] ? product.images[0] : '/placeholder-image.jpg'
+          image: product.images?.[0] || '/placeholder-image.jpg',
         });
         setIsInWishlist(true);
         toast.success(`${product.name} added to wishlist!`);
       }
     } catch (err) {
-      toast.error('Failed to update wishlist: ' + err.message);
+      toast.error('Wishlist error: ' + err.message);
     }
   };
 
-  // 🔥 Add to Cart Handler
+  /* ------------------------------------------------------------------ */
+  /*  ADD TO CART (stock-aware)                                        */
+  /* ------------------------------------------------------------------ */
   const handleAddToCart = async () => {
     if (!authApi.isLoggedIn()) {
       toast.error('Please login first to add to cart!');
       navigate('/login');
+      return;
+    }
+
+    if (quantity > product.stock) {
+      toast.error(`Only ${product.stock} available!`);
       return;
     }
 
@@ -127,27 +155,32 @@ const ViewDetails = () => {
         id: product.id,
         name: product.name,
         price: product.price,
-        image: product.images && product.images[0] ? product.images[0] : '/placeholder-image.jpg',
-        quantity
+        image: product.images?.[0] || '/placeholder-image.jpg',
+        quantity,
       });
-      toast.success(`${product.name} added to cart!`);
+      toast.success(`${quantity} × ${product.name} added to cart!`);
     } catch (err) {
-      toast.error('Failed to add to cart: ' + err.message);
+      toast.error(err.message || 'Failed to add to cart');
     }
   };
 
-  const getSelectedImage = () => {
-    if (!product || !product.images || product.images.length === 0) {
-      return '/placeholder-image.jpg';
-    }
-    return product.images[selectedImageIndex] || product.images[0];
+  /* ------------------------------------------------------------------ */
+  /*  IMAGE ZOOM / THUMBNAILS                                          */
+  /* ------------------------------------------------------------------ */
+  const handleImageZoom = () => setZoomActive(!zoomActive);
+  const handleThumbnailClick = idx => {
+    setSelectedImageIndex(idx);
+    setZoomActive(false);
   };
 
+  /* ------------------------------------------------------------------ */
+  /*  LOADING / ERROR / NOT FOUND                                      */
+  /* ------------------------------------------------------------------ */
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6B2D2D] mx-auto"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6B2D2D] mx-auto" />
           <p className="mt-4 text-[#2E2E2E]">Loading product details...</p>
         </div>
       </div>
@@ -200,7 +233,7 @@ const ViewDetails = () => {
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              d="M9.172 16.172a4 4 0 015.URRENCY 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
           <h3 className="text-xl font-medium text-[#2E2E2E] mb-2">Product not found</h3>
@@ -215,6 +248,9 @@ const ViewDetails = () => {
     );
   }
 
+  /* ------------------------------------------------------------------ */
+  /*  PRODUCT DETAILS OBJECT                                            */
+  /* ------------------------------------------------------------------ */
   const productDetails = {
     material: product.material || 'Not specified',
     length: product.length || 'Standard 6.5 meters',
@@ -222,15 +258,17 @@ const ViewDetails = () => {
     care: product.care || 'Dry Clean Only',
     weight: product.weight || 'Not specified',
     border: product.border || 'Not specified',
-    origin: product.origin || 'Not specified'
+    origin: product.origin || 'Not specified',
   };
 
-  const isOutOfStock = product.stock === 0;
-
+  /* ------------------------------------------------------------------ */
+  /*  RENDER                                                            */
+  /* ------------------------------------------------------------------ */
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col lg:flex-row gap-12">
+          {/* ---------- IMAGE SECTION ---------- */}
           <div className="lg:w-1/2">
             <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden">
               {product.badge && (
@@ -246,11 +284,11 @@ const ViewDetails = () => {
                     zoomActive ? 'scale-150 cursor-zoom-out' : 'hover:scale-105 cursor-zoom-in'
                   }`}
                   onClick={handleImageZoom}
-                  onError={(e) => {
-                    e.target.src = '/placeholder-image.jpg';
-                  }}
+                  onError={e => (e.target.src = '/placeholder-image.jpg')}
                 />
               </div>
+
+              {/* Wishlist Heart */}
               <button
                 onClick={handleWishlistToggle}
                 className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${
@@ -274,62 +312,79 @@ const ViewDetails = () => {
                 </svg>
               </button>
             </div>
-            {product.images && product.images.length > 1 && (
+
+            {/* Thumbnails */}
+            {product.images?.length > 1 && (
               <div className="flex gap-4 mt-4 justify-center">
-                {product.images.map((img, index) => (
+                {product.images.map((img, idx) => (
                   <img
-                    key={index}
+                    key={idx}
                     src={img}
-                    alt={`${product.name} thumbnail ${index + 1}`}
+                    alt={`${product.name} thumbnail ${idx + 1}`}
                     className={`w-20 h-20 object-cover rounded-lg border-2 cursor-pointer transition-all duration-300 hover:scale-105 ${
-                      selectedImageIndex === index 
-                        ? 'border-[#6B2D2D] scale-110' 
+                      selectedImageIndex === idx
+                        ? 'border-[#6B2D2D] scale-110'
                         : 'border-[#D9A7A7] hover:border-[#6B2D2D]'
                     }`}
-                    onClick={() => handleThumbnailClick(index)}
-                    onError={(e) => {
-                      e.target.src = '/placeholder-image.jpg';
-                    }}
+                    onClick={() => handleThumbnailClick(idx)}
+                    onError={e => (e.target.src = '/placeholder-image.jpg')}
                   />
                 ))}
               </div>
             )}
           </div>
 
+          {/* ---------- INFO SECTION ---------- */}
           <div className="lg:w-1/2">
             <div className="bg-white rounded-2xl shadow-xl p-8">
               <h2 className="text-3xl font-semibold text-[#2E2E2E] mb-4">{product.name}</h2>
+
+              {/* STOCK DISPLAY */}
               {product.stock !== undefined && (
-                <div className="mb-4">
-                  {!isOutOfStock ? (
-                    <span className="text-green-600 font notification-medium">Available</span>
-                  ) : (
-                    <span className="text-red-600 font-medium">Out of Stock</span>
+                <div className="mb-4 flex items-center gap-2">
+                  <span
+                    className={`font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}
+                  >
+                    {product.stock > 0 ? `${product.stock} left in stock` : 'Out of Stock'}
+                  </span>
+                  {product.stock <= 5 && product.stock > 0 && (
+                    <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">
+                      Low Stock!
+                    </span>
                   )}
                 </div>
               )}
+
+              {/* PRICE */}
               <div className="flex items-center mb-6">
-                <span className="text-[#6B2D2D] font-bold text-2xl">{formatPrice(product.price)}</span>
+                <span className="text-[#6B2D2D] font-bold text-2xl">
+                  {formatPrice(product.price)}
+                </span>
                 {product.originalPrice && product.originalPrice > product.price && (
                   <>
                     <span className="text-[#2E2E2E] text-lg line-through ml-4">
                       {formatPrice(product.originalPrice)}
                     </span>
                     <span className="ml-4 bg-[#D9A7A7] text-[#800020] text-xs font-semibold px-3 py-1 rounded-full">
-                      {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}% OFF
+                      {Math.round(
+                        ((product.originalPrice - product.price) / product.originalPrice) * 100
+                      )}
+                      % OFF
                     </span>
                   </>
                 )}
               </div>
+
+              {/* QUANTITY (only if in stock) */}
               {!isOutOfStock && (
                 <div className="mb-6">
                   <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Quantity</h3>
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => handleQuantityChange(-1)}
-                      className="w-10 h-10 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                      aria-label="Decrease quantity"
                       disabled={quantity === 1}
+                      className="w-10 h-10 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] transition disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Decrease quantity"
                     >
                       <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -344,7 +399,7 @@ const ViewDetails = () => {
                     <span className="text-lg font-semibold text-[#2E2E2E]">{quantity}</span>
                     <button
                       onClick={() => handleQuantityChange(1)}
-                      className="w-10 h-10 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] hover:text-white transition-all duration-300"
+                      className="w-10 h-10 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] transition"
                       aria-label="Increase quantity"
                     >
                       <svg
@@ -365,9 +420,11 @@ const ViewDetails = () => {
                   </div>
                 </div>
               )}
+
+              {/* TABS: description / details */}
               <div className="mb-6">
                 <div className="flex border-b border-[#D9A7A7]">
-                  {['description', 'details'].map((tab) => (
+                  {['description', 'details'].map(tab => (
                     <button
                       key={tab}
                       className={`px-4 py-2 text-sm font-medium capitalize transition-colors duration-300 ${
@@ -385,10 +442,10 @@ const ViewDetails = () => {
                   {activeTab === 'description' && <p>{product.description}</p>}
                   {activeTab === 'details' && (
                     <ul className="space-y-2">
-                      {Object.entries(productDetails).map(([key, value]) => (
-                        <li key={key} className="flex">
-                          <span className="font-medium capitalize w-1/3">{key}:</span>
-                          <span>{value}</span>
+                      {Object.entries(productDetails).map(([k, v]) => (
+                        <li key={k} className="flex">
+                          <span className="font-medium capitalize w-1/3">{k}:</span>
+                          <span>{v}</span>
                         </li>
                       ))}
                       {product.sizeGuide && (
@@ -401,16 +458,18 @@ const ViewDetails = () => {
                   )}
                 </div>
               </div>
+
+              {/* OCCASION + CATEGORY */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Suitable For</h3>
                 <div className="flex flex-wrap gap-2">
-                  {product.occasion && product.occasion.length > 0 ? (
-                    product.occasion.map((occasion, index) => (
+                  {product.occasion?.length ? (
+                    product.occasion.map((occ, i) => (
                       <span
-                        key={index}
+                        key={i}
                         className="bg-[#800020] text-white text-sm font-medium px-3 py-1 rounded-full"
                       >
-                        {occasion}
+                        {occ}
                       </span>
                     ))
                   ) : (
@@ -421,21 +480,23 @@ const ViewDetails = () => {
                   <span className="font-medium">Category:</span> {product.category || 'Not specified'}
                 </p>
               </div>
+
+              {/* ACTION BUTTONS */}
               <div className="flex gap-4">
-                <button 
+                <button
                   onClick={handleAddToCart}
+                  disabled={isOutOfStock}
                   className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-300 ${
-                    isOutOfStock 
+                    isOutOfStock
                       ? 'bg-gray-400 text-white cursor-not-allowed'
                       : 'bg-[#800020] text-white hover:bg-[#3A1A1A]'
                   }`}
-                  disabled={isOutOfStock}
                 >
-                  {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                  {isOutOfStock ? 'Out of Stock' : `Add to Cart (${quantity})`}
                 </button>
                 <Link
                   to="/products"
-                  className="flex-1 bg-[white] text-[#6B2D2D] px-6 py-3 rounded-lg font-medium hover:bg-[#800020] hover:text-white text-center transition-all duration-300 border border-3 border-[#800020]"
+                  className="flex-1 bg-white text-[#6B2D2D] px-6 py-3 rounded-lg font-medium hover:bg-[#800020] hover:text-white text-center transition-all duration-300 border-2 border-[#800020]"
                 >
                   Back to Products
                 </Link>
@@ -443,41 +504,41 @@ const ViewDetails = () => {
             </div>
           </div>
         </div>
+
+        {/* ---------- RELATED PRODUCTS ---------- */}
         {relatedProducts.length > 0 && (
           <div className="mt-16">
             <h2 className="text-3xl font-serif font-bold text-[#2E2E2E] mb-8 text-center">
               You May Also Like
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {relatedProducts.map((relatedProduct) => (
+              {relatedProducts.map(rp => (
                 <Link
-                  to={`/products/${relatedProduct.id}`}
-                  key={relatedProduct.id}
+                  to={`/products/${rp.id}`}
+                  key={rp.id}
                   className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl border border-[#D9A7A7] group"
                 >
                   <div className="relative">
-                    {relatedProduct.badge && (
+                    {rp.badge && (
                       <span className="absolute top-4 left-4 bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
-                        {relatedProduct.badge}
+                        {rp.badge}
                       </span>
                     )}
                     <img
-                      src={relatedProduct.images && relatedProduct.images.length > 0 ? relatedProduct.images[0] : '/placeholder-image.jpg'}
-                      alt={relatedProduct.name}
+                      src={rp.images?.[0] || '/placeholder-image.jpg'}
+                      alt={rp.name}
                       className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        e.target.src = '/placeholder-image.jpg';
-                      }}
+                      onError={e => (e.target.src = '/placeholder-image.jpg')}
                     />
                   </div>
                   <div className="p-5">
                     <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#3A1A1A] transition-colors duration-300">
-                      {relatedProduct.name}
+                      {rp.name}
                     </h3>
-                    <p className="text-[#6B2D2D] font-bold">{formatPrice(relatedProduct.price)}</p>
-                    {relatedProduct.stock !== undefined && (
-                      <p className={`text-xs mt-1 ${relatedProduct.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {relatedProduct.stock > 0 ? 'Available' : 'Out of Stock'}
+                    <p className="text-[#6B2D2D] font-bold">{formatPrice(rp.price)}</p>
+                    {rp.stock !== undefined && (
+                      <p className={`text-xs mt-1 ${rp.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {rp.stock > 0 ? 'Available' : 'Out of Stock'}
                       </p>
                     )}
                   </div>
