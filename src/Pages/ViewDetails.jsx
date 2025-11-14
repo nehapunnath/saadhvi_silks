@@ -27,16 +27,17 @@ const ViewDetails = () => {
         setLoading(true);
         const result = await productApi.getPublicProduct(id);
         if (result.success) {
-          setProduct(result.product);
-          setQuantity(1);               // ← reset quantity when product changes
+          const p = result.product;
+          setProduct(p);
+          setQuantity(1); // Reset quantity on product change
 
           /* ---- Wishlist check ---- */
           if (authApi.isLoggedIn()) {
             try {
               const wl = await productApi.getWishlist();
               if (wl.success) {
-                const wish = wl.items.some(i => i.id === result.product.id);
-                setIsInWishlist(wish);
+                const inWishlist = wl.items.some(i => i.id === p.id);
+                setIsInWishlist(inWishlist);
               }
             } catch (e) {
               console.error('Wishlist check failed', e);
@@ -44,13 +45,12 @@ const ViewDetails = () => {
           }
 
           /* ---- Related products ---- */
-          await fetchRelatedProducts(result.product.category, result.product.id);
+          await fetchRelatedProducts(p.category, p.id);
         } else {
           setError('Product not found');
         }
       } catch (err) {
-        setError(err.message);
-        console.error('Error fetching product:', err);
+        setError(err.message || 'Failed to load product');
       } finally {
         setLoading(false);
       }
@@ -76,7 +76,7 @@ const ViewDetails = () => {
   /* ------------------------------------------------------------------ */
   /*  HELPERS                                                          */
   /* ------------------------------------------------------------------ */
-  const formatPrice = price =>
+  const formatPrice = (price) =>
     new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
@@ -89,16 +89,17 @@ const ViewDetails = () => {
   };
 
   const isOutOfStock = product?.stock === 0;
+  const maxQuantity = product?.stock || 0;
 
   /* ------------------------------------------------------------------ */
-  /*  QUANTITY HANDLERS (with stock limit)                             */
+  /*  QUANTITY HANDLERS (STOCK-CAPPED)                                 */
   /* ------------------------------------------------------------------ */
-  const handleQuantityChange = delta => {
+  const handleQuantityChange = (delta) => {
     setQuantity(prev => {
       const next = prev + delta;
       if (next < 1) return 1;
-      if (next > product.stock) {
-        toast.error(`Only ${product.stock} left in stock!`);
+      if (next > maxQuantity) {
+        toast.error(`Only ${maxQuantity} left in stock!`);
         return prev;
       }
       return next;
@@ -106,11 +107,11 @@ const ViewDetails = () => {
   };
 
   /* ------------------------------------------------------------------ */
-  /*  WISHLIST                                                          */
+  /*  WISHLIST TOGGLE                                                  */
   /* ------------------------------------------------------------------ */
   const handleWishlistToggle = async () => {
     if (!authApi.isLoggedIn()) {
-      toast.error('Please login first to add to wishlist!');
+      toast.error('Please login first!');
       navigate('/login');
       return;
     }
@@ -119,7 +120,7 @@ const ViewDetails = () => {
       if (isInWishlist) {
         await productApi.removeFromWishlist(product.id);
         setIsInWishlist(false);
-        toast.success(`${product.name} removed from wishlist!`);
+        toast.success('Removed from wishlist');
       } else {
         await productApi.addToWishlist({
           id: product.id,
@@ -128,25 +129,30 @@ const ViewDetails = () => {
           image: product.images?.[0] || '/placeholder-image.jpg',
         });
         setIsInWishlist(true);
-        toast.success(`${product.name} added to wishlist!`);
+        toast.success('Added to wishlist');
       }
     } catch (err) {
-      toast.error('Wishlist error: ' + err.message);
+      toast.error(err.message || 'Wishlist error');
     }
   };
 
   /* ------------------------------------------------------------------ */
-  /*  ADD TO CART (stock-aware)                                        */
+  /*  ADD TO CART (STOCK-SAFE)                                         */
   /* ------------------------------------------------------------------ */
   const handleAddToCart = async () => {
     if (!authApi.isLoggedIn()) {
-      toast.error('Please login first to add to cart!');
+      toast.error('Please login first!');
       navigate('/login');
       return;
     }
 
-    if (quantity > product.stock) {
-      toast.error(`Only ${product.stock} available!`);
+    if (isOutOfStock) {
+      toast.error('This product is out of stock');
+      return;
+    }
+
+    if (quantity > maxQuantity) {
+      toast.error(`Only ${maxQuantity} available`);
       return;
     }
 
@@ -165,10 +171,10 @@ const ViewDetails = () => {
   };
 
   /* ------------------------------------------------------------------ */
-  /*  IMAGE ZOOM / THUMBNAILS                                          */
+  /*  IMAGE ZOOM & THUMBNAILS                                          */
   /* ------------------------------------------------------------------ */
   const handleImageZoom = () => setZoomActive(!zoomActive);
-  const handleThumbnailClick = idx => {
+  const handleThumbnailClick = (idx) => {
     setSelectedImageIndex(idx);
     setZoomActive(false);
   };
@@ -178,10 +184,10 @@ const ViewDetails = () => {
   /* ------------------------------------------------------------------ */
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6B2D2D] mx-auto" />
-          <p className="mt-4 text-[#2E2E2E]">Loading product details...</p>
+          <p className="mt-4 text-[#2E2E2E]">Loading product...</p>
         </div>
       </div>
     );
@@ -189,28 +195,14 @@ const ViewDetails = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center py-12">
         <div className="text-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-16 w-16 mx-auto text-red-500 mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
-            />
+          <svg className="h-16 w-16 mx-auto text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
-          <h3 className="text-xl font-medium text-[#2E2E2E] mb-2">Error loading product</h3>
+          <h3 className="text-xl font-medium text-[#2E2E2E] mb-2">Error</h3>
           <p className="text-[#2E2E2E] mb-4">{error}</p>
-          <Link
-            to="/products"
-            className="bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#3A1A1A] transition-colors"
-          >
+          <Link to="/products" className="bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#3A1A1A] transition">
             Back to Products
           </Link>
         </div>
@@ -220,27 +212,10 @@ const ViewDetails = () => {
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center py-12">
         <div className="text-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-16 w-16 mx-auto text-[#2E2E2E] mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9.172 16.172a4 4 0 015.URRENCY 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
           <h3 className="text-xl font-medium text-[#2E2E2E] mb-2">Product not found</h3>
-          <Link
-            to="/products"
-            className="bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#3A1A1A] transition-colors"
-          >
+          <Link to="/products" className="bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#3A1A1A] transition">
             Back to Products
           </Link>
         </div>
@@ -249,7 +224,7 @@ const ViewDetails = () => {
   }
 
   /* ------------------------------------------------------------------ */
-  /*  PRODUCT DETAILS OBJECT                                            */
+  /*  PRODUCT DETAILS                                                  */
   /* ------------------------------------------------------------------ */
   const productDetails = {
     material: product.material || 'Not specified',
@@ -262,7 +237,7 @@ const ViewDetails = () => {
   };
 
   /* ------------------------------------------------------------------ */
-  /*  RENDER                                                            */
+  /*  RENDER                                                           */
   /* ------------------------------------------------------------------ */
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
@@ -375,7 +350,7 @@ const ViewDetails = () => {
                 )}
               </div>
 
-              {/* QUANTITY (only if in stock) */}
+              {/* QUANTITY SELECTOR (ONLY IF IN STOCK) */}
               {!isOutOfStock && (
                 <div className="mb-6">
                   <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Quantity</h3>
@@ -386,42 +361,26 @@ const ViewDetails = () => {
                       className="w-10 h-10 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] transition disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Decrease quantity"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 12H6" />
                       </svg>
                     </button>
                     <span className="text-lg font-semibold text-[#2E2E2E]">{quantity}</span>
                     <button
                       onClick={() => handleQuantityChange(1)}
-                      className="w-10 h-10 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] transition"
+                      disabled={quantity >= maxQuantity}
+                      className="w-10 h-10 flex items-center justify-center bg-[#800020] text-white rounded-full hover:bg-[#6B2D2D] transition disabled:opacity-50 disabled:cursor-not-allowed"
                       aria-label="Increase quantity"
                     >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                        />
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                       </svg>
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* TABS: description / details */}
+              {/* TABS */}
               <div className="mb-6">
                 <div className="flex border-b border-[#D9A7A7]">
                   {['description', 'details'].map(tab => (
