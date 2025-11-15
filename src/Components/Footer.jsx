@@ -5,9 +5,7 @@ const Footer = () => {
   return (
     <footer className="bg-gradient-to-b from-[#FFF8E1] to-[#F5E6D3] bg-opacity-90 pt-12 pb-6 border-t border-[#D9A7A7]">
       <div className="container mx-auto px-4">
-        {/* Main Footer Content */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
-          {/* Brand Column */}
           <div className="lg:col-span-1">
             <h3 className="text-2xl font-bold text-[#6B2D2D] mb-4">Saadhvi Silks</h3>
             <p className="text-[#2E2E2E] mb-5 leading-relaxed text-sm">

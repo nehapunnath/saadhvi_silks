@@ -3,17 +3,21 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
+// import carouselApi from '../Services/carouselApi';
 import authApi from '../Services/authApi';
+import GalleryApi from '../Services/GalleryApi';
 
 const Home = () => {
   const navigate = useNavigate();
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [carouselSlides, setCarouselSlides] = useState([]);
+  const [loadingSlides, setLoadingSlides] = useState(true);
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [error, setError] = useState(null);
 
-  const carouselSlides = [
+  const fallbackSlides = [
     {
       id: 1,
       title: "Exclusive Silk Collection",
@@ -37,33 +41,51 @@ const Home = () => {
     }
   ];
 
-  // ---------- Carousel auto-scroll ----------
   useEffect(() => {
+    const fetchSlides = async () => {
+      try {
+        setLoadingSlides(true);
+        const data = await GalleryApi.getPublicSlides();
+        const slides = data.slides || [];
+        setCarouselSlides(slides.length > 0 ? slides : fallbackSlides);
+      } catch (err) {
+        console.error('Carousel fetch error:', err);
+        toast.error('Failed to load carousel');
+        setCarouselSlides(fallbackSlides);
+      } finally {
+        setLoadingSlides(false);
+      }
+    };
+    fetchSlides();
+  }, []);
+
+  useEffect(() => {
+    if (carouselSlides.length === 0) return;
+
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % carouselSlides.length);
     }, 5000);
+
     return () => clearInterval(interval);
   }, [carouselSlides.length]);
 
-  // ---------- Fetch products ----------
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        setLoading(true);
+        setLoadingProducts(true);
         setError(null);
         const data = await productApi.getPublicProducts();
         setProducts(data.products || []);
       } catch (err) {
-        setError('Failed to load products. Please try again later.');
+        setError('Failed to load products.');
         console.error('Product fetch error:', err);
       } finally {
-        setLoading(false);
+        setLoadingProducts(false);
       }
     };
     fetchProducts();
   }, []);
 
-  // ---------- Helpers ----------
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -72,10 +94,9 @@ const Home = () => {
     }).format(price);
   };
 
-  // ---------- Add to Wishlist (optional) ----------
   const handleAddToWishlist = async (product) => {
     if (!authApi.isLoggedIn()) {
-      toast.error('Please login first to add to wishlist!');
+      toast.error('Please login first!');
       navigate('/login');
       return;
     }
@@ -85,13 +106,21 @@ const Home = () => {
         id: product._id,
         name: product.name,
         price: product.price,
-        image: product.images?.[0] || '/placeholder-image.jpg',
+        image: product.images?.[0] || '/placeholder.jpg',
       });
       toast.success(`${product.name} added to wishlist!`);
     } catch (err) {
-      toast.error(err.message || 'Failed to add to wishlist');
+      toast.error(err.message || 'Failed to add');
     }
   };
+
+  if (loadingSlides) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#800020] border-t-transparent"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] overflow-hidden">
@@ -105,7 +134,12 @@ const Home = () => {
                 idx === currentSlide ? 'opacity-100' : 'opacity-0'
               }`}
             >
-              <img src={slide.image} alt={slide.title} className="w-full h-full object-cover" />
+              <img
+                src={slide.image}
+                alt={slide.title}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
               <div className="absolute inset-0 bg-black/40"></div>
             </div>
           ))}
@@ -114,20 +148,19 @@ const Home = () => {
         <div className="relative h-full flex items-center justify-center text-center px-4">
           <div className="text-white max-w-4xl">
             <h1 className="text-4xl md:text-6xl font-serif font-bold mb-4">
-              {carouselSlides[currentSlide].title}
+              {carouselSlides[currentSlide]?.title}
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto">
-              {carouselSlides[currentSlide].subtitle}
+              {carouselSlides[currentSlide]?.subtitle}
             </p>
             <Link to="/products">
               <button className="bg-[#800020] hover:bg-[#A0002A] text-white px-8 py-3 rounded-lg text-lg font-medium transition-colors duration-300 shadow-lg">
-                {carouselSlides[currentSlide].cta}
+                {carouselSlides[currentSlide]?.cta}
               </button>
             </Link>
           </div>
         </div>
 
-        {/* Indicators */}
         <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3">
           {carouselSlides.map((_, i) => (
             <button
@@ -140,7 +173,6 @@ const Home = () => {
           ))}
         </div>
 
-        {/* Arrows */}
         <button
           className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-[#800020]/50 hover:bg-[#A0002A]/50 rounded-full p-2 transition"
           onClick={() => setCurrentSlide((currentSlide - 1 + carouselSlides.length) % carouselSlides.length)}
@@ -192,6 +224,7 @@ const Home = () => {
               src="https://www.koskii.com/cdn/shop/products/koskii-mehendi-zariwork-pure-silk-designer-saree-saus0018591_mehendi_1.jpg?v=1633866706&width=1080"
               alt="Elegant Silk Saree"
               className="rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-700 hover:scale-105"
+              loading="lazy"
             />
           </div>
         </div>
@@ -209,44 +242,14 @@ const Home = () => {
             </p>
           </div>
 
-<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {[
-              { 
-                name: "Traditional Silk Sarees", 
-                image: "https://oldsilksareebuyers.com/wp-content/uploads/2021/04/Old-Wedding-pattu-saree-buyers-1.jpg",
-                description: "Timeless elegance with authentic craftsmanship",
-                items: "120+ Products"
-              },
-              { 
-                name: "Bridal Sarees", 
-                image: "https://cdn.shopify.com/s/files/1/0755/3495/8865/files/bridal_1.png?v=1694446298",
-                description: "For your special day",
-                items: "85+ Designs"
-              },
-              { 
-                name: "Designer Sarees", 
-                image: "https://adn-static1.nykaa.com/nykdesignstudio-images/pub/media/catalog/product/7/c/7c90315SHMTPRM104_4.jpg?rnd=20200526195200&tr=w-512",
-                description: "Contemporary designs by expert designers",
-                items: "200+ Collections"
-              },
-              { 
-                name: "Daily Wear", 
-                image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjnA0wdFE62w9oKr5n3PsoRsbbbOX2HLii8w&s",
-                description: "Comfortable elegance for everyday",
-                items: "150+ Options"
-              },
-              { 
-                name: "Festival Collection", 
-                image: "https://i.pinimg.com/736x/c5/b1/65/c5b1659e705b1b937fed0564f808ade0.jpg",
-                description: "Celebratory styles for special occasions",
-                items: "90+ Designs"
-              },
-              { 
-                name: "Premium Collection", 
-                image: "https://www.vishalprints.in/cdn/shop/files/STAR_SILK-55337-01.jpg?v=1755161577",
-                description: "Exclusive luxury pieces with zari work",
-                items: "Limited Edition"
-              }
+              { name: "Traditional Silk Sarees", image: "https://oldsilksareebuyers.com/wp-content/uploads/2021/04/Old-Wedding-pattu-saree-buyers-1.jpg", description: "Timeless elegance with authentic craftsmanship", items: "120+ Products" },
+              { name: "Bridal Sarees", image: "https://cdn.shopify.com/s/files/1/0755/3495/8865/files/bridal_1.png?v=1694446298", description: "For your special day", items: "85+ Designs" },
+              { name: "Designer Sarees", image: "https://adn-static1.nykaa.com/nykdesignstudio-images/pub/media/catalog/product/7/c/7c90315SHMTPRM104_4.jpg?rnd=20200526195200&tr=w-512", description: "Contemporary designs by expert designers", items: "200+ Collections" },
+              { name: "Daily Wear", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjnA0wdFE62w9oKr5n3PsoRsbbbOX2HLii8w&s", description: "Comfortable elegance for everyday", items: "150+ Options" },
+              { name: "Festival Collection", image: "https://i.pinimg.com/736x/c5/b1/65/c5b1659e705b1b937fed0564f808ade0.jpg", description: "Celebratory styles for special occasions", items: "90+ Designs" },
+              { name: "Premium Collection", image: "https://www.vishalprints.in/cdn/shop/files/STAR_SILK-55337-01.jpg?v=1755161577", description: "Exclusive luxury pieces with zari work", items: "Limited Edition" }
             ].map((category, index) => (
               <div 
                 key={index} 
@@ -259,6 +262,7 @@ const Home = () => {
                     src={category.image} 
                     alt={category.name} 
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    loading="lazy"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#800020]/80 via-[#800020]/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
                   <div className="absolute top-4 right-4 bg-gradient-to-r from-[#800020] to-[#A0002A] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
@@ -266,12 +270,12 @@ const Home = () => {
                   </div>
                 </div>
                 <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
-                  <h3 className="text-xl font-bold mb-2 transition-all duration-300 group-hover:translate-y-0 transform">{category.name}</h3>
-                  <p className="text-[#1A4D3E] mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">{category.description}</p>
+                  <h3 className="text-xl font-bold mb-2">{category.name}</h3>
+                  <p className="text-[#F8EDE3] mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">{category.description}</p>
                   <Link to="/products">
                     <button className="self-start bg-gradient-to-r from-[#800020] to-[#A0002A] text-white px-5 py-2 rounded-lg font-medium hover:from-[#A0002A] hover:to-[#800020] transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 flex items-center shadow-md">
                       <span>Explore</span>
-                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <svg className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                       </svg>
                     </button>
@@ -283,11 +287,11 @@ const Home = () => {
         </div>
       </section>
 
-      <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] relative overflow-hidden">
+      <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
-              Trending Now
+              Latest Collection
               <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
             </h2>
             <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg">
@@ -295,46 +299,35 @@ const Home = () => {
             </p>
           </div>
 
-          {loading ? (
+          {loadingProducts ? (
             <div className="flex justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#6B2D2D] border-t-transparent"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#800020] border-t-transparent"></div>
             </div>
           ) : error ? (
-            <div className="text-center py-10 text-red-600 font-medium">{error}</div>
+            <div className="text-center py-10 text-red-600">{error}</div>
           ) : products.length === 0 ? (
-            <div className="text-center py-10 text-[#555]">No products available at the moment.</div>
+            <div className="text-center py-10 text-gray-500">No products available.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {products.slice(0, 3).map((product) => {
                 const inStock = product.stock > 0;
                 return (
-                  <div
-                    key={product._id}
-                    className="bg-[#F8EDE3] rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl group border border-[#FDF6E3]"
-                  >
-                    {/* Image */}
+                  <div key={product._id} className="bg-[#F8EDE3] rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl group border border-[#FDF6E3]">
                     <div className="relative overflow-hidden">
-                      <span
-                        className={`absolute top-4 left-4 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md ${
-                          inStock
-                            ? 'bg-gradient-to-r from-[#800020] to-[#A0002A]'
-                            : 'bg-gray-600'
-                        }`}
-                      >
+                      <span className={`absolute top-4 left-4 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A]' : 'bg-gray-600'}`}>
                         {inStock ? 'In Stock' : 'Sold Out'}
                       </span>
-
                       <div className="h-80 overflow-hidden">
                         <img
-                          src={product.images?.[0] || '/placeholder-image.jpg'}
+                          src={product.images?.[0] || '/placeholder.jpg'}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => (e.currentTarget.src = '/placeholder-image.jpg')}
+                          loading="lazy"
+                          onError={(e) => (e.currentTarget.src = '/placeholder.jpg')}
                         />
                       </div>
                     </div>
 
-                    {/* Details */}
                     <div className="p-6">
                       <h3 className="text-xl font-semibold text-[#1C2526] mb-2 group-hover:text-[#800020] transition-colors line-clamp-2">
                         {product.name}
@@ -349,26 +342,24 @@ const Home = () => {
                         )}
                       </div>
 
-                      <Link to={`/viewdetails/${product.id}`}>
-                        <button
-                          className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${
-                            inStock
-                              ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:from-[#A0002A] hover:to-[#800020] shadow-sm'
-                              : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                          }`}
-                          disabled={!inStock}
-                        >
-                          {inStock ? 'View' : 'Out of Stock'}
-                        </button>
-                      </Link>
-
-                      {/* Optional Wishlist button (remove if not needed) */}
-                      {/* <button
-                        onClick={() => handleAddToWishlist(product)}
-                        className="w-full mt-2 py-2 border border-[#800020] text-[#800020] rounded-lg hover:bg-[#800020] hover:text-white transition"
-                      >
-                        Add to Wishlist
-                      </button> */}
+                      <div className="flex space-x-2">
+                        <Link to={`/viewdetails/${product.id}`} className="flex-1">
+                          <button className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:from-[#A0002A] hover:to-[#800020]' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`} disabled={!inStock}>
+                            {inStock ? 'View Details' : 'Out of Stock'}
+                          </button>
+                        </Link>
+                        {inStock && (
+                          <button
+                            onClick={() => handleAddToWishlist(product)}
+                            className="p-3 bg-white border border-[#800020] rounded-lg hover:bg-[#800020] hover:text-white transition-colors"
+                            title="Add to Wishlist"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );
@@ -376,19 +367,13 @@ const Home = () => {
             </div>
           )}
 
-          {/* View All */}
           <div className="text-center mt-16">
             <Link to="/products">
               <button className="relative overflow-hidden group border-2 border-[#800020] text-[#800020] px-8 py-3 rounded-lg text-lg font-medium hover:text-white transition-all duration-300 shadow-md">
                 <span className="absolute inset-0 bg-gradient-to-r from-[#800020] to-[#A0002A] transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 z-0"></span>
                 <span className="relative z-10 flex items-center justify-center">
                   View All Sarees
-                  <svg
-                    className="h-5 w-5 ml-2 transform group-hover:translate-x-1 transition-transform"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
+                  <svg className="h-5 w-5 ml-2 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                   </svg>
                 </span>
@@ -398,7 +383,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ==================== SPECIAL OFFERS ==================== */}
       <section className="py-12 bg-gradient-to-r from-[#800020] to-[#A0002A] relative overflow-hidden">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl md:text-3xl font-serif font-bold text-white text-center mb-8">
@@ -411,17 +395,10 @@ const Home = () => {
               { title: "Free Shipping", discount: "FREE", code: "SHIPFREE", expiry: "On orders above ₹9999" },
               { title: "Bridal Package", discount: "25% OFF", code: "BRIDE25", expiry: "Valid until Dec 31, 2025" }
             ].map((offer, i) => (
-              <div
-                key={i}
-                className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-lg hover:scale-105 transition-transform duration-300"
-              >
+              <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-lg hover:scale-105 transition-transform duration-300">
                 <div className="text-white text-center">
                   <h3 className="text-xl font-bold mb-2">{offer.title}</h3>
                   <div className="text-2xl font-serif font-bold text-white mb-3">{offer.discount}</div>
-                  <div className="bg-white/20 rounded-lg p-2 mb-2">
-                    <span className="text-white font-mono">Use code: </span>
-                    <span className="font-bold text-[#F8EDE3]">{offer.code}</span>
-                  </div>
                   <p className="text-xs text-[#F8EDE3]">{offer.expiry}</p>
                 </div>
               </div>
@@ -430,7 +407,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* ==================== TESTIMONIALS ==================== */}
       <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -442,21 +418,9 @@ const Home = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              {
-                name: "Priya Sharma", location: "Chennai", rating: 5,
-                review: "The Kanjivaram saree I bought was absolutely stunning! The quality and craftsmanship are unmatched.",
-                image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80"
-              },
-              {
-                name: "Anita Rao", location: "Hyderabad", rating: 5,
-                review: "I wore their bridal saree for my wedding, and it made me feel like a queen. Highly recommend!",
-                image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80"
-              },
-              {
-                name: "Meena Kapoor", location: "Mumbai", rating: 4,
-                review: "The designer sarees are so unique. I get compliments every time I wear one!",
-                image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80"
-              }
+              { name: "Priya Sharma", location: "Chennai", rating: 5, review: "The Kanjivaram saree I bought was absolutely stunning! The quality and craftsmanship are unmatched.", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" },
+              { name: "Anita Rao", location: "Hyderabad", rating: 5, review: "I wore their bridal saree for my wedding, and it made me feel like a queen. Highly recommend!", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" },
+              { name: "Meena Kapoor", location: "Mumbai", rating: 4, review: "The designer sarees are so unique. I get compliments every time I wear one!", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" }
             ].map((t, i) => (
               <div key={i} className="bg-[#F8EDE3] rounded-2xl p-6 shadow-lg border border-[#FDF6E3] group">
                 <div className="flex items-center mb-4">
@@ -466,12 +430,7 @@ const Home = () => {
                     <p className="text-sm text-[#1C2526]">{t.location}</p>
                     <div className="flex mt-1">
                       {[...Array(5)].map((_, j) => (
-                        <svg
-                          key={j}
-                          className={`w-4 h-4 ${j < t.rating ? 'text-[#800020]' : 'text-[#1A4D3E]'}`}
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
+                        <svg key={j} className={`w-4 h-4 ${j < t.rating ? 'text-[#800020]' : 'text-[#1A4D3E]'}`} fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                       ))}
