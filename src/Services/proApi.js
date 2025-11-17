@@ -301,6 +301,62 @@ getOrders: async () => {
     if (!res.ok) throw new Error(data.error);
     return data;
   },
+  
+  // In your proApi.js - enhance the search function
+searchProducts: async (query) => {
+  if (!query || query.trim().length < 2) {
+    console.log('Search query too short');
+    return { results: [] };
+  }
+
+  try {
+    const cleanQuery = query.trim();
+    console.log(`🔍 Frontend searching for: "${cleanQuery}"`);
+    
+    const response = await fetch(
+      `${BASE_URL}/products/search?q=${encodeURIComponent(cleanQuery)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      }
+    );
+    
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(`❌ Search API error: ${response.status}`, errorText);
+      
+      if (response.status === 404) {
+        console.warn('Search endpoint not found');
+        // Try alternative endpoint
+        try {
+          const altResponse = await fetch(`${BASE_URL}/products?search=${encodeURIComponent(cleanQuery)}`);
+          if (altResponse.ok) {
+            const data = await altResponse.json();
+            return { results: data.products || [] };
+          }
+        } catch (altError) {
+          console.error('Alternative search also failed:', altError);
+        }
+      }
+      
+      return { results: [], error: `Search failed: ${response.status}` };
+    }
+    
+    const data = await response.json();
+    console.log(`✅ Search successful, found ${data.results?.length || 0} results`);
+    
+    return { 
+      results: data.results || [],
+      count: data.count || 0
+    };
+    
+  } catch (err) {
+    console.error('❌ Search API error:', err);
+    return { results: [], error: 'Network error during search' };
+  }
+},
 
   
 };

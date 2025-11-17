@@ -473,7 +473,7 @@ const ViewDetails = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
               {relatedProducts.map(rp => (
                 <Link
-                  to={`/products/${rp.id}`}
+                  to={`/viewdetails/${rp.id}`}
                   key={rp.id}
                   className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl border border-[#D9A7A7] group"
                 >

@@ -27,7 +27,7 @@ const Wishlist = () => {
           setError('Failed to load wishlist');
         }
       } catch (err) {
-        setError('Failed to load wishlist: ' + err.message);
+        setError( err.message);
         console.error('Error fetching wishlist:', err);
       } finally {
         setLoading(false);

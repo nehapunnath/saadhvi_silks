@@ -98,7 +98,7 @@ const AddProducts = () => {
       window.location.href = '/admin/products';
 
     } catch (error) {
-      toast.error('Error: ' + error.message);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
