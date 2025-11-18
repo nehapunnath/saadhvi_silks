@@ -3,44 +3,44 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
-// import productApi from '../../Services/ProductApi';
 import authApi from '../../Services/authApi';
 import productApi from '../../Services/proApi';
-// import productApi from '../../Services/productApi';
-
+import categoryApi from '../../Services/CategoryApi';
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const categories = [
-    'All', 'Bridal collection', 'Kanjivaram', 'Silk', 'Soft silk',
-    'Ikkat silk', 'Silk dhoti', 'Banaras', 'Tussar', 'Designer',
-    'Fancy', 'Cotton', 'Daily wear', 'Lehenga', 'Dress material',
-    'Readymade', 'Sale'
-  ];
-
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
 
-  const fetchProducts = async () => {
-    // if (!authApi.isLoggedIn()) {
-    //   toast.error('Please login first!');
-    //   setLoading(false);
-    //   return;
-    // }
-
-    // setLoading(true);
+  const fetchData = async () => {
     try {
-      const result = await productApi.getProducts();
-      setProducts(result.products);
-      console.log('🔍 IMAGES:', products.map(p => ({ name: p.name, images: p.images?.length })));
-      toast.success(`Loaded ${result.products.length} products!`);
+      setLoading(true);
+      
+      // Fetch products and categories simultaneously
+      const [productsResult, categoriesResult] = await Promise.all([
+        productApi.getProducts(),
+        categoryApi.getCategories()
+      ]);
+      
+      setProducts(productsResult.products);
+      
+      if (categoriesResult.success) {
+        setCategories(categoriesResult.categories);
+      } else {
+        toast.error('Failed to load categories');
+        setCategories([]);
+      }
+      
+      console.log('🔍 IMAGES:', productsResult.products.map(p => ({ name: p.name, images: p.images?.length })));
+      toast.success(`Loaded ${productsResult.products.length} products!`);
     } catch (error) {
-      toast.error('Failed to load products: ' + error.message);
+      toast.error(error.message);
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,6 @@ const AdminProducts = () => {
     try {
       await productApi.deleteProduct(id);
       setProducts(products.filter(product => product.key !== id));
-
       toast.success('Product deleted successfully!');
     } catch (error) {
       toast.error('Delete failed: ' + error.message);
@@ -75,6 +74,14 @@ const AdminProducts = () => {
     } catch (error) {
       toast.error('Failed to update stock: ' + error.message);
     }
+  };
+
+  // Get category name by ID
+  const getCategoryName = (categoryId) => {
+    if (!categoryId) return 'N/A';
+    
+    const category = categories.find(cat => cat.id === categoryId);
+    return category ? category.name : 'N/A';
   };
 
   const filteredProducts = products.filter(product => {
@@ -132,23 +139,35 @@ const AdminProducts = () => {
                 </Link>
               </div>
 
-              {/* Products Count & Filters */}
-              {/* <div className="grid grid-cols-1 lg:grid-cols-3 gap-6"> */}
-              <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-800">Total Products</h3>
-                    <p className="text-3xl font-bold text-[#6B2D2D] mt-1">{products.length}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-600">Active Products</p>
-                    <p className="text-xl font-semibold text-green-600">
-                      {products.filter(p => p.stock > 0).length}
-                    </p>
+              {/* Search and Filters */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Products Count */}
+                <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-800">Total Products</h3>
+                      <p className="text-3xl font-bold text-[#6B2D2D] mt-1">{products.length}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Active Products</p>
+                      <p className="text-xl font-semibold text-green-600">
+                        {products.filter(p => p.stock > 0).length}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
 
+                {/* Search Box */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <input
+                    type="text"
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                  />
+                </div>
+              </div>
 
               {/* Category Filter */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
@@ -157,9 +176,15 @@ const AdminProducts = () => {
                   onChange={(e) => setFilterCategory(e.target.value)}
                   className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
                 >
-                  {categories.map(category => (
-                    <option key={category} value={category}>{category}</option>
-                  ))}
+                  <option value="All">All Categories</option>
+                  {categories
+                    .filter(cat => cat.isActive !== false)
+                    .map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))
+                  }
                 </select>
               </div>
 
@@ -201,7 +226,7 @@ const AdminProducts = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                              {product.category}
+                              {getCategoryName(product.category)}
                             </span>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
@@ -296,19 +321,6 @@ const AdminProducts = () => {
                   </div>
                 )}
               </div>
-
-              {/* Refresh Button */}
-              {/* <div className="flex justify-center">
-                <button
-                  onClick={fetchProducts}
-                  className="bg-gray-600 text-white px-6 py-2 rounded-lg hover:bg-gray-700 transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <span>Refresh Products</span>
-                </button>
-              </div> */}
             </div>
           </div>
         </div>

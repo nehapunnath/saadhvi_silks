@@ -3,12 +3,14 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
 import authApi from '../Services/authApi';
+import categoryApi from '../Services/CategoryApi';
 
 const ViewDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [product, setProduct] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -19,12 +21,20 @@ const ViewDetails = () => {
   const [isInWishlist, setIsInWishlist] = useState(false);
 
   /* ------------------------------------------------------------------ */
-  /*  FETCH PRODUCT + WISHLIST + RELATED                               */
+  /*  FETCH PRODUCT + CATEGORIES + WISHLIST + RELATED                  */
   /* ------------------------------------------------------------------ */
   useEffect(() => {
-    const fetchProduct = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
+        
+        // Fetch categories first
+        const categoriesResult = await categoryApi.getPublicCategories();
+        if (categoriesResult.success) {
+          setCategories(categoriesResult.categories);
+        }
+
+        // Fetch product data
         const result = await productApi.getPublicProduct(id);
         if (result.success) {
           const p = result.product;
@@ -56,7 +66,7 @@ const ViewDetails = () => {
       }
     };
 
-    if (id) fetchProduct();
+    if (id) fetchData();
   }, [id]);
 
   const fetchRelatedProducts = async (category, currentId) => {
@@ -71,6 +81,22 @@ const ViewDetails = () => {
     } catch (e) {
       console.error('Related products error', e);
     }
+  };
+
+  /* ------------------------------------------------------------------ */
+  /*  CATEGORY NAME HELPER                                             */
+  /* ------------------------------------------------------------------ */
+  const getCategoryName = (categoryValue) => {
+    if (!categoryValue) return 'N/A';
+    
+    // Try to find category by ID in the database categories
+    const category = categories.find(cat => cat.id === categoryValue);
+    
+    if (category) {
+      return category.name;
+    }
+    
+    return 'N/A';
   };
 
   /* ------------------------------------------------------------------ */
@@ -436,7 +462,7 @@ const ViewDetails = () => {
                   )}
                 </div>
                 <p className="text-[#2E2E2E] mt-2">
-                  <span className="font-medium">Category:</span> {product.category || 'Not specified'}
+                  <span className="font-medium">Category:</span> {getCategoryName(product.category)}
                 </p>
               </div>
 
@@ -500,6 +526,12 @@ const ViewDetails = () => {
                         {rp.stock > 0 ? 'Available' : 'Out of Stock'}
                       </p>
                     )}
+                    {/* Display Category for Related Products */}
+                    <div className="mt-2">
+                      <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
+                        {getCategoryName(rp.category)}
+                      </span>
+                    </div>
                   </div>
                 </Link>
               ))}

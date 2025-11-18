@@ -3,6 +3,7 @@ import { toast } from 'react-hot-toast';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
 import productApi from '../../Services/proApi';
+import categoryApi from '../../Services/CategoryApi';
 
 const EditProducts = () => {
   const { id } = useParams();
@@ -14,6 +15,13 @@ const EditProducts = () => {
   const [selectedOccasions, setSelectedOccasions] = useState([]);
   const [newImages, setNewImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  
+  // Category Management States
+  const [categories, setCategories] = useState([]);
+  const [showCategoryModal, setShowCategoryModal] = useState(false);
+  const [categoryName, setCategoryName] = useState('');
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [categoryLoading, setCategoryLoading] = useState(false);
 
   const occasions = [
     'Wedding',
@@ -24,40 +32,22 @@ const EditProducts = () => {
     'Traditional',
   ];
 
-  const categories = [
-    'Bridal collection',
-    'Kanjivaram',
-    'Silk',
-    'Soft silk',
-    'Ikkat silk',
-    'Silk dhoti',
-    'Banaras',
-    'Tussar',
-    'Designer',
-    'Fancy',
-    'Cotton',
-    'Daily wear',
-    'Lehenga',
-    'Dress material',
-    'Readymade',
-    'Sale',
-    'Traditional',
-    'Contemporary',
-  ];
 
-  /* ------------------------------------------------------------------ */
-  /*  FETCH PRODUCT                                                    */
-  /* ------------------------------------------------------------------ */
   useEffect(() => {
-    const fetch = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
+        
+        
         const res = await productApi.getProduct(id);
         const p = res.product;
 
         setProduct(p);
         setSelectedOccasions(p.occasion || []);
         setImagePreviews(p.images || []);
+
+        
+        await loadCategories();
       } catch (e) {
         toast.error('Failed to load product: ' + e.message);
         navigate('/admin/products');
@@ -65,12 +55,22 @@ const EditProducts = () => {
         setLoading(false);
       }
     };
-    fetch();
+    fetchData();
   }, [id, navigate]);
 
-  /* ------------------------------------------------------------------ */
-  /*  INPUT HANDLERS                                                   */
-  /* ------------------------------------------------------------------ */
+  const loadCategories = async () => {
+    try {
+      const result = await categoryApi.getCategories();
+      if (result.success) {
+        setCategories(result.categories);
+      }
+    } catch (error) {
+      console.error('Failed to load categories:', error);
+      toast.error('Failed to load categories');
+    }
+  };
+
+ 
   const handleInputChange = e => {
     const { name, value } = e.target;
     setProduct(prev => ({ ...prev, [name]: value }));
@@ -125,6 +125,69 @@ const EditProducts = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+
+  const handleAddCategory = async (e) => {
+    e.preventDefault();
+    if (!categoryName.trim()) {
+      toast.error('Category name is required');
+      return;
+    }
+
+    setCategoryLoading(true);
+    try {
+      if (editingCategory) {
+        await categoryApi.updateCategory(editingCategory.id, { name: categoryName });
+        toast.success('Category updated successfully!');
+      } else {
+        await categoryApi.addCategory({ name: categoryName });
+        toast.success('Category added successfully!');
+      }
+      
+      setShowCategoryModal(false);
+      setCategoryName('');
+      setEditingCategory(null);
+      await loadCategories();
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setCategoryLoading(false);
+    }
+  };
+
+  const handleEditCategory = (category) => {
+    setEditingCategory(category);
+    setCategoryName(category.name);
+    setShowCategoryModal(true);
+  };
+
+  const handleDeleteCategory = async (category) => {
+  if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) {
+    return;
+  }
+
+  try {
+    const result = await categoryApi.deleteCategory(category.id, id);
+    if (result.success) {
+      toast.success('Category deleted successfully!');
+      await loadCategories();
+      
+      if (product.category === category.id) {
+        setProduct(prev => ({ ...prev, category: '' }));
+      }
+    } else {
+      toast.error(result.error);
+    }
+  } catch (error) {
+    toast.error(error.message);
+  }
+};
+
+  const openAddCategoryModal = () => {
+    setEditingCategory(null);
+    setCategoryName('');
+    setShowCategoryModal(true);
   };
 
   const formatPrice = p =>
@@ -270,9 +333,19 @@ const EditProducts = () => {
                         )}
                       </div>
 
-                      {/* Category */}
-                      <div>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Category *</label>
+                      {/* Enhanced Category Section */}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-sm font-medium text-[#2E2E2E]">Category *</label>
+                          <button
+                            type="button"
+                            onClick={openAddCategoryModal}
+                            className="text-sm bg-[#6B2D2D] text-white px-3 py-1 rounded hover:bg-[#8B3A3A] transition-colors"
+                          >
+                            + Manage Categories
+                          </button>
+                        </div>
+                        
                         <select
                           name="category"
                           value={product.category}
@@ -281,12 +354,48 @@ const EditProducts = () => {
                           required
                         >
                           <option value="">Select Category</option>
-                          {categories.map(c => (
-                            <option key={c} value={c}>
-                              {c}
-                            </option>
-                          ))}
+                          {categories
+                            .filter(cat => cat.isActive !== false)
+                            .map(category => (
+                              <option key={category.id} value={category.id}>
+                                {category.name}
+                              </option>
+                            ))
+                          }
                         </select>
+
+                        {/* Categories List with Edit/Delete */}
+                        <div className="max-h-40 overflow-y-auto border rounded-lg p-2">
+                          <div className="grid grid-cols-1 gap-1">
+                            {categories
+                              .filter(cat => cat.isActive !== false)
+                              .map(category => (
+                                <div key={category.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
+                                  <span className="text-sm">{category.name}</span>
+                                  <div className="flex space-x-2">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleEditCategory(category)}
+                                      className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => handleDeleteCategory(category)}
+                                      className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </div>
+                              ))
+                            }
+                            {categories.length === 0 && (
+                              <p className="text-sm text-gray-500 text-center p-2">No categories found. Add your first category!</p>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
                       {/* Badge */}
@@ -439,6 +548,53 @@ const EditProducts = () => {
           </div>
         </div>
       </div>
+
+      {/* Category Management Modal */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">
+              {editingCategory ? 'Edit Category' : 'Add New Category'}
+            </h3>
+            
+            <form onSubmit={handleAddCategory}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={categoryName}
+                    onChange={(e) => setCategoryName(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                    placeholder="Enter category name"
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowCategoryModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={categoryLoading}
+                  className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] disabled:bg-gray-400"
+                >
+                  {categoryLoading ? 'Saving...' : editingCategory ? 'Update' : 'Add'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

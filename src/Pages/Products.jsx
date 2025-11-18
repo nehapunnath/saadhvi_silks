@@ -1,9 +1,9 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
 import authApi from '../Services/authApi';
+import categoryApi from '../Services/CategoryApi';
 
 const Products = () => {
   const navigate = useNavigate();
@@ -15,31 +15,12 @@ const Products = () => {
   });
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [wishlistItems, setWishlistItems] = useState([]); 
   const productsPerPage = 20;
-
-  const categories = [
-    "All",
-    "Bridal",
-    "Kanjivaram",
-    "Silk",
-    "Soft Silk",
-    "Ikkat Silk",
-    "Silk Dhoti",
-    "Banaras",
-    "Tussar",
-    "Designer",
-    "Fancy",
-    "Cotton",
-    "Daily Wear",
-    "Lehenga",
-    "Dress Material",
-    "Readymade",
-    "Sale",
-  ];
 
   const occasions = ["Wedding", "Bridal", "Festival", "Party", "Formal", "Casual"];
 
@@ -54,12 +35,26 @@ const Products = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const productResult = await productApi.getPublicProducts();
+        
+        // Fetch products and categories simultaneously
+        const [productResult, categoriesResult] = await Promise.all([
+          productApi.getPublicProducts(),
+          categoryApi.getPublicCategories()
+        ]);
+
         if (productResult.success) {
           setProducts(productResult.products);
           setFilteredProducts(productResult.products);
         } else {
           setError('Failed to fetch products');
+        }
+
+        if (categoriesResult.success) {
+          console.log('📦 Loaded categories:', categoriesResult.categories);
+          setCategories(categoriesResult.categories);
+        } else {
+          console.error('Failed to fetch categories');
+          setCategories([]);
         }
 
         if (authApi.isLoggedIn()) {
@@ -88,8 +83,17 @@ const Products = () => {
 
     let result = products;
 
+    // Category filter - handle both category IDs and names for backward compatibility
     if (selectedFilters.category.length > 0 && !selectedFilters.category.includes("All")) {
-      result = result.filter(product => selectedFilters.category.includes(product.category));
+      result = result.filter(product => {
+        return selectedFilters.category.some(filterCategory => {
+          // Check if filterCategory is an ID
+          if (categories.find(cat => cat.id === filterCategory)) {
+            return product.category === filterCategory;
+          }
+          return false;
+        });
+      });
     }
 
     if (selectedFilters.price.length > 0) {
@@ -109,7 +113,25 @@ const Products = () => {
 
     setFilteredProducts(result);
     setCurrentPage(1); 
-  }, [selectedFilters, products]);
+  }, [selectedFilters, products, categories]);
+
+  // Get category name by ID - only use categories from database
+  const getCategoryName = (categoryValue) => {
+    if (!categoryValue) return 'N/A';
+    
+    console.log('🔍 Looking for category:', categoryValue, 'in:', categories);
+    
+    // Try to find category by ID in the database categories
+    const category = categories.find(cat => cat.id === categoryValue);
+    
+    if (category) {
+      console.log('✅ Found category:', category.name);
+      return category.name;
+    }
+    
+    console.log('❌ Category not found, showing N/A');
+    return 'N/A';
+  };
 
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
@@ -276,17 +298,28 @@ const Products = () => {
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Category</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {categories.map((category, index) => (
-                    <label key={index} className="flex items-center py-1">
-                      <input
-                        type="checkbox"
-                        className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
-                        checked={selectedFilters.category.includes(category)}
-                        onChange={() => handleFilterChange('category', category)}
-                      />
-                      <span className="ml-3 text-[#2E2E2E]">{category}</span>
-                    </label>
-                  ))}
+                  <label key="all" className="flex items-center py-1">
+                    <input
+                      type="checkbox"
+                      className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                      checked={selectedFilters.category.includes("All")}
+                      onChange={() => handleFilterChange('category', "All")}
+                    />
+                    <span className="ml-3 text-[#2E2E2E]">All Categories</span>
+                  </label>
+                  {categories
+                    .filter(cat => cat.isActive !== false)
+                    .map((category) => (
+                      <label key={category.id} className="flex items-center py-1">
+                        <input
+                          type="checkbox"
+                          className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                          checked={selectedFilters.category.includes(category.id)}
+                          onChange={() => handleFilterChange('category', category.id)}
+                        />
+                        <span className="ml-3 text-[#2E2E2E]">{category.name}</span>
+                      </label>
+                    ))}
                 </div>
               </div>
 
@@ -411,6 +444,13 @@ const Products = () => {
                         {product.name}
                       </h3>
                       <p className="text-[#2E2E2E] text-sm mb-3 line-clamp-2">{product.description}</p>
+
+                      {/* Display Category */}
+                      <div className="mb-2">
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
+                          {getCategoryName(product.category)}
+                        </span>
+                      </div>
 
                       <div className="flex items-center mt-2 mb-3">
                         <span className="text-[#6B2D2D] font-bold text-lg">{formatPrice(product.price)}</span>

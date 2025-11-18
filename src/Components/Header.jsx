@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import saadhvi from '../assets/saadhvi_silks.png';
 import authApi from '../Services/authApi';
 import productApi from '../Services/proApi';
+import categoryApi from '../Services/CategoryApi';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
   
@@ -17,6 +19,22 @@ const Header = () => {
   const isLoggedIn = authApi.isLoggedIn();
   const username = localStorage.getItem('username') || 'User';
   const userType = authApi.getUserType();
+
+  // Load categories on component mount
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const result = await categoryApi.getPublicCategories();
+        if (result.success) {
+          setCategories(result.categories);
+        }
+      } catch (error) {
+        console.error('Failed to load categories:', error);
+      }
+    };
+
+    loadCategories();
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -28,6 +46,20 @@ const Header = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Get category name by ID
+  const getCategoryName = (categoryValue) => {
+    if (!categoryValue) return 'N/A';
+    
+    // Try to find category by ID in the database categories
+    const category = categories.find(cat => cat.id === categoryValue);
+    
+    if (category) {
+      return category.name;
+    }
+    
+    return 'N/A';
+  };
 
   // Real-time search
   useEffect(() => {
@@ -176,7 +208,9 @@ const Header = () => {
                         />
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-gray-800 truncate">{product.name}</h4>
-                          <p className="text-sm text-gray-500 truncate">{product.category}</p>
+                          <p className="text-sm text-gray-500 truncate">
+                            {getCategoryName(product.category)}
+                          </p>
                         </div>
                         <span className="font-bold text-[#800020] text-lg whitespace-nowrap ml-2">
                           {formatPrice(product.price)}
