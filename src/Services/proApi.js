@@ -357,6 +357,26 @@ searchProducts: async (query) => {
     return { results: [], error: 'Network error during search' };
   }
 },
+  // Add this inside the productApi object (anywhere with the other methods)
+  updateProductOffer: async (productId, offerData) => {
+    const token = authApi.getToken();
+
+    const response = await fetch(`${BASE_URL}/admin/products/${productId}/offer`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(offerData)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to update offer');
+
+    return data;
+    }}
 
   
 };

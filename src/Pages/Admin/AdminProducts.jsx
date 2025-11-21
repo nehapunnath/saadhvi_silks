@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
-import authApi from '../../Services/authApi';
 import productApi from '../../Services/proApi';
 import categoryApi from '../../Services/CategoryApi';
 
@@ -14,6 +13,12 @@ const AdminProducts = () => {
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Offer Modal States
+  const [offerModalOpen, setOfferModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [offerName, setOfferName] = useState('Buy 1 Get 1 Free');
+  const [offerPrice, setOfferPrice] = useState('');
+
   useEffect(() => {
     fetchData();
   }, []);
@@ -21,26 +26,24 @@ const AdminProducts = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      
-      // Fetch products and categories simultaneously
+
       const [productsResult, categoriesResult] = await Promise.all([
         productApi.getProducts(),
         categoryApi.getCategories()
       ]);
-      
-      setProducts(productsResult.products);
-      
+
+      setProducts(productsResult.products || []);
+
       if (categoriesResult.success) {
-        setCategories(categoriesResult.categories);
+        setCategories(categoriesResult.categories || []);
       } else {
         toast.error('Failed to load categories');
         setCategories([]);
       }
-      
-      console.log('🔍 IMAGES:', productsResult.products.map(p => ({ name: p.name, images: p.images?.length })));
-      toast.success(`Loaded ${productsResult.products.length} products!`);
+
+      toast.success(`Loaded ${productsResult.products?.length || 0} products!`);
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
@@ -61,7 +64,6 @@ const AdminProducts = () => {
   const handleStockChange = async (productId, status) => {
     try {
       const newStock = status === 'Available' ? 1 : 0;
-
       await productApi.updateStock(productId, newStock);
 
       setProducts(products.map(product =>
@@ -76,10 +78,74 @@ const AdminProducts = () => {
     }
   };
 
-  // Get category name by ID
+  // Offer Handlers
+  const openOfferModal = (productId, currentOffer = null) => {
+    setSelectedProductId(productId);
+    setOfferName(currentOffer?.offerName || 'Buy 1 Get 1 Free');
+    setOfferPrice(currentOffer?.offerPrice ? currentOffer.offerPrice.toString() : '');
+    setOfferModalOpen(true);
+  };
+
+  const closeOfferModal = () => {
+    setOfferModalOpen(false);
+    setSelectedProductId(null);
+    setOfferName('Buy 1 Get 1 Free');
+    setOfferPrice('');
+  };
+
+  const handleSaveOffer = async () => {
+    if (!offerPrice || isNaN(offerPrice) || Number(offerPrice) <= 0) {
+      toast.error('Please enter a valid offer price');
+      return;
+    }
+
+    try {
+      const offerData = {
+        hasOffer: true,
+        offerName: offerName.trim() || 'Buy 1 Get 1 Free',
+        offerPrice: Number(offerPrice)
+      };
+
+      // Update backend (adjust endpoint as needed)
+      await productApi.updateProductOffer(selectedProductId, offerData);
+
+      setProducts(products.map(p =>
+        p.key === selectedProductId
+          ? { ...p, ...offerData }
+          : p
+      ));
+
+      toast.success('Offer applied successfully!');
+      closeOfferModal();
+    } catch (error) {
+      toast.error('Failed to apply offer: ' + error.message);
+    }
+  };
+
+  const handleRemoveOffer = async (productId) => {
+    if (!window.confirm('Remove offer from this product?')) return;
+
+    try {
+      await productApi.updateProductOffer(productId, {
+        hasOffer: false,
+        offerName: null,
+        offerPrice: null
+      });
+
+      setProducts(products.map(p =>
+        p.key === productId
+          ? { ...p, hasOffer: false, offerName: null, offerPrice: null }
+          : p
+      ));
+
+      toast.success('Offer removed');
+    } catch (error) {
+      toast.error('Failed to remove offer');
+    }
+  };
+
   const getCategoryName = (categoryId) => {
     if (!categoryId) return 'N/A';
-    
     const category = categories.find(cat => cat.id === categoryId);
     return category ? category.name : 'N/A';
   };
@@ -91,6 +157,7 @@ const AdminProducts = () => {
   });
 
   const formatPrice = (price) => {
+    if (!price) return '₹0';
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
@@ -122,6 +189,7 @@ const AdminProducts = () => {
         <div className="p-6">
           <div className="max-w-7xl mx-auto">
             <div className="space-y-6">
+
               {/* Header */}
               <div className="flex justify-between items-center">
                 <div>
@@ -139,9 +207,8 @@ const AdminProducts = () => {
                 </Link>
               </div>
 
-              {/* Search and Filters */}
+              {/* Search and Stats */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Products Count */}
                 <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                   <div className="flex items-center justify-between">
                     <div>
@@ -149,7 +216,7 @@ const AdminProducts = () => {
                       <p className="text-3xl font-bold text-[#6B2D2D] mt-1">{products.length}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm text-gray-600">Active Products</p>
+                      <p className="text-sm text-gray-600">In Stock</p>
                       <p className="text-xl font-semibold text-green-600">
                         {products.filter(p => p.stock > 0).length}
                       </p>
@@ -157,7 +224,6 @@ const AdminProducts = () => {
                   </div>
                 </div>
 
-                {/* Search Box */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                   <input
                     type="text"
@@ -183,13 +249,12 @@ const AdminProducts = () => {
                       <option key={category.id} value={category.id}>
                         {category.name}
                       </option>
-                    ))
-                  }
+                    ))}
                 </select>
               </div>
 
               {/* Products Table */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead className="bg-gray-50">
@@ -197,6 +262,7 @@ const AdminProducts = () => {
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Offer</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                       </tr>
@@ -212,10 +278,8 @@ const AdminProducts = () => {
                                 className="w-12 h-12 object-cover rounded-lg mr-4"
                               />
                               <div className="min-w-0 flex-1">
-                                <div className="text-sm font-medium text-gray-900 truncate">{product.name}</div>
-                                <div className="text-sm text-gray-500 truncate max-w-xs">
-                                  {product.description}
-                                </div>
+                                <div className="text-sm font-medium text-gray-900 truncate max-w-xs">{product.name}</div>
+                                <div className="text-sm text-gray-500 truncate max-w-xs">{product.description}</div>
                                 {product.badge && (
                                   <span className="inline-block bg-[#6B2D2D] text-white text-xs font-semibold px-2 py-1 rounded-full mt-1">
                                     {product.badge}
@@ -224,11 +288,13 @@ const AdminProducts = () => {
                               </div>
                             </div>
                           </td>
+
                           <td className="px-6 py-4 whitespace-nowrap">
                             <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
                               {getCategoryName(product.category)}
                             </span>
                           </td>
+
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
                             <div>
                               <div>{formatPrice(product.price)}</div>
@@ -239,11 +305,50 @@ const AdminProducts = () => {
                               )}
                             </div>
                           </td>
+
+                          {/* OFFER COLUMN */}
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-4">
+                              <button
+                                onClick={() => {
+                                  if (product.hasOffer) {
+                                    handleRemoveOffer(product.key);
+                                  } else {
+                                    openOfferModal(product.key, {
+                                      offerName: product.offerName,
+                                      offerPrice: product.offerPrice
+                                    });
+                                  }
+                                }}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:ring-offset-2 ${
+                                  product.hasOffer ? 'bg-[#6B2D2D]' : 'bg-gray-300'
+                                }`}
+                              >
+                                <span
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                    product.hasOffer ? 'translate-x-6' : 'translate-x-1'
+                                  }`}
+                                />
+                              </button>
+
+                              {product.hasOffer && (
+                                <div className="text-sm">
+                                  <div className="font-bold text-green-600">
+                                    {formatPrice(product.offerPrice)}
+                                  </div>
+                                  <div className="text-xs text-gray-600 truncate max-w-[120px]">
+                                    {product.offerName}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </td>
+
                           <td className="px-6 py-4 whitespace-nowrap">
                             <select
                               value={product.stock > 0 ? 'Available' : 'Out of Stock'}
                               onChange={(e) => handleStockChange(product.key, e.target.value)}
-                              className="px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-[#6B2D2D] focus:outline-none"
+                              className="px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-[#6B2D2D]"
                               style={{
                                 backgroundColor: product.stock > 0 ? '#dcfce7' : '#fecaca',
                                 color: product.stock > 0 ? '#166534' : '#991b1b'
@@ -253,39 +358,19 @@ const AdminProducts = () => {
                               <option value="Out of Stock">Out of Stock</option>
                             </select>
                           </td>
+
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-3">
-                              {/* View Button */}
-                              <Link
-                                to={`/admin/viewproducts/${product.key}`}
-                                className="text-green-600 hover:text-green-800 transition-colors duration-200 flex items-center space-x-1"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
+                            <div className="flex space-x-4">
+                              <Link to={`/admin/viewproducts/${product.key}`} className="text-green-600 hover:text-green-800 flex items-center space-x-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                                 <span>View</span>
                               </Link>
-
-                              {/* Edit Button */}
-                              <Link
-                                to={`/admin/editproducts/${product.key}`}
-                                className="text-blue-600 hover:text-blue-800 transition-colors duration-200 flex items-center space-x-1"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
+                              <Link to={`/admin/editproducts/${product.key}`} className="text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
                                 <span>Edit</span>
                               </Link>
-
-                              {/* Delete Button */}
-                              <button
-                                onClick={() => handleDeleteProduct(product.key)}
-                                className="text-red-600 hover:text-red-800 transition-colors duration-200 flex items-center space-x-1"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
+                              <button onClick={() => handleDeleteProduct(product.key)} className="text-red-600 hover:text-red-800 flex items-center space-x-1">
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                                 <span>Delete</span>
                               </button>
                             </div>
@@ -296,27 +381,20 @@ const AdminProducts = () => {
                   </table>
                 </div>
 
-                {/* No Results */}
+                {/* No Products */}
                 {filteredProducts.length === 0 && (
                   <div className="text-center py-12">
                     <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
                     </svg>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-                    <p className="text-gray-500 mb-4">
+                    <p className="text-gray-500">
                       {searchTerm || filterCategory !== 'All'
                         ? 'Try adjusting your search or filter.'
-                        : 'Get started by adding your first product.'
-                      }
+                        : 'Get started by adding your first product.'}
                     </p>
-                    <Link
-                      to="/admin/addproducts"
-                      className="bg-[#6B2D2D] text-white px-6 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 inline-flex items-center space-x-2"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                      </svg>
-                      <span>Add Product</span>
+                    <Link to="/admin/addproducts" className="mt-4 inline-flex items-center px-6 py-3 bg-[#6B2D2D] text-white rounded-lg hover:bg-[#8B3A3A]">
+                      Add Product
                     </Link>
                   </div>
                 )}
@@ -325,6 +403,55 @@ const AdminProducts = () => {
           </div>
         </div>
       </div>
+
+      {/* OFFER MODAL */}
+      {offerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold text-gray-800 mb-6">Set Product Offer</h2>
+
+            <div className="space-y-5">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Offer Name</label>
+                <input
+                  type="text"
+                  value={offerName}
+                  onChange={(e) => setOfferName(e.target.value)}
+                  placeholder="e.g. Buy 1 Get 1 Free"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Offer Price (₹)</label>
+                <input
+                  type="number"
+                  value={offerPrice}
+                  onChange={(e) => setOfferPrice(e.target.value)}
+                  placeholder="Enter discounted price"
+                  min="1"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-8">
+              <button
+                onClick={closeOfferModal}
+                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveOffer}
+                className="px-6 py-2 bg-[#6B2D2D] text-white rounded-lg hover:bg-[#8B3A3A] transition"
+              >
+                Apply Offer
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

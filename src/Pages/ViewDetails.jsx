@@ -20,9 +20,7 @@ const ViewDetails = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isInWishlist, setIsInWishlist] = useState(false);
 
-  /* ------------------------------------------------------------------ */
-  /*  FETCH PRODUCT + CATEGORIES + WISHLIST + RELATED                  */
-  /* ------------------------------------------------------------------ */
+ 
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -117,6 +115,12 @@ const ViewDetails = () => {
   const isOutOfStock = product?.stock === 0;
   const maxQuantity = product?.stock || 0;
 
+  // Offer related helpers
+  const hasOffer = product?.hasOffer === true && product?.offerPrice && product.offerPrice > 0;
+  const displayPrice = hasOffer ? product.offerPrice : product?.price;
+  const originalPrice = hasOffer ? product.price : product?.originalPrice;
+  const showOriginalPrice = originalPrice && originalPrice > displayPrice;
+
   /* ------------------------------------------------------------------ */
   /*  QUANTITY HANDLERS (STOCK-CAPPED)                                 */
   /* ------------------------------------------------------------------ */
@@ -148,10 +152,11 @@ const ViewDetails = () => {
         setIsInWishlist(false);
         toast.success('Removed from wishlist');
       } else {
+        const priceToUse = hasOffer ? product.offerPrice : product.price;
         await productApi.addToWishlist({
           id: product.id,
           name: product.name,
-          price: product.price,
+          price: priceToUse,
           image: product.images?.[0] || '/placeholder-image.jpg',
         });
         setIsInWishlist(true);
@@ -183,10 +188,11 @@ const ViewDetails = () => {
     }
 
     try {
+      const priceToUse = hasOffer ? product.offerPrice : product.price;
       await productApi.addToCart({
         id: product.id,
         name: product.name,
-        price: product.price,
+        price: priceToUse,
         image: product.images?.[0] || '/placeholder-image.jpg',
         quantity,
       });
@@ -272,11 +278,23 @@ const ViewDetails = () => {
           {/* ---------- IMAGE SECTION ---------- */}
           <div className="lg:w-1/2">
             <div className="relative bg-white rounded-2xl shadow-xl overflow-hidden">
-              {product.badge && (
-                <span className="absolute top-4 left-4 bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
-                  {product.badge}
-                </span>
-              )}
+              {/* Badges Container */}
+              <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                {/* Product Badge */}
+                {product.badge && (
+                  <span className="bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full">
+                    {product.badge}
+                  </span>
+                )}
+                
+                {/* Offer Badge */}
+                {hasOffer && (
+                  <span className="bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                    {product.offerName || 'SPECIAL OFFER'}
+                  </span>
+                )}
+              </div>
+
               <div className="relative h-[600px] overflow-hidden">
                 <img
                   src={getSelectedImage()}
@@ -356,19 +374,38 @@ const ViewDetails = () => {
                 </div>
               )}
 
+              {/* OFFER BANNER */}
+              {hasOffer && (
+                <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded">
+                      SPECIAL OFFER
+                    </span>
+                    <span className="text-green-800 font-medium text-sm">
+                      {product.offerName}
+                    </span>
+                  </div>
+                  <p className="text-green-700 text-sm">
+                    Limited time offer - Don't miss out!
+                  </p>
+                </div>
+              )}
+
               {/* PRICE */}
               <div className="flex items-center mb-6">
                 <span className="text-[#6B2D2D] font-bold text-2xl">
-                  {formatPrice(product.price)}
+                  {formatPrice(displayPrice)}
                 </span>
-                {product.originalPrice && product.originalPrice > product.price && (
+                
+                {/* Show original price as strikethrough */}
+                {showOriginalPrice && (
                   <>
                     <span className="text-[#2E2E2E] text-lg line-through ml-4">
-                      {formatPrice(product.originalPrice)}
+                      {formatPrice(originalPrice)}
                     </span>
                     <span className="ml-4 bg-[#D9A7A7] text-[#800020] text-xs font-semibold px-3 py-1 rounded-full">
                       {Math.round(
-                        ((product.originalPrice - product.price) / product.originalPrice) * 100
+                        ((originalPrice - displayPrice) / originalPrice) * 100
                       )}
                       % OFF
                     </span>
@@ -497,44 +534,74 @@ const ViewDetails = () => {
               You May Also Like
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-              {relatedProducts.map(rp => (
-                <Link
-                  to={`/viewdetails/${rp.id}`}
-                  key={rp.id}
-                  className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl border border-[#D9A7A7] group"
-                >
-                  <div className="relative">
-                    {rp.badge && (
-                      <span className="absolute top-4 left-4 bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
-                        {rp.badge}
-                      </span>
-                    )}
-                    <img
-                      src={rp.images?.[0] || '/placeholder-image.jpg'}
-                      alt={rp.name}
-                      className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
-                      onError={e => (e.target.src = '/placeholder-image.jpg')}
-                    />
-                  </div>
-                  <div className="p-5">
-                    <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#3A1A1A] transition-colors duration-300">
-                      {rp.name}
-                    </h3>
-                    <p className="text-[#6B2D2D] font-bold">{formatPrice(rp.price)}</p>
-                    {rp.stock !== undefined && (
-                      <p className={`text-xs mt-1 ${rp.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {rp.stock > 0 ? 'Available' : 'Out of Stock'}
-                      </p>
-                    )}
-                    {/* Display Category for Related Products */}
-                    <div className="mt-2">
-                      <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
-                        {getCategoryName(rp.category)}
-                      </span>
+              {relatedProducts.map(rp => {
+                const relatedHasOffer = rp.hasOffer === true && rp.offerPrice && rp.offerPrice > 0;
+                const relatedDisplayPrice = relatedHasOffer ? rp.offerPrice : rp.price;
+                
+                return (
+                  <Link
+                    to={`/viewdetails/${rp.id}`}
+                    key={rp.id}
+                    className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl border border-[#D9A7A7] group"
+                  >
+                    <div className="relative">
+                      {/* Badges Container */}
+                      <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                        {/* Product Badge */}
+                        {rp.badge && (
+                          <span className="bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full">
+                            {rp.badge}
+                          </span>
+                        )}
+                        
+                        {/* Offer Badge */}
+                        {relatedHasOffer && (
+                          <span className="bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                            {rp.offerName || 'OFFER'}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <img
+                        src={rp.images?.[0] || '/placeholder-image.jpg'}
+                        alt={rp.name}
+                        className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
+                        onError={e => (e.target.src = '/placeholder-image.jpg')}
+                      />
                     </div>
-                  </div>
-                </Link>
-              ))}
+                    <div className="p-5">
+                      <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#3A1A1A] transition-colors duration-300">
+                        {rp.name}
+                      </h3>
+                      
+                      {/* Price Display for Related Products */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[#6B2D2D] font-bold">
+                          {formatPrice(relatedDisplayPrice)}
+                        </span>
+                        {relatedHasOffer && rp.price > relatedDisplayPrice && (
+                          <span className="text-[#2E2E2E] text-sm line-through">
+                            {formatPrice(rp.price)}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {rp.stock !== undefined && (
+                        <p className={`text-xs mt-1 ${rp.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {rp.stock > 0 ? 'Available' : 'Out of Stock'}
+                        </p>
+                      )}
+                      
+                      {/* Display Category for Related Products */}
+                      <div className="mt-2">
+                        <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
+                          {getCategoryName(rp.category)}
+                        </span>
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         )}

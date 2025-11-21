@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
-// import carouselApi from '../Services/carouselApi';
 import authApi from '../Services/authApi';
 import GalleryApi from '../Services/GalleryApi';
 
@@ -16,6 +15,9 @@ const Home = () => {
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [error, setError] = useState(null);
+  const [mainGalleryImage, setMainGalleryImage] = useState(null);
+  const [loadingMainImage, setLoadingMainImage] = useState(true);
+  const [mainImageError, setMainImageError] = useState(null);
 
   const fallbackSlides = [
     {
@@ -41,6 +43,34 @@ const Home = () => {
     }
   ];
 
+  const fallbackMainImage = "https://www.koskii.com/cdn/shop/products/koskii-mehendi-zariwork-pure-silk-designer-saree-saus0018591_mehendi_1.jpg?v=1633866706&width=1080";
+
+  // Fetch main gallery image
+  useEffect(() => {
+    const fetchMainGalleryImage = async () => {
+      try {
+        setLoadingMainImage(true);
+        setMainImageError(null);
+        const data = await GalleryApi.getPublicMainGalleryImage();
+        
+        if (data.image) {
+          setMainGalleryImage(data.image);
+        } else {
+          setMainGalleryImage(fallbackMainImage);
+          console.log('No main gallery image found, using fallback');
+        }
+      } catch (err) {
+        console.error('Main gallery image fetch error:', err);
+        setMainImageError(err.message);
+        setMainGalleryImage(fallbackMainImage);
+      } finally {
+        setLoadingMainImage(false);
+      }
+    };
+    fetchMainGalleryImage();
+  }, []);
+
+  // Fetch carousel slides
   useEffect(() => {
     const fetchSlides = async () => {
       try {
@@ -59,6 +89,7 @@ const Home = () => {
     fetchSlides();
   }, []);
 
+  // Auto slide carousel
   useEffect(() => {
     if (carouselSlides.length === 0) return;
 
@@ -69,6 +100,7 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [carouselSlides.length]);
 
+  // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -85,6 +117,17 @@ const Home = () => {
     };
     fetchProducts();
   }, []);
+
+  // Get unique offer names from products that have offers
+  const getUniqueOfferNames = () => {
+    const offers = new Set();
+    products.forEach(product => {
+      if (product.hasOffer && product.offerName) {
+        offers.add(product.offerName);
+      }
+    });
+    return Array.from(offers).slice(0, 8); // Get max 8 unique offers
+  };
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
@@ -114,6 +157,11 @@ const Home = () => {
     }
   };
 
+  const handleImageError = (e) => {
+    console.error('Main gallery image failed to load:', e);
+    e.target.src = fallbackMainImage;
+  };
+
   if (loadingSlides) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
@@ -125,6 +173,7 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] overflow-hidden">
 
+      {/* Hero Carousel Section */}
       <section className="relative h-screen">
         <div className="absolute inset-0 overflow-hidden">
           {carouselSlides.map((slide, idx) => (
@@ -191,6 +240,7 @@ const Home = () => {
         </button>
       </section>
 
+      {/* Elegance Woven with Tradition Section - WITH MAIN GALLERY IMAGE */}
       <section className="relative py-20 md:py-32 overflow-hidden">
         <div className="absolute top-0 left-0 w-72 h-72 bg-[#800020] opacity-5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#800020] opacity-5 rounded-full translate-x-1/3 translate-y-1/3"></div>
@@ -220,16 +270,34 @@ const Home = () => {
           </div>
 
           <div className="md:w-1/2 flex justify-center">
-            <img
-              src="https://www.koskii.com/cdn/shop/products/koskii-mehendi-zariwork-pure-silk-designer-saree-saus0018591_mehendi_1.jpg?v=1633866706&width=1080"
-              alt="Elegant Silk Saree"
-              className="rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-700 hover:scale-105"
-              loading="lazy"
-            />
+            {loadingMainImage ? (
+              <div className="w-full max-w-md h-96 bg-gray-200 rounded-2xl shadow-2xl animate-pulse flex items-center justify-center">
+                <div className="flex flex-col items-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#800020] border-t-transparent mb-2"></div>
+                  <div className="text-gray-500 text-sm">Loading elegant image...</div>
+                </div>
+              </div>
+            ) : (
+              <div className="relative group">
+                <img
+                  src={mainGalleryImage}
+                  alt="Elegance Woven with Tradition"
+                  className="rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-700 group-hover:scale-105 object-cover h-96"
+                  loading="lazy"
+                  onError={handleImageError}
+                />
+                {mainImageError && (
+                  <div className="absolute bottom-2 left-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
+                    Using default image
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       </section>
 
+      {/* Saree Collections Section */}
       <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -287,6 +355,7 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Latest Collection Section */}
       <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
@@ -311,12 +380,24 @@ const Home = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {products.slice(0, 3).map((product) => {
                 const inStock = product.stock > 0;
+                const hasOffer = product.hasOffer === true && product.offerPrice && product.offerPrice > 0;
+                const displayPrice = hasOffer ? product.offerPrice : product.price;
+                
                 return (
                   <div key={product._id} className="bg-[#F8EDE3] rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl group border border-[#FDF6E3]">
                     <div className="relative overflow-hidden">
+                      {/* Product Badge */}
                       <span className={`absolute top-4 left-4 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A]' : 'bg-gray-600'}`}>
                         {inStock ? 'In Stock' : 'Sold Out'}
                       </span>
+                      
+                      {/* Offer Badge */}
+                      {hasOffer && (
+                        <span className="absolute top-4 right-4 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md">
+                          {product.offerName || 'OFFER'}
+                        </span>
+                      )}
+                      
                       <div className="h-80 overflow-hidden">
                         <img
                           src={product.images?.[0] || '/placeholder.jpg'}
@@ -334,10 +415,10 @@ const Home = () => {
                       </h3>
 
                       <div className="flex items-center mt-2 mb-4">
-                        <span className="text-[#800020] font-bold text-lg">{formatPrice(product.price)}</span>
-                        {product.originalPrice && product.originalPrice > product.price && (
+                        <span className="text-[#800020] font-bold text-lg">{formatPrice(displayPrice)}</span>
+                        {hasOffer && product.price > displayPrice && (
                           <span className="text-[#1C2526] text-sm line-through ml-2">
-                            {formatPrice(product.originalPrice)}
+                            {formatPrice(product.price)}
                           </span>
                         )}
                       </div>
@@ -383,31 +464,38 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Special Offers Section */}
       <section className="py-12 bg-gradient-to-r from-[#800020] to-[#A0002A] relative overflow-hidden">
         <div className="container mx-auto px-4">
           <h2 className="text-2xl md:text-3xl font-serif font-bold text-white text-center mb-8">
             Special Offers
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[
-              { title: "Festival Special", discount: "20% OFF", code: "FEST20", expiry: "Valid until Oct 30, 2025" },
-              { title: "First Purchase", discount: "15% OFF", code: "WELCOME15", expiry: "No expiry" },
-              { title: "Free Shipping", discount: "FREE", code: "SHIPFREE", expiry: "On orders above ₹9999" },
-              { title: "Bridal Package", discount: "25% OFF", code: "BRIDE25", expiry: "Valid until Dec 31, 2025" }
-            ].map((offer, i) => (
-              <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-lg hover:scale-105 transition-transform duration-300">
-                <div className="text-white text-center">
-                  <h3 className="text-xl font-bold mb-2">{offer.title}</h3>
-                  <div className="text-2xl font-serif font-bold text-white mb-3">{offer.discount}</div>
-                  <p className="text-xs text-[#F8EDE3]">{offer.expiry}</p>
+          {loadingProducts ? (
+            <div className="flex justify-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {getUniqueOfferNames().length > 0 ? (
+                getUniqueOfferNames().map((offerName, i) => (
+                  <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-lg hover:scale-105 transition-transform duration-300">
+                    <div className="text-white text-center">
+                      <h3 className="text-xl font-bold">{offerName}</h3>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-4 text-center text-white/80">
+                  <p>No special offers available at the moment</p>
                 </div>
-              </div>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
-      <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
+      {/* Testimonials Section */}
+       <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">

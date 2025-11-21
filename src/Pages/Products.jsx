@@ -12,6 +12,7 @@ const Products = () => {
     category: [],
     price: [],
     occasion: [],
+    offers: [],
   });
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [products, setProducts] = useState([]);
@@ -31,29 +32,39 @@ const Products = () => {
     { label: "Over ₹15,000", value: "15000-100000" },
   ];
 
+  const offerTypes = [
+    { label: "Special Offers", value: "hasOffer" },
+  ];
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Fetch products and categories simultaneously
         const [productResult, categoriesResult] = await Promise.all([
           productApi.getPublicProducts(),
           categoryApi.getPublicCategories()
         ]);
 
+        console.log('🔄 Fetching products...');
+        console.log('📦 Product result:', productResult);
+
         if (productResult.success) {
-          setProducts(productResult.products);
-          setFilteredProducts(productResult.products);
+          // Debug: Check offers in products
+          const productsWithOffers = productResult.products.filter(p => p.hasOffer);
+          console.log('🎯 Products with offers:', productsWithOffers);
+          console.log('📊 Total products:', productResult.products.length);
+          console.log('📈 Products with offers count:', productsWithOffers.length);
+          
+          setProducts(productResult.products || []);
+          setFilteredProducts(productResult.products || []);
         } else {
           setError('Failed to fetch products');
         }
 
         if (categoriesResult.success) {
-          console.log('📦 Loaded categories:', categoriesResult.categories);
-          setCategories(categoriesResult.categories);
+          setCategories(categoriesResult.categories || []);
         } else {
-          console.error('Failed to fetch categories');
           setCategories([]);
         }
 
@@ -81,56 +92,57 @@ const Products = () => {
   useEffect(() => {
     if (products.length === 0) return;
 
+    console.log('🔄 Filtering products...', selectedFilters);
+    
     let result = products;
 
-    // Category filter - handle both category IDs and names for backward compatibility
+    // Category filter
     if (selectedFilters.category.length > 0 && !selectedFilters.category.includes("All")) {
       result = result.filter(product => {
         return selectedFilters.category.some(filterCategory => {
-          // Check if filterCategory is an ID
-          if (categories.find(cat => cat.id === filterCategory)) {
-            return product.category === filterCategory;
-          }
-          return false;
+          return product.category === filterCategory;
         });
       });
     }
 
+    // Price filter - use offer price if available
     if (selectedFilters.price.length > 0) {
       result = result.filter(product => {
+        const displayPrice = product.hasOffer ? product.offerPrice : product.price;
         return selectedFilters.price.some(priceRange => {
           const [min, max] = priceRange.split('-').map(Number);
-          return product.price >= min && product.price <= max;
+          return displayPrice >= min && displayPrice <= max;
         });
       });
     }
 
+    // Occasion filter
     if (selectedFilters.occasion.length > 0) {
       result = result.filter(product =>
         product.occasion && product.occasion.some(occ => selectedFilters.occasion.includes(occ))
       );
     }
 
+    // Offer filter - Show only products with offers
+    if (selectedFilters.offers.length > 0) {
+      console.log('🔍 Filtering by offers...');
+      result = result.filter(product => {
+        const hasOffer = product.hasOffer === true;
+        console.log(`Product ${product.name}: hasOffer = ${hasOffer}`);
+        return hasOffer;
+      });
+      console.log('✅ Products after offer filter:', result.length);
+    }
+
     setFilteredProducts(result);
     setCurrentPage(1); 
-  }, [selectedFilters, products, categories]);
+  }, [selectedFilters, products]);
 
-  // Get category name by ID - only use categories from database
+  // Get category name by ID
   const getCategoryName = (categoryValue) => {
     if (!categoryValue) return 'N/A';
-    
-    console.log('🔍 Looking for category:', categoryValue, 'in:', categories);
-    
-    // Try to find category by ID in the database categories
     const category = categories.find(cat => cat.id === categoryValue);
-    
-    if (category) {
-      console.log('✅ Found category:', category.name);
-      return category.name;
-    }
-    
-    console.log('❌ Category not found, showing N/A');
-    return 'N/A';
+    return category ? category.name : 'N/A';
   };
 
   const indexOfLastProduct = currentPage * productsPerPage;
@@ -159,6 +171,7 @@ const Products = () => {
       category: [],
       price: [],
       occasion: [],
+      offers: [],
     });
   };
 
@@ -176,10 +189,11 @@ const Products = () => {
         setWishlistItems(prev => prev.filter(id => id !== product.id));
         toast.success(`${product.name} removed from wishlist!`);
       } else {
+        const displayPrice = product.hasOffer ? product.offerPrice : product.price;
         await productApi.addToWishlist({
           id: product.id,
           name: product.name,
-          price: product.price,
+          price: displayPrice,
           image: product.images && product.images[0] ? product.images[0] : '/placeholder-image.jpg'
         });
         setWishlistItems(prev => [...prev, product.id]);
@@ -191,6 +205,7 @@ const Products = () => {
   };
 
   const formatPrice = price => {
+    if (!price && price !== 0) return '₹0';
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
@@ -204,6 +219,9 @@ const Products = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
+
+  // Count products with offers for filter display
+  const productsWithOffers = products.filter(product => product.hasOffer === true).length;
 
   // Loading state
   if (loading) {
@@ -251,7 +269,6 @@ const Products = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
-      {/* Main Content */}
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col md:flex-row gap-8">
           {/* Filters Sidebar */}
@@ -358,12 +375,34 @@ const Products = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Offers Filter */}
+              <div className="mb-6">
+                <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Special Offers</h3>
+                <div className="space-y-2">
+                  {offerTypes.map((offer, index) => (
+                    <label key={index} className="flex items-center justify-between py-1">
+                      <div className="flex items-center">
+                        <input
+                          type="checkbox"
+                          className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                          checked={selectedFilters.offers.includes(offer.value)}
+                          onChange={() => handleFilterChange('offers', offer.value)}
+                        />
+                        <span className="ml-3 text-[#2E2E2E]">{offer.label}</span>
+                      </div>
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                        {productsWithOffers}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
 
           {/* Products Grid */}
           <div className="md:w-3/4">
-            {/* Mobile Filter Toggle and Results Count */}
             <div className="flex justify-between items-center mb-8">
               <button
                 onClick={toggleFilter}
@@ -387,98 +426,134 @@ const Products = () => {
               </button>
               <div className="text-[#2E2E2E]">
                 Showing {currentProducts.length} of {filteredProducts.length} products
+                {selectedFilters.offers.length > 0 && (
+                  <span className="text-green-600 font-semibold ml-2">
+                    • Special Offers
+                  </span>
+                )}
               </div>
             </div>
 
             {/* Products Grid */}
             {currentProducts.length > 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {currentProducts.map(product => (
-                  <div
-                    key={product.id}
-                    className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7]"
-                  >
-                    <div className="relative overflow-hidden">
-                      {product.badge && (
-                        <span className="absolute top-4 left-4 bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full z-10">
-                          {product.badge}
-                        </span>
-                      )}
-                      <div className="h-80 overflow-hidden">
-                        <img
-                          src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder-image.jpg'}
-                          alt={product.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          onError={(e) => {
-                            e.target.src = '/placeholder-image.jpg';
-                          }}
-                        />
-                      </div>
-                      <button
-                        onClick={() => handleWishlistToggle(product)}
-                        className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${
-                          wishlistItems.includes(product.id)
-                            ? 'bg-[#6B2D2D] text-white'
-                            : 'bg-white text-[#6B2D2D] hover:bg-[#D9A7A7]'
-                        }`}
-                        aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5"
-                          fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'}
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                          />
-                        </svg>
-                      </button>
-                    </div>
-                    <div className="p-5">
-                      <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#3A1A1A] transition-colors duration-300">
-                        {product.name}
-                      </h3>
-                      <p className="text-[#2E2E2E] text-sm mb-3 line-clamp-2">{product.description}</p>
+                {currentProducts.map(product => {
+                  const hasOffer = product.hasOffer === true;
+                  const displayPrice = hasOffer ? product.offerPrice : product.price;
+                  
+                  console.log(`🛍️ Rendering product: ${product.name}`, {
+                    hasOffer,
+                    displayPrice,
+                    offerPrice: product.offerPrice,
+                    regularPrice: product.price,
+                    offerName: product.offerName
+                  });
 
-                      {/* Display Category */}
-                      <div className="mb-2">
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
-                          {getCategoryName(product.category)}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center mt-2 mb-3">
-                        <span className="text-[#6B2D2D] font-bold text-lg">{formatPrice(product.price)}</span>
-                        {product.originalPrice && product.originalPrice > product.price && (
-                          <span className="text-[#2E2E2E] text-sm line-through ml-2">
-                            {formatPrice(product.originalPrice)}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center justify-between mt-4">
-                        <div className="flex">
-                          {/* Stock indicator */}
-                          {product.stock > 0 ? (
-                            <span className="text-green-600 text-sm">In Stock</span>
-                          ) : (
-                            <span className="text-red-600 text-sm">Out of Stock</span>
+                  return (
+                    <div
+                      key={product.id}
+                      className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7]"
+                    >
+                      <div className="relative overflow-hidden">
+                        {/* Badges Container */}
+                        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                          {/* Product Badge */}
+                          {product.badge && (
+                            <span className="bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full">
+                              {product.badge}
+                            </span>
+                          )}
+                          
+                          {/* Offer Badge - Show if product has offer */}
+                          {hasOffer && (
+                            <span className="bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                              {product.offerName || 'SPECIAL OFFER'}
+                            </span>
                           )}
                         </div>
-                        <Link to={`/viewdetails/${product.id}`}>
-                          <button className="bg-[#800020] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6B2D2D] hover:text-white transition-all duration-300">
-                            View Details
-                          </button>
-                        </Link>
+
+                        <div className="h-80 overflow-hidden">
+                          <img
+                            src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder-image.jpg'}
+                            alt={product.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            onError={(e) => {
+                              e.target.src = '/placeholder-image.jpg';
+                            }}
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleWishlistToggle(product)}
+                          className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${
+                            wishlistItems.includes(product.id)
+                              ? 'bg-[#6B2D2D] text-white'
+                              : 'bg-white text-[#6B2D2D] hover:bg-[#D9A7A7]'
+                          }`}
+                          aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'}
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                      <div className="p-5">
+                        <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#3A1A1A] transition-colors duration-300">
+                          {product.name}
+                        </h3>
+                        <p className="text-[#2E2E2E] text-sm mb-3 line-clamp-2">{product.description}</p>
+
+                        {/* Display Category */}
+                        <div className="mb-2">
+                          <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
+                            {getCategoryName(product.category)}
+                          </span>
+                        </div>
+
+                        {/* Price Display */}
+                        <div className="flex items-center mt-2 mb-3">
+                          {/* Show offer price if available, otherwise regular price */}
+                          <span className="text-[#6B2D2D] font-bold text-lg">
+                            {formatPrice(displayPrice)}
+                          </span>
+                          
+                          {/* Show original price as strikethrough only if there's an offer */}
+                          {hasOffer && product.price && product.price > displayPrice && (
+                            <span className="text-[#2E2E2E] text-sm line-through ml-2">
+                              {formatPrice(product.price)}
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center justify-between mt-4">
+                          <div className="flex">
+                            {/* Stock indicator */}
+                            {product.stock > 0 ? (
+                              <span className="text-green-600 text-sm">In Stock</span>
+                            ) : (
+                              <span className="text-red-600 text-sm">Out of Stock</span>
+                            )}
+                          </div>
+                          <Link to={`/viewdetails/${product.id}`}>
+                            <button className="bg-[#800020] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6B2D2D] hover:text-white transition-all duration-300">
+                              View Details
+                            </button>
+                          </Link>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12">
