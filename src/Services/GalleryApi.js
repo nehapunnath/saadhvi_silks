@@ -167,6 +167,117 @@ getPublicMainGalleryImage: async () => {
   if (!response.ok) throw new Error(data.error || 'Failed to load main gallery image');
   return data;
 },
+addCollection: async (collectionData, imageFile) => {
+  const token = authApi.getToken();
+  const formData = new FormData();
+
+  formData.append('name', collectionData.name);
+  if (collectionData.description) formData.append('description', collectionData.description);
+  if (collectionData.items) formData.append('items', collectionData.items);
+  if (collectionData.displayOrder) formData.append('displayOrder', collectionData.displayOrder);
+  formData.append('isActive', collectionData.isActive);
+  if (imageFile) formData.append('image', imageFile);
+
+  const response = await fetch(`${BASE_URL}/admin/collections`, {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: formData,
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to add collection');
+  return data;
+},
+
+getCollections: async () => {
+  const token = authApi.getToken();
+  const response = await fetch(`${BASE_URL}/admin/collections`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to fetch collections');
+  return data;
+},
+
+getCollection: async (id) => {
+  const token = authApi.getToken();
+  const response = await fetch(`${BASE_URL}/admin/collections/${id}`, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Collection not found');
+  return data;
+},
+
+updateCollection: async (id, collectionData, imageFile = null) => {
+  const token = authApi.getToken();
+  const formData = new FormData();
+
+  formData.append('name', collectionData.name);
+  if (collectionData.description) formData.append('description', collectionData.description);
+  if (collectionData.items) formData.append('items', collectionData.items);
+  if (collectionData.displayOrder) formData.append('displayOrder', collectionData.displayOrder);
+  formData.append('isActive', collectionData.isActive);
+  if (imageFile) formData.append('image', imageFile);
+
+  const response = await fetch(`${BASE_URL}/admin/collections/${id}`, {
+    method: 'PUT',
+    headers: { 'Authorization': `Bearer ${token}` },
+    body: formData,
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to update collection');
+  return data;
+},
+
+deleteCollection: async (id) => {
+  const token = authApi.getToken();
+  const response = await fetch(`${BASE_URL}/admin/collections/${id}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to delete collection');
+  return data;
+},
+
+reorderCollections: async (orderMap) => {
+  const token = authApi.getToken();
+  const response = await fetch(`${BASE_URL}/admin/collections/reorder`, {
+    method: 'PATCH',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ order: orderMap }),
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to reorder collections');
+  return data;
+},
+
+getPublicCollections: async () => {
+  const response = await fetch(`${BASE_URL}/collections`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Failed to load collections');
+  return data;
+},
+
 };
 
 export default GalleryApi;

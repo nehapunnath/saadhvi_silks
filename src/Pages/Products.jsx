@@ -26,10 +26,11 @@ const Products = () => {
   const occasions = ["Wedding", "Bridal", "Festival", "Party", "Formal", "Casual"];
 
   const prices = [
-    { label: "Under ₹5,000", value: "0-5000" },
+    { label: "₹0 - ₹1,000", value: "0-1000" },
+    { label: "₹1,000 - ₹3,000", value: "1000-3000" },
+    { label: "₹3,000 - ₹5,000", value: "3000-5000" },
     { label: "₹5,000 - ₹10,000", value: "5000-10000" },
-    { label: "₹10,000 - ₹15,000", value: "10000-15000" },
-    { label: "Over ₹15,000", value: "15000-100000" },
+    { label: "₹15,000 - ₹20,000", value: "15000-20000" },
   ];
 
   const offerTypes = [
@@ -106,15 +107,16 @@ const Products = () => {
     }
 
     // Price filter - use offer price if available
-    if (selectedFilters.price.length > 0) {
-      result = result.filter(product => {
-        const displayPrice = product.hasOffer ? product.offerPrice : product.price;
-        return selectedFilters.price.some(priceRange => {
-          const [min, max] = priceRange.split('-').map(Number);
-          return displayPrice >= min && displayPrice <= max;
-        });
-      });
-    }
+    // In the filtering useEffect:
+if (selectedFilters.price.length > 0) {
+  result = result.filter(product => {
+    const displayPrice = product.hasOffer ? product.offerPrice : product.price;
+    return selectedFilters.price.some(priceRange => {
+      const [min, max] = priceRange.split('-').map(Number);
+      return displayPrice >= min && displayPrice <= max;
+    });
+  });
+}
 
     // Occasion filter
     if (selectedFilters.occasion.length > 0) {

@@ -7,17 +7,25 @@ import GalleryApi from '../../Services/GalleryApi';
 const Gallery = () => {
   const [carouselSlides, setCarouselSlides] = useState([]);
   const [mainGalleryImage, setMainGalleryImage] = useState(null);
+  const [collections, setCollections] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingCollections, setLoadingCollections] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showMainImageModal, setShowMainImageModal] = useState(false);
+  const [showCollectionModal, setShowCollectionModal] = useState(false);
+  const [showEditCollectionModal, setShowEditCollectionModal] = useState(false);
   const [selectedSlide, setSelectedSlide] = useState(null);
+  const [selectedCollection, setSelectedCollection] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadingMainImage, setUploadingMainImage] = useState(false);
+  const [uploadingCollection, setUploadingCollection] = useState(false);
   const [imagePreview, setImagePreview] = useState('');
   const [mainImagePreview, setMainImagePreview] = useState('');
+  const [collectionImagePreview, setCollectionImagePreview] = useState('');
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedMainImageFile, setSelectedMainImageFile] = useState(null);
+  const [selectedCollectionFile, setSelectedCollectionFile] = useState(null);
 
   const [newSlide, setNewSlide] = useState({
     title: '',
@@ -26,31 +34,62 @@ const Gallery = () => {
     order: ''
   });
 
-  // Fetch slides and main image on mount
+  const [newCollection, setNewCollection] = useState({
+    name: '',
+    description: '',
+    items: '',
+    displayOrder: '',
+    isActive: true
+  });
+
+  // Fetch all data on mount
   useEffect(() => {
-    fetchSlides();
-    fetchMainGalleryImage();
+    fetchAllData();
   }, []);
 
-  const fetchSlides = async () => {
+  const fetchAllData = async () => {
     try {
       setLoading(true);
-      const data = await GalleryApi.getSlides();
-      setCarouselSlides(data.slides || []);
+      await Promise.all([
+        fetchSlides(),
+        fetchMainGalleryImage(),
+        fetchCollections()
+      ]);
     } catch (err) {
-      toast.error(err.message);
+      toast.error('Failed to load data');
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchSlides = async () => {
+    try {
+      const data = await GalleryApi.getSlides();
+      setCarouselSlides(data.slides || []);
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
   const fetchMainGalleryImage = async () => {
     try {
-      // You'll need to create this API method in GalleryApi
       const data = await GalleryApi.getMainGalleryImage();
       setMainGalleryImage(data.image || null);
     } catch (err) {
       console.error('Error fetching main gallery image:', err);
+    }
+  };
+
+  const fetchCollections = async () => {
+    try {
+      setLoadingCollections(true);
+      const data = await GalleryApi.getCollections();
+      setCollections(data.collections || []);
+    } catch (err) {
+      toast.error('Failed to fetch collections');
+      console.error('Collection fetch error:', err);
+    } finally {
+      setLoadingCollections(false);
     }
   };
 
@@ -72,6 +111,17 @@ const Gallery = () => {
       setSelectedMainImageFile(file);
       const reader = new FileReader();
       reader.onloadend = () => setMainImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle file selection for collection
+  const handleCollectionImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedCollectionFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setCollectionImagePreview(reader.result);
       reader.readAsDataURL(file);
     }
   };
@@ -115,6 +165,100 @@ const Gallery = () => {
       toast.error(err.message);
     } finally {
       setUploadingMainImage(false);
+    }
+  };
+
+  // Add new collection
+  const handleAddCollection = async () => {
+    if (!selectedCollectionFile || !newCollection.name) {
+      toast.error('Please fill name and upload an image');
+      return;
+    }
+
+    setUploadingCollection(true);
+    try {
+      await GalleryApi.addCollection(newCollection, selectedCollectionFile);
+      toast.success('Collection added successfully!');
+      fetchCollections();
+      resetCollectionForm();
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setUploadingCollection(false);
+    }
+  };
+
+  // Edit collection
+  const handleEditCollection = (collection) => {
+    setSelectedCollection(collection);
+    setNewCollection({
+      name: collection.name,
+      description: collection.description || '',
+      items: collection.items || '',
+      displayOrder: collection.displayOrder || '',
+      isActive: collection.isActive !== false
+    });
+    setCollectionImagePreview(collection.image);
+    setSelectedCollectionFile(null);
+    setShowEditCollectionModal(true);
+  };
+
+  // Save collection edit
+  const handleSaveCollectionEdit = async () => {
+    if (!newCollection.name) {
+      toast.error('Name is required');
+      return;
+    }
+
+    try {
+      await GalleryApi.updateCollection(selectedCollection.id, newCollection, selectedCollectionFile);
+      toast.success('Collection updated!');
+      fetchCollections();
+      setShowEditCollectionModal(false);
+      setSelectedCollection(null);
+      setSelectedCollectionFile(null);
+      setCollectionImagePreview('');
+      setNewCollection({ name: '', description: '', items: '', displayOrder: '', isActive: true });
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  // Delete collection
+  const handleDeleteCollection = async (id) => {
+    if (!window.confirm('Delete this collection?')) return;
+
+    try {
+      await GalleryApi.deleteCollection(id);
+      toast.success('Collection deleted');
+      fetchCollections();
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+
+  // Reorder collections
+  const moveCollection = async (id, direction) => {
+    const currentCollections = [...collections];
+    const idx = currentCollections.findIndex(c => c.id === id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+
+    if (swapIdx < 0 || swapIdx >= currentCollections.length) return;
+
+    const orderMap = {};
+    const temp = currentCollections[idx].displayOrder;
+    currentCollections[idx].displayOrder = currentCollections[swapIdx].displayOrder;
+    currentCollections[swapIdx].displayOrder = temp;
+
+    currentCollections.forEach(c => {
+      orderMap[c.id] = c.displayOrder;
+    });
+
+    try {
+      await GalleryApi.reorderCollections(orderMap);
+      setCollections(currentCollections);
+    } catch (err) {
+      toast.error('Failed to reorder');
     }
   };
 
@@ -179,7 +323,7 @@ const Gallery = () => {
     }
   };
 
-  // Reorder
+  // Reorder slides
   const moveSlide = async (id, direction) => {
     const slides = [...carouselSlides];
     const idx = slides.findIndex(s => s.id === id);
@@ -204,11 +348,19 @@ const Gallery = () => {
     }
   };
 
+  // Reset forms
   const resetUploadForm = () => {
     setNewSlide({ title: '', subtitle: '', cta: 'Shop Now', order: '' });
     setImagePreview('');
     setSelectedFile(null);
     setShowUploadModal(false);
+  };
+
+  const resetCollectionForm = () => {
+    setNewCollection({ name: '', description: '', items: '', displayOrder: '', isActive: true });
+    setCollectionImagePreview('');
+    setSelectedCollectionFile(null);
+    setShowCollectionModal(false);
   };
 
   const removeImagePreview = () => {
@@ -219,6 +371,11 @@ const Gallery = () => {
   const removeMainImagePreview = () => {
     setMainImagePreview('');
     setSelectedMainImageFile(null);
+  };
+
+  const removeCollectionImagePreview = () => {
+    setCollectionImagePreview('');
+    setSelectedCollectionFile(null);
   };
 
   if (loading) {
@@ -252,9 +409,8 @@ const Gallery = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <h1 className="text-3xl font-bold text-gray-800">Gallery Management</h1>
-                  <p className="text-gray-600 mt-1">Manage homepage carousel slides and main gallery image</p>
+                  <p className="text-gray-600 mt-1">Manage homepage carousel slides, main gallery image, and collections</p>
                 </div>
-               
               </div>
 
               {/* Main Image Gallery Section */}
@@ -262,7 +418,7 @@ const Gallery = () => {
                 <div className="flex justify-between items-center mb-6">
                   <div>
                     <h2 className="text-xl font-semibold text-gray-800">Main Gallery Image</h2>
-                    <p className="text-gray-600 text-sm mt-1">This image will be displayed prominently on the homepage<span className="text-blue">(At "Elegance Woven with Tradition ")</span></p>
+                    <p className="text-gray-600 text-sm mt-1">This image will be displayed prominently on the homepage(At<span className="text-red-600 font-bold">  "Elegance Woven with Tradition"</span>)</p>
                   </div>
                   <button
                     onClick={() => setShowMainImageModal(true)}
@@ -325,6 +481,118 @@ const Gallery = () => {
                     >
                       Upload Main Image
                     </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Saree Collections Section */}
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h2 className="text-xl font-semibold text-gray-800">Saree Collections</h2>
+                    <p className="text-gray-600 text-sm mt-1">Manage the <span className="text-orange-600 font-bold">"Our Saree Collections"</span> section on homepage</p>
+                  </div>
+                  <button
+                    onClick={() => setShowCollectionModal(true)}
+                    className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span>Add New Collection</span>
+                  </button>
+                </div>
+
+                {loadingCollections ? (
+                  <div className="flex justify-center py-12">
+                    <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#6B2D2D] border-t-transparent"></div>
+                  </div>
+                ) : collections.length === 0 ? (
+                  <div className="text-center py-12 border-2 border-dashed border-gray-300 rounded-lg bg-gray-50">
+                    <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No collections yet</h3>
+                    <p className="text-gray-500 mb-6">Create your first saree collection to display on homepage</p>
+                    <button
+                      onClick={() => setShowCollectionModal(true)}
+                      className="bg-[#6B2D2D] text-white px-6 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200"
+                    >
+                      Add First Collection
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {collections
+                      .sort((a, b) => (a.displayOrder || 0) - (b.displayOrder || 0))
+                      .map((collection, index) => (
+                        <div key={collection.id} className="border border-gray-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200">
+                          <div className="relative h-48 overflow-hidden">
+                            <img
+                              src={collection.image}
+                              alt={collection.name}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                            />
+                            {collection.isActive === false && (
+                              <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-semibold px-2 py-1 rounded">
+                                Inactive
+                              </div>
+                            )}
+                            <div className="absolute top-2 left-2 bg-[#6B2D2D] text-white text-xs font-semibold px-2 py-1 rounded">
+                              #{collection.displayOrder || index + 1}
+                            </div>
+                          </div>
+                          <div className="p-4">
+                            <h3 className="font-semibold text-gray-800 text-lg mb-2">{collection.name}</h3>
+                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">{collection.description}</p>
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                                {collection.items}
+                              </span>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={() => moveCollection(collection.id, 'up')}
+                                  disabled={index === 0}
+                                  className={`p-1 rounded ${index === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:text-[#6B2D2D]'}`}
+                                  title="Move Up"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => moveCollection(collection.id, 'down')}
+                                  disabled={index === collections.length - 1}
+                                  className={`p-1 rounded ${index === collections.length - 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:text-[#6B2D2D]'}`}
+                                  title="Move Down"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => handleEditCollection(collection)}
+                                  className="p-1 text-yellow-600 hover:text-yellow-800"
+                                  title="Edit"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteCollection(collection.id)}
+                                  className="p-1 text-red-600 hover:text-red-800"
+                                  title="Delete"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 )}
               </div>
@@ -622,6 +890,235 @@ const Gallery = () => {
                       </button>
                       <button
                         onClick={handleSaveEdit}
+                        className="bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#8B3A3A]"
+                      >
+                        Save Changes
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Collection Upload Modal */}
+              {showCollectionModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Add New Collection</h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Collection Name *</label>
+                          <input
+                            type="text"
+                            value={newCollection.name}
+                            onChange={(e) => setNewCollection(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                            placeholder="e.g., Traditional Silk Sarees"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                          <textarea
+                            value={newCollection.description}
+                            onChange={(e) => setNewCollection(prev => ({ ...prev, description: e.target.value }))}
+                            rows="3"
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                            placeholder="Brief description of the collection"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Items Count</label>
+                          <input
+                            type="text"
+                            value={newCollection.items}
+                            onChange={(e) => setNewCollection(prev => ({ ...prev, items: e.target.value }))}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                            placeholder="e.g., 120+ Products or Limited Edition"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
+                            <input
+                              type="number"
+                              value={newCollection.displayOrder}
+                              onChange={(e) => setNewCollection(prev => ({ ...prev, displayOrder: parseInt(e.target.value) || '' }))}
+                              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                              placeholder="Order"
+                              min="1"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <div className="flex items-center mt-2">
+                              <input
+                                type="checkbox"
+                                checked={newCollection.isActive}
+                                onChange={(e) => setNewCollection(prev => ({ ...prev, isActive: e.target.checked }))}
+                                className="h-4 w-4 text-[#6B2D2D] focus:ring-[#6B2D2D] border-gray-300 rounded"
+                              />
+                              <label className="ml-2 text-gray-700">Active</label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Upload Image *</label>
+                          {collectionImagePreview ? (
+                            <div className="border-2 border-dashed border-green-300 rounded-lg p-4 text-center bg-green-50">
+                              <img src={collectionImagePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg mb-4 mx-auto" />
+                              <div className="flex justify-center space-x-4">
+                                <button onClick={removeCollectionImagePreview} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm">
+                                  Remove
+                                </button>
+                                <label className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] cursor-pointer text-sm">
+                                  Change
+                                  <input type="file" accept="image/*" onChange={handleCollectionImageUpload} className="hidden" />
+                                </label>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+                              <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                              <p className="text-gray-600 mb-2">Upload collection image</p>
+                              <p className="text-gray-500 text-xs mb-4">Recommended size: 400x400px or larger</p>
+                              <label className="bg-[#6B2D2D] text-white px-6 py-3 rounded-lg hover:bg-[#8B3A3A] cursor-pointer inline-block">
+                                Choose Image
+                                <input type="file" accept="image/*" onChange={handleCollectionImageUpload} className="hidden" />
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-4 mt-6">
+                      <button onClick={resetCollectionForm} className="px-6 py-2 text-gray-600 hover:text-gray-800">
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleAddCollection}
+                        disabled={uploadingCollection || !collectionImagePreview || !newCollection.name}
+                        className="bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#8B3A3A] disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center space-x-2"
+                      >
+                        {uploadingCollection ? (
+                          <>
+                            <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            <span>Uploading...</span>
+                          </>
+                        ) : (
+                          <span>Add Collection</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Edit Collection Modal */}
+              {showEditCollectionModal && selectedCollection && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                  <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl">
+                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Edit Collection</h2>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Collection Name *</label>
+                          <input
+                            type="text"
+                            value={newCollection.name}
+                            onChange={(e) => setNewCollection(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                          <textarea
+                            value={newCollection.description}
+                            onChange={(e) => setNewCollection(prev => ({ ...prev, description: e.target.value }))}
+                            rows="3"
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Items Count</label>
+                          <input
+                            type="text"
+                            value={newCollection.items}
+                            onChange={(e) => setNewCollection(prev => ({ ...prev, items: e.target.value }))}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                          />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
+                            <input
+                              type="number"
+                              value={newCollection.displayOrder}
+                              onChange={(e) => setNewCollection(prev => ({ ...prev, displayOrder: parseInt(e.target.value) || '' }))}
+                              className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                              min="1"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                            <div className="flex items-center mt-2">
+                              <input
+                                type="checkbox"
+                                checked={newCollection.isActive}
+                                onChange={(e) => setNewCollection(prev => ({ ...prev, isActive: e.target.checked }))}
+                                className="h-4 w-4 text-[#6B2D2D] focus:ring-[#6B2D2D] border-gray-300 rounded"
+                              />
+                              <label className="ml-2 text-gray-700">Active</label>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Current Image</label>
+                          <img src={collectionImagePreview} alt="Current" className="w-full h-48 object-cover rounded-lg border mb-4" />
+                          <label className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] cursor-pointer inline-block text-sm">
+                            Change Image
+                            <input type="file" accept="image/*" onChange={handleCollectionImageUpload} className="hidden" />
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end space-x-4 mt-6">
+                      <button
+                        onClick={() => {
+                          setShowEditCollectionModal(false);
+                          setSelectedCollection(null);
+                          setSelectedCollectionFile(null);
+                          setCollectionImagePreview('');
+                          setNewCollection({ name: '', description: '', items: '', displayOrder: '', isActive: true });
+                        }}
+                        className="px-6 py-2 text-gray-600 hover:text-gray-800"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleSaveCollectionEdit}
                         className="bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#8B3A3A]"
                       >
                         Save Changes
