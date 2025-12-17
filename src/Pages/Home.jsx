@@ -18,6 +18,9 @@ const Home = () => {
   const [mainGalleryImage, setMainGalleryImage] = useState(null);
   const [loadingMainImage, setLoadingMainImage] = useState(true);
   const [mainImageError, setMainImageError] = useState(null);
+  const [collections, setCollections] = useState([]);
+  const [loadingCollections, setLoadingCollections] = useState(true);
+  const [collectionsError, setCollectionsError] = useState(null);
 
   const fallbackSlides = [
     {
@@ -44,6 +47,15 @@ const Home = () => {
   ];
 
   const fallbackMainImage = "https://www.koskii.com/cdn/shop/products/koskii-mehendi-zariwork-pure-silk-designer-saree-saus0018591_mehendi_1.jpg?v=1633866706&width=1080";
+
+  const fallbackCollections = [
+    { name: "Traditional Silk Sarees", image: "https://oldsilksareebuyers.com/wp-content/uploads/2021/04/Old-Wedding-pattu-saree-buyers-1.jpg", description: "Timeless elegance with authentic craftsmanship", items: "120+ Products" },
+    { name: "Bridal Sarees", image: "https://cdn.shopify.com/s/files/1/0755/3495/8865/files/bridal_1.png?v=1694446298", description: "For your special day", items: "85+ Designs" },
+    { name: "Designer Sarees", image: "https://adn-static1.nykaa.com/nykdesignstudio-images/pub/media/catalog/product/7/c/7c90315SHMTPRM104_4.jpg?rnd=20200526195200&tr=w-512", description: "Contemporary designs by expert designers", items: "200+ Collections" },
+    { name: "Daily Wear", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjnA0wdFE62w9oKr5n3PsoRsbbbOX2HLii8w&s", description: "Comfortable elegance for everyday", items: "150+ Options" },
+    { name: "Festival Collection", image: "https://i.pinimg.com/736x/c5/b1/65/c5b1659e705b1b937fed0564f808ade0.jpg", description: "Celebratory styles for special occasions", items: "90+ Designs" },
+    { name: "Premium Collection", image: "https://www.vishalprints.in/cdn/shop/files/STAR_SILK-55337-01.jpg?v=1755161577", description: "Exclusive luxury pieces with zari work", items: "Limited Edition" }
+  ];
 
   // Fetch main gallery image
   useEffect(() => {
@@ -87,6 +99,32 @@ const Home = () => {
       }
     };
     fetchSlides();
+  }, []);
+
+  // Fetch collections
+  useEffect(() => {
+    const fetchCollections = async () => {
+      try {
+        setLoadingCollections(true);
+        setCollectionsError(null);
+        const data = await GalleryApi.getPublicCollections();
+        
+        if (data.collections && data.collections.length > 0) {
+          console.log('Loaded collections from API:', data.collections);
+          setCollections(data.collections);
+        } else {
+          console.log('No collections found in API, using fallback');
+          setCollections(fallbackCollections);
+        }
+      } catch (err) {
+        console.error('Collections fetch error:', err);
+        setCollectionsError(err.message);
+        setCollections(fallbackCollections);
+      } finally {
+        setLoadingCollections(false);
+      }
+    };
+    fetchCollections();
   }, []);
 
   // Auto slide carousel
@@ -162,6 +200,13 @@ const Home = () => {
     e.target.src = fallbackMainImage;
   };
 
+  const handleCollectionImageError = (e, index) => {
+    console.error('Collection image failed to load:', e);
+    if (fallbackCollections[index]) {
+      e.target.src = fallbackCollections[index].image;
+    }
+  };
+
   if (loadingSlides) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
@@ -178,7 +223,7 @@ const Home = () => {
         <div className="absolute inset-0 overflow-hidden">
           {carouselSlides.map((slide, idx) => (
             <div
-              key={slide.id}
+              key={slide.id || slide._id || idx}
               className={`absolute inset-0 transition-opacity duration-1000 ${
                 idx === currentSlide ? 'opacity-100' : 'opacity-0'
               }`}
@@ -310,48 +355,54 @@ const Home = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { name: "Traditional Silk Sarees", image: "https://oldsilksareebuyers.com/wp-content/uploads/2021/04/Old-Wedding-pattu-saree-buyers-1.jpg", description: "Timeless elegance with authentic craftsmanship", items: "120+ Products" },
-              { name: "Bridal Sarees", image: "https://cdn.shopify.com/s/files/1/0755/3495/8865/files/bridal_1.png?v=1694446298", description: "For your special day", items: "85+ Designs" },
-              { name: "Designer Sarees", image: "https://adn-static1.nykaa.com/nykdesignstudio-images/pub/media/catalog/product/7/c/7c90315SHMTPRM104_4.jpg?rnd=20200526195200&tr=w-512", description: "Contemporary designs by expert designers", items: "200+ Collections" },
-              { name: "Daily Wear", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjnA0wdFE62w9oKr5n3PsoRsbbbOX2HLii8w&s", description: "Comfortable elegance for everyday", items: "150+ Options" },
-              { name: "Festival Collection", image: "https://i.pinimg.com/736x/c5/b1/65/c5b1659e705b1b937fed0564f808ade0.jpg", description: "Celebratory styles for special occasions", items: "90+ Designs" },
-              { name: "Premium Collection", image: "https://www.vishalprints.in/cdn/shop/files/STAR_SILK-55337-01.jpg?v=1755161577", description: "Exclusive luxury pieces with zari work", items: "Limited Edition" }
-            ].map((category, index) => (
-              <div 
-                key={index} 
-                className="group relative overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-xl"
-                onMouseEnter={() => setHoveredCategory(index)}
-                onMouseLeave={() => setHoveredCategory(null)}
-              >
-                <div className="overflow-hidden h-80 relative">
-                  <img 
-                    src={category.image} 
-                    alt={category.name} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    loading="lazy"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#800020]/80 via-[#800020]/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
-                  <div className="absolute top-4 right-4 bg-gradient-to-r from-[#800020] to-[#A0002A] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
-                    {category.items}
+          {loadingCollections ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#800020] border-t-transparent"></div>
+            </div>
+          ) : collectionsError ? (
+            <div className="text-center py-12 text-yellow-600">
+              <p>Using fallback collections</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {collections.map((collection, index) => (
+                <div 
+                  key={collection.id || collection._id || index} 
+                  className="group relative overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-xl"
+                  onMouseEnter={() => setHoveredCategory(index)}
+                  onMouseLeave={() => setHoveredCategory(null)}
+                >
+                  <div className="overflow-hidden h-80 relative">
+                    <img 
+                      src={collection.image} 
+                      alt={collection.name} 
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      loading="lazy"
+                      onError={(e) => handleCollectionImageError(e, index)}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#800020]/80 via-[#800020]/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
+                    <div className="absolute top-4 right-4 bg-gradient-to-r from-[#800020] to-[#A0002A] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
+                      {collection.items || `${Math.floor(Math.random() * 100)}+ Products`}
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                    <h3 className="text-xl font-bold mb-2">{collection.name}</h3>
+                    <p className="text-[#F8EDE3] mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                      {collection.description || "Beautifully crafted sarees for every occasion"}
+                    </p>
+                    <Link to="/products">
+                      <button className="self-start bg-gradient-to-r from-[#800020] to-[#A0002A] text-white px-5 py-2 rounded-lg font-medium hover:from-[#A0002A] hover:to-[#800020] transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 flex items-center shadow-md">
+                        <span>Explore</span>
+                        <svg className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </button>
+                    </Link>
                   </div>
                 </div>
-                <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
-                  <h3 className="text-xl font-bold mb-2">{category.name}</h3>
-                  <p className="text-[#F8EDE3] mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">{category.description}</p>
-                  <Link to="/products">
-                    <button className="self-start bg-gradient-to-r from-[#800020] to-[#A0002A] text-white px-5 py-2 rounded-lg font-medium hover:from-[#A0002A] hover:to-[#800020] transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 flex items-center shadow-md">
-                      <span>Explore</span>
-                      <svg className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                      </svg>
-                    </button>
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -384,7 +435,7 @@ const Home = () => {
                 const displayPrice = hasOffer ? product.offerPrice : product.price;
                 
                 return (
-                  <div key={product._id} className="bg-[#F8EDE3] rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl group border border-[#FDF6E3]">
+                  <div key={product._id || product.id} className="bg-[#F8EDE3] rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl group border border-[#FDF6E3]">
                     <div className="relative overflow-hidden">
                       {/* Product Badge */}
                       <span className={`absolute top-4 left-4 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A]' : 'bg-gray-600'}`}>
@@ -424,7 +475,7 @@ const Home = () => {
                       </div>
 
                       <div className="flex space-x-2">
-                        <Link to={`/viewdetails/${product.id}`} className="flex-1">
+                        <Link to={`/viewdetails/${product.id || product._id}`} className="flex-1">
                           <button className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:from-[#A0002A] hover:to-[#800020]' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`} disabled={!inStock}>
                             {inStock ? 'View Details' : 'Out of Stock'}
                           </button>
@@ -495,7 +546,7 @@ const Home = () => {
       </section>
 
       {/* Testimonials Section */}
-       <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
+        <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
