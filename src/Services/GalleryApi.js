@@ -13,10 +13,10 @@ const compressImage = async (file) => {
 
   try {
     const compressedFile = await imageCompression(file, options);
-    console.log(
-      `Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)} MB → ` +
-      `${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`
-    );
+    // console.log(
+    //   `Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)} MB → ` +
+    //   `${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`
+    // );
     return compressedFile;
   } catch (error) {
     console.error('Compression failed for', file.name, error);
@@ -85,7 +85,7 @@ const GalleryApi = {
     formData.append('subtitle', slideData.subtitle);
     formData.append('cta', slideData.cta || 'Shop Now');
     if (slideData.order) formData.append('order', slideData.order);
-    
+
    if (imageFile) {
     const compressed = await compressImage(imageFile);
     formData.append('image', compressed);
