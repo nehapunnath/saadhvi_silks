@@ -272,7 +272,7 @@ const AddProducts = () => {
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-gray-500 mb-1">Extra Charges</label>
+                            <label className="block text-xs text-gray-500 mb-1">Shipping Charges</label>
                             <input
                               type="number"
                               name="extraCharges"
@@ -443,6 +443,8 @@ const AddProducts = () => {
                                 <img
                                   src={preview}
                                   alt={`Preview ${index}`}
+                                  loading="lazy"
+                                  decoding="async"
                                   className="w-full h-20 object-cover rounded-lg"
                                 />
                                 <button

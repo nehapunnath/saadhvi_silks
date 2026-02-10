@@ -299,6 +299,8 @@ const ViewDetails = () => {
                 <img
                   src={getSelectedImage()}
                   alt={product.name}
+                  loading="lazy" 
+                  decoding="async"
                   className={`w-full h-full object-cover transition-transform duration-500 ${
                     zoomActive ? 'scale-150 cursor-zoom-out' : 'hover:scale-105 cursor-zoom-in'
                   }`}
@@ -339,6 +341,8 @@ const ViewDetails = () => {
                   <img
                     key={idx}
                     src={img}
+                    loading="lazy"
+                    decoding="async"
                     alt={`${product.name} thumbnail ${idx + 1}`}
                     className={`w-20 h-20 object-cover rounded-lg border-2 cursor-pointer transition-all duration-300 hover:scale-105 ${
                       selectedImageIndex === idx
@@ -565,6 +569,8 @@ const ViewDetails = () => {
                       <img
                         src={rp.images?.[0] || '/placeholder-image.jpg'}
                         alt={rp.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-full h-64 object-cover transition-transform duration-500 group-hover:scale-105"
                         onError={e => (e.target.src = '/placeholder-image.jpg')}
                       />

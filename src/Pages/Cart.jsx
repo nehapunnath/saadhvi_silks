@@ -39,6 +39,7 @@ const Cart = () => {
       setLoading(true);
       const { items = [] } = await productApi.getCart();
       setCartItems(items);
+     
     } catch (err) {
       setError(err.message || 'Failed to load cart');
     } finally {
@@ -60,17 +61,17 @@ const Cart = () => {
       maximumFractionDigits: 0,
     }).format(price);
 
-  const calculateSubtotal = () =>
+  const calculateProductSubtotal = () =>
     cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-  // Total = Subtotal only (no shipping fee added)
-  const calculateTotal = () => calculateSubtotal();
+  const calculateShipping = () =>
+    cartItems.reduce((sum, i) => {
+      const shippingPerItem = Number(i.extraCharges || 0);
+      return sum + shippingPerItem * i.quantity;
+    }, 0);
 
-  const isFreeShipping = calculateSubtotal() > 5000;
+  const calculateTotal = () => calculateProductSubtotal() + calculateShipping();
 
-  /* --------------------------------------------------------------- */
-  /*  REMOVE ITEM                                                    */
-  /* --------------------------------------------------------------- */
   const handleRemoveItem = async (id) => {
     try {
       await productApi.removeFromCart(id);
@@ -81,9 +82,7 @@ const Cart = () => {
     }
   };
 
-  /* --------------------------------------------------------------- */
-  /*  CHECKOUT FORM                                                  */
-  /* --------------------------------------------------------------- */
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -108,6 +107,8 @@ const Cart = () => {
       await productApi.checkout(payload);
       setOrderConfirmed(true);
       setCartItems([]);
+    
+
       toast.success('Order placed successfully!');
     } catch (err) {
       toast.error(err.message || 'Order placement failed');
@@ -118,9 +119,7 @@ const Cart = () => {
 
   const toggleCheckout = () => setShowCheckout((p) => !p);
 
-  /* --------------------------------------------------------------- */
-  /*  RENDER – LOADING / ERRORS / EMPTY / CONFIRMED                 */
-  /* --------------------------------------------------------------- */
+
 
   if (loading) {
     return (
@@ -230,9 +229,7 @@ const Cart = () => {
     );
   }
 
-  /* --------------------------------------------------------------- */
-  /*  MAIN CART UI                                                   */
-  /* --------------------------------------------------------------- */
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12 px-4">
       <div className="max-w-6xl mx-auto">
@@ -273,7 +270,7 @@ const Cart = () => {
                   <div className="mt-10 p-6 bg-[#fdf4f4] rounded-2xl border-2 border-dashed border-[#D9A7A7] text-center">
                     <p className="text-[#2E2E2E] font-medium mb-4">Scan to Pay</p>
                     <div className="inline-block p-3 bg-white rounded-2xl shadow-md">
-                      <img src={qr} alt="QR Code" className="w-56 h-56 object-contain" />
+                      <img src={qr} alt="QR Code"  className="w-56 h-56 object-contain" />
                     </div>
                     <p className="text-sm text-[#555] mt-4">Share payment screenshot on WhatsApp</p>
                     <a href="https://wa.me/918861315710" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 text-green-600 font-medium hover:underline">
@@ -309,7 +306,7 @@ const Cart = () => {
                 <div className="space-y-6">
                   {cartItems.map((item) => (
                     <div key={item.id} className="flex gap-5 p-5 bg-white rounded-2xl shadow-sm hover:shadow-md transition">
-                      <img src={item.image} alt={item.name} className="w-24 h-24 object-cover rounded-xl shadow-sm" />
+                      <img src={item.image} alt={item.name} loading="lazy" decoding="async" className="w-24 h-24 object-cover rounded-xl shadow-sm" />
                       <div className="flex-1">
                         <h3 className="font-semibold text-[#2E2E2E] text-lg line-clamp-2">{item.name}</h3>
                         <div className="flex items-center gap-2 mt-2">
@@ -334,14 +331,14 @@ const Cart = () => {
                 <div className="mt-8 p-6 bg-[#f9f3f3] rounded-2xl space-y-4">
                   <div className="flex justify-between text-lg">
                     <span className="text-[#2E2E2E]">Subtotal</span>
-                    <span className="font-medium">{formatPrice(calculateSubtotal())}</span>
+                    <span className="font-medium">{formatPrice(calculateProductSubtotal())}</span>
                   </div>
+
                   <div className="flex justify-between text-lg">
                     <span className="text-[#2E2E2E]">Shipping</span>
-                    <span className="text-green-600 font-medium">
-                      {isFreeShipping ? 'Free (above ₹5000)' : 'Included'}
-                    </span>
+                    <span className="font-medium">{formatPrice(calculateShipping())}</span>
                   </div>
+
                   <div className="pt-4 border-t border-[#e8c6c6] flex justify-between text-xl font-bold text-[#4a1c1c]">
                     <span>Total</span>
                     <span>{formatPrice(calculateTotal())}</span>

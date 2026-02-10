@@ -20,7 +20,7 @@ const Products = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [wishlistItems, setWishlistItems] = useState([]); 
+  const [wishlistItems, setWishlistItems] = useState([]);
   const productsPerPage = 20;
 
   const occasions = ["Wedding", "Bridal", "Festival", "Party", "Formal", "Casual"];
@@ -41,7 +41,7 @@ const Products = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         const [productResult, categoriesResult] = await Promise.all([
           productApi.getPublicProducts(),
           categoryApi.getPublicCategories()
@@ -56,7 +56,7 @@ const Products = () => {
           console.log('🎯 Products with offers:', productsWithOffers);
           console.log('📊 Total products:', productResult.products.length);
           console.log('📈 Products with offers count:', productsWithOffers.length);
-          
+
           setProducts(productResult.products || []);
           setFilteredProducts(productResult.products || []);
         } else {
@@ -94,7 +94,7 @@ const Products = () => {
     if (products.length === 0) return;
 
     console.log('🔄 Filtering products...', selectedFilters);
-    
+
     let result = products;
 
     // Category filter
@@ -108,15 +108,15 @@ const Products = () => {
 
     // Price filter - use offer price if available
     // In the filtering useEffect:
-if (selectedFilters.price.length > 0) {
-  result = result.filter(product => {
-    const displayPrice = product.hasOffer ? product.offerPrice : product.price;
-    return selectedFilters.price.some(priceRange => {
-      const [min, max] = priceRange.split('-').map(Number);
-      return displayPrice >= min && displayPrice <= max;
-    });
-  });
-}
+    if (selectedFilters.price.length > 0) {
+      result = result.filter(product => {
+        const displayPrice = product.hasOffer ? product.offerPrice : product.price;
+        return selectedFilters.price.some(priceRange => {
+          const [min, max] = priceRange.split('-').map(Number);
+          return displayPrice >= min && displayPrice <= max;
+        });
+      });
+    }
 
     // Occasion filter
     if (selectedFilters.occasion.length > 0) {
@@ -137,7 +137,7 @@ if (selectedFilters.price.length > 0) {
     }
 
     setFilteredProducts(result);
-    setCurrentPage(1); 
+    setCurrentPage(1);
   }, [selectedFilters, products]);
 
   // Get category name by ID
@@ -275,9 +275,8 @@ if (selectedFilters.price.length > 0) {
         <div className="flex flex-col md:flex-row gap-8">
           {/* Filters Sidebar */}
           <div
-            className={`md:w-1/4 ${
-              filterOpen ? 'block fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden'
-            } md:block`}
+            className={`md:w-1/4 ${filterOpen ? 'block fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden'
+              } md:block`}
           >
             <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
               <div className="flex justify-between items-center mb-6">
@@ -442,7 +441,7 @@ if (selectedFilters.price.length > 0) {
                 {currentProducts.map(product => {
                   const hasOffer = product.hasOffer === true;
                   const displayPrice = hasOffer ? product.offerPrice : product.price;
-                  
+
                   console.log(`🛍️ Rendering product: ${product.name}`, {
                     hasOffer,
                     displayPrice,
@@ -465,7 +464,7 @@ if (selectedFilters.price.length > 0) {
                               {product.badge}
                             </span>
                           )}
-                          
+
                           {/* Offer Badge - Show if product has offer */}
                           {hasOffer && (
                             <span className="bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
@@ -478,7 +477,10 @@ if (selectedFilters.price.length > 0) {
                           <img
                             src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder-image.jpg'}
                             alt={product.name}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+
                             onError={(e) => {
                               e.target.src = '/placeholder-image.jpg';
                             }}
@@ -486,11 +488,10 @@ if (selectedFilters.price.length > 0) {
                         </div>
                         <button
                           onClick={() => handleWishlistToggle(product)}
-                          className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${
-                            wishlistItems.includes(product.id)
+                          className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${wishlistItems.includes(product.id)
                               ? 'bg-[#6B2D2D] text-white'
                               : 'bg-white text-[#6B2D2D] hover:bg-[#D9A7A7]'
-                          }`}
+                            }`}
                           aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                         >
                           <svg
@@ -528,7 +529,7 @@ if (selectedFilters.price.length > 0) {
                           <span className="text-[#6B2D2D] font-bold text-lg">
                             {formatPrice(displayPrice)}
                           </span>
-                          
+
                           {/* Show original price as strikethrough only if there's an offer */}
                           {hasOffer && product.price && product.price > displayPrice && (
                             <span className="text-[#2E2E2E] text-sm line-through ml-2">
@@ -600,11 +601,10 @@ if (selectedFilters.price.length > 0) {
                     <button
                       key={page}
                       onClick={() => paginate(page)}
-                      className={`px-4 py-2 rounded-lg border ${
-                        currentPage === page
+                      className={`px-4 py-2 rounded-lg border ${currentPage === page
                           ? 'bg-[#6B2D2D] text-white'
                           : 'text-[#2E2E2E] hover:bg-[#D9A7A7] hover:text-[#3A1A1A]'
-                      }`}
+                        }`}
                     >
                       {page}
                     </button>

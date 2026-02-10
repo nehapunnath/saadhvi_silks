@@ -163,6 +163,8 @@ const Wishlist = () => {
                   <img
                     src={item.image}
                     alt={item.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-24 h-24 object-cover rounded-lg mr-6 transition-transform duration-300 hover:scale-105"
                     onError={(e) => {
                       e.target.src = '/placeholder-image.jpg';

@@ -122,6 +122,8 @@ const ViewProducts = () => {
                         <img
                           src={product.images?.[currentImageIndex] || 'https://via.placeholder.com/600x700?text=No+Image'}
                           alt={product.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-96 object-cover rounded-2xl shadow-lg"
                         />
 
@@ -153,6 +155,8 @@ const ViewProducts = () => {
                               key={index}
                               src={img}
                               alt={`Thumbnail ${index + 1}`}
+                              loading="lazy"
+                              decoding="async"
                               onClick={() => setCurrentImageIndex(index)}
                               className={`w-20 h-20 object-cover rounded-lg cursor-pointer border-3 transition-all ${
                                 currentImageIndex === index

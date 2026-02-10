@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import authApi from '../Services/authApi';
 import { signOut } from 'firebase/auth';
 import { auth } from '../Services/firebase'; 
+import toast from 'react-hot-toast';
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(true);
@@ -53,11 +54,14 @@ const Sidebar = () => {
 
       // 3. Redirect to login
       navigate('/login', { replace: true });
+      toast.error("Admin logged out successfully.")
     } catch (error) {
       console.error('Logout error:', error);
       // Force logout even if Firebase fails
       authApi.logout();
       navigate('/login', { replace: true });
+      toast.error("Admin logged out successfully.")
+
     }
   };
 

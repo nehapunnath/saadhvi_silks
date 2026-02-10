@@ -1,5 +1,28 @@
 import BASE_URL from './base_url';
 import authApi from './authApi';
+import imageCompression from 'browser-image-compression';  // ← Add this
+
+// Same helper (copy-paste)
+const compressImage = async (file) => {
+  const options = {
+    maxSizeMB: 2.5,
+    maxWidthOrHeight: 1920,
+    initialQuality: 0.95,
+    useWebWorker: true,
+  };
+
+  try {
+    const compressedFile = await imageCompression(file, options);
+    console.log(
+      `Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)} MB → ` +
+      `${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`
+    );
+    return compressedFile;
+  } catch (error) {
+    console.error('Compression failed for', file.name, error);
+    return file;
+  }
+};
 
 const GalleryApi = {
   addSlide: async (slideData, imageFile) => {
@@ -10,7 +33,10 @@ const GalleryApi = {
     formData.append('subtitle', slideData.subtitle);
     formData.append('cta', slideData.cta || 'Shop Now');
     if (slideData.order) formData.append('order', slideData.order);
-    if (imageFile) formData.append('image', imageFile);
+    if (imageFile) {
+      const compressed = await compressImage(imageFile);
+      formData.append('image', compressed);
+    }
 
     const response = await fetch(`${BASE_URL}/admin/carousel`, {
       method: 'POST',
@@ -59,8 +85,14 @@ const GalleryApi = {
     formData.append('subtitle', slideData.subtitle);
     formData.append('cta', slideData.cta || 'Shop Now');
     if (slideData.order) formData.append('order', slideData.order);
-    if (imageFile) formData.append('image', imageFile);
+    
+   if (imageFile) {
+    const compressed = await compressImage(imageFile);
+    formData.append('image', compressed);
+  }
 
+  // Fix log: use actual processed file if compressed
+  console.log('Updating slide:', id, 'With image?', !!imageFile);
     const response = await fetch(`${BASE_URL}/admin/carousel/${id}`, {
       method: 'PUT',
       headers: { 'Authorization': `Bearer ${token}` },
@@ -130,7 +162,8 @@ getMainGalleryImage: async () => {
 uploadMainGalleryImage: async (imageFile) => {
   const token = authApi.getToken();
   const formData = new FormData();
-  formData.append('image', imageFile);
+const compressed = await compressImage(imageFile);
+    formData.append('image', compressed);
 
   const response = await fetch(`${BASE_URL}/admin/main-gallery-image`, {
     method: 'POST',
@@ -176,7 +209,10 @@ addCollection: async (collectionData, imageFile) => {
   if (collectionData.items) formData.append('items', collectionData.items);
   if (collectionData.displayOrder) formData.append('displayOrder', collectionData.displayOrder);
   formData.append('isActive', collectionData.isActive);
-  if (imageFile) formData.append('image', imageFile);
+  if (imageFile) {
+      const compressed = await compressImage(imageFile);
+      formData.append('image', compressed);
+    }
 
   const response = await fetch(`${BASE_URL}/admin/collections`, {
     method: 'POST',
@@ -226,7 +262,10 @@ updateCollection: async (id, collectionData, imageFile = null) => {
   if (collectionData.items) formData.append('items', collectionData.items);
   if (collectionData.displayOrder) formData.append('displayOrder', collectionData.displayOrder);
   formData.append('isActive', collectionData.isActive);
-  if (imageFile) formData.append('image', imageFile);
+ if (imageFile) {
+      const compressed = await compressImage(imageFile);
+      formData.append('image', compressed);
+    }
 
   const response = await fetch(`${BASE_URL}/admin/collections/${id}`, {
     method: 'PUT',

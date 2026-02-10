@@ -16,7 +16,7 @@ const ViewOrder = () => {
         const data = await productApi.getOrderById(id);
         setOrder(data);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Failed to load order');
       } finally {
         setLoading(false);
       }
@@ -29,7 +29,7 @@ const ViewOrder = () => {
       style: 'currency',
       currency: 'INR',
       maximumFractionDigits: 0,
-    }).format(price);
+    }).format(price ?? 0);
   };
 
   const getStatusColor = (status) => {
@@ -73,7 +73,7 @@ const ViewOrder = () => {
     );
   }
 
-  // Safely destructure with fallbacks
+  // Safely destructure order data
   const {
     contact = {},
     items = [],
@@ -84,8 +84,24 @@ const ViewOrder = () => {
     shippingAddress = {},
   } = order;
 
-  const subtotal = items.reduce((s, i) => s + (i.price || 0) * (i.quantity || 0), 0);
-  const shippingFee = total - subtotal;
+  // ────────────────────────────────────────────────
+  // Calculate values based on items (including extraCharges as shipping)
+  // ────────────────────────────────────────────────
+  const productSubtotal = items.reduce((sum, item) => {
+    return sum + (Number(item.price ?? 0) * (Number(item.quantity ?? 1)));
+  }, 0);
+
+  const shippingTotal = items.reduce((sum, item) => {
+    const extra = Number(item.extraCharges ?? 0);
+    return sum + (extra * (Number(item.quantity ?? 1)));
+  }, 0);
+
+  // Use calculated total (most reliable)
+  // If backend total is different → you can log it for debugging
+  const calculatedTotal = productSubtotal + shippingTotal;
+
+  // Optional: if you want to trust backend total instead
+  // const displayTotal = total > 0 ? total : calculatedTotal;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -110,15 +126,6 @@ const ViewOrder = () => {
                   </svg>
                   Back
                 </Link>
-                {/* <button
-                  onClick={() => window.print()}
-                  className="bg-[#6B2D2D] text-white px-6 py-3 rounded-lg hover:bg-[#8B3A3A] transition flex items-center gap-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                  </svg>
-                  Print
-                </button> */}
               </div>
             </div>
 
@@ -149,15 +156,15 @@ const ViewOrder = () => {
 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">Total Amount</h3>
-                  <p className="text-2xl font-bold text-[#6B2D2D]">{formatPrice(total)}</p>
+                  <p className="text-2xl font-bold text-[#6B2D2D]">{formatPrice(calculatedTotal)}</p>
                   <p className="text-sm text-gray-600">
-                    {items.length} item{items.length > 1 ? 's' : ''}
+                    {items.length} item{items.length !== 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
             </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Shipping Address */}
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Shipping Address</h2>
@@ -169,28 +176,27 @@ const ViewOrder = () => {
                       {shippingAddress.city}{shippingAddress.city && ', '}
                       {shippingAddress.state} {shippingAddress.postalCode}
                     </p>
-                    {/* <p>India</p> */}
                   </div>
                 ) : (
                   <p className="text-gray-500 italic">No shipping address found</p>
                 )}
               </div>
 
-              {/* Price Breakdown */}
+              {/* Price Breakdown – now correct */}
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Price Breakdown</h2>
-                <div className="space-y-2 text-sm">
+                <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span>{formatPrice(subtotal)}</span>
+                    <span className="text-gray-600">Product Subtotal</span>
+                    <span>{formatPrice(productSubtotal)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping</span>
-                    <span>{shippingFee === 0 ? 'Free' : formatPrice(shippingFee)}</span>
+                    <span className="text-gray-600">Shipping </span>
+                    <span>{formatPrice(shippingTotal)}</span>
                   </div>
-                  <div className="flex justify-between font-bold text-lg pt-2 border-t">
-                    <span>Total</span>
-                    <span className="text-[#6B2D2D]">{formatPrice(total)}</span>
+                  <div className="flex justify-between font-bold text-lg pt-3 border-t border-gray-200">
+                    <span>Total Amount</span>
+                    <span className="text-[#6B2D2D]">{formatPrice(calculatedTotal)}</span>
                   </div>
                 </div>
               </div>
@@ -206,6 +212,8 @@ const ViewOrder = () => {
                       <img
                         src={item.image || '/placeholder.jpg'}
                         alt={item.name}
+                        loading="lazy"
+                        decoding="async"
                         className="w-20 h-20 object-cover rounded-lg shadow-sm bg-gray-200"
                         onError={(e) => (e.target.src = '/placeholder.jpg')}
                       />
@@ -214,6 +222,9 @@ const ViewOrder = () => {
                         <div className="flex gap-6 mt-2 text-sm text-gray-600">
                           <span>Qty: {item.quantity || 1}</span>
                           <span>₹{(item.price || 0).toLocaleString('en-IN')} each</span>
+                          {item.extraCharges > 0 && (
+                            <span>Shipping: ₹{Number(item.extraCharges).toLocaleString('en-IN')}</span>
+                          )}
                         </div>
                       </div>
                       <div className="text-right">

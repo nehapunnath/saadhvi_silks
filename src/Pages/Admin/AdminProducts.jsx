@@ -275,6 +275,8 @@ const AdminProducts = () => {
                               <img
                                 src={product.images?.[0] || 'https://via.placeholder.com/48?text=No+Image'}
                                 alt={product.name}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-12 h-12 object-cover rounded-lg mr-4"
                               />
                               <div className="min-w-0 flex-1">

@@ -5,8 +5,8 @@ const About = () => {
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-r from-[#F9F3F3] to-[#F7F0E8] bg-opacity-90 py-20 md:py-28">
-        <div className="container mx-auto px-4 flex flex-col md:flex-row items-center">
-          <div className="md:w-1/2 mb-10 md:mb-0">
+        <div className="container mx-auto px-4 text-center">
+          <div className="max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-[#5D4037] mb-6">
               About <span className="text-[#800020]">Saadhvi Silks</span>
             </h1>
@@ -20,13 +20,6 @@ const About = () => {
               Explore Our Collection
             </a>
           </div>
-          <div className="md:w-1/2 flex justify-center">
-            <img
-              src="https://5.imimg.com/data5/ECOM/Default/2023/6/314732479/TB/BA/QB/142115856/7009-x4-500x500.jpg"
-              alt="Elegant Saree Display"
-              className="rounded-lg shadow-xl w-full max-w-md object-cover"
-            />
-          </div>
         </div>
       </section>
 
@@ -39,22 +32,13 @@ const About = () => {
               Founded with a deep love for India's rich textile heritage, Saadhvi Silks began as a vision to preserve and promote the art of traditional saree weaving. For over two decades, we have worked with skilled artisans across India to bring you sarees that embody elegance, culture, and craftsmanship.
             </p>
           </div>
-          <div className="flex flex-col md:flex-row items-center gap-8">
-            <div className="md:w-1/2">
-              <img
-                src="https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
-                alt="Traditional Weaving"
-                className="rounded-2xl shadow-lg w-full h-80 object-cover"
-              />
-            </div>
-            <div className="md:w-1/2">
-              <p className="text-[#5D4037] text-lg mb-6">
-                Each saree tells a story of dedication, woven with threads of tradition and innovation. From the looms of Kanchipuram to the intricate designs of Banaras, our collections are a tribute to the artisans who keep this art form alive.
-              </p>
-              <p className="text-[#5D4037] text-lg">
-                We strive to blend timeless techniques with contemporary aesthetics to create sarees that resonate with every generation. Our journey began in 1998 when our founder, Mrs. Anjali Mehta, discovered the fading art of handloom weaving during her travels through rural India.
-              </p>
-            </div>
+          <div className="max-w-3xl mx-auto">
+            <p className="text-[#5D4037] text-lg mb-6">
+              Each saree tells a story of dedication, woven with threads of tradition and innovation. From the looms of Kanchipuram to the intricate designs of Banaras, our collections are a tribute to the artisans who keep this art form alive.
+            </p>
+            <p className="text-[#5D4037] text-lg">
+              We strive to blend timeless techniques with contemporary aesthetics to create sarees that resonate with every generation. Our journey began in 1998 when our founder, Mrs. Anjali Mehta, discovered the fading art of handloom weaving during her travels through rural India.
+            </p>
           </div>
         </div>
       </section>
@@ -132,17 +116,10 @@ const About = () => {
               The talented hands behind our beautiful creations, preserving centuries-old traditions.
             </p>
           </div>
-          <div className="flex flex-col md:flex-row gap-8 items-center">
-            <div className="md:w-1/2">
-              <img
-                src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80"
-                alt="Skilled Artisan at Work"
-                className="rounded-2xl shadow-lg w-full h-80 object-cover"
-              />
-            </div>
-            <div className="md:w-1/2">
+          <div className="max-w-3xl mx-auto">
+            <div className="text-center">
               <h3 className="text-2xl font-semibold text-[#800020] mb-4">Preserving Tradition, One Thread at a Time</h3>
-              <p className="text-[#5D4037] mb-4">
+              <p className="text-[#5D4037] mb-6">
                 Our artisans come from generations of weavers who have perfected their craft over centuries. Each saree represents hours of meticulous work, with some pieces taking weeks or even months to complete.
               </p>
               <p className="text-[#5D4037]">

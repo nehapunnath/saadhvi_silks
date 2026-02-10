@@ -4,6 +4,7 @@ import saadhvi from '../assets/saadhvi_silks.png';
 import authApi from '../Services/authApi';
 import productApi from '../Services/proApi';
 import categoryApi from '../Services/CategoryApi';
+import toast from 'react-hot-toast';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -111,6 +112,7 @@ const Header = () => {
     authApi.logout();
     setIsMenuOpen(false);
     navigate('/');
+    toast.success("Thanks for visiting! You’ve been safely logged out.")
   };
 
   const formatPrice = (price) => {
@@ -129,6 +131,8 @@ const Header = () => {
           <img
             src={saadhvi}
             alt="Saadhvi Silks"
+            loading="lazy"
+            decoding="async"
             className="h-20 md:h-24 w-auto transition-transform hover:scale-105"
           />
         </Link>
@@ -201,6 +205,8 @@ const Header = () => {
                         <img
                           src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder-image.jpg'}
                           alt={product.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-12 h-12 rounded-lg object-cover mr-4 border flex-shrink-0"
                           onError={(e) => {
                             e.target.src = '/placeholder.jpg';

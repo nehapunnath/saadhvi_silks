@@ -233,6 +233,7 @@ const Home = () => {
                 alt={slide.title}
                 className="w-full h-full object-cover"
                 loading="lazy"
+               decoding="async"
               />
               <div className="absolute inset-0 bg-black/40"></div>
             </div>
@@ -329,6 +330,8 @@ const Home = () => {
                   alt="Elegance Woven with Tradition"
                   className="rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-700 group-hover:scale-105 object-cover h-96"
                   loading="lazy"
+               decoding="async"
+
                   onError={handleImageError}
                 />
                 {mainImageError && (
@@ -378,6 +381,7 @@ const Home = () => {
                       alt={collection.name} 
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       loading="lazy"
+                     decoding="async"
                       onError={(e) => handleCollectionImageError(e, index)}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#800020]/80 via-[#800020]/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
@@ -454,7 +458,8 @@ const Home = () => {
                           src={product.images?.[0] || '/placeholder.jpg'}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          loading="lazy"
+                          decoding="async"
+                          loading="lazy" 
                           onError={(e) => (e.currentTarget.src = '/placeholder.jpg')}
                         />
                       </div>
@@ -562,8 +567,8 @@ const Home = () => {
               { name: "Meena Kapoor", location: "Mumbai", rating: 4, review: "The designer sarees are so unique. I get compliments every time I wear one!", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" }
             ].map((t, i) => (
               <div key={i} className="bg-[#F8EDE3] rounded-2xl p-6 shadow-lg border border-[#FDF6E3] group">
-                <div className="flex items-center mb-4">
-                  <img src={t.image} alt={t.name} className="w-16 h-16 rounded-full object-cover mr-4 border-2 border-[#1A4D3E] group-hover:border-[#800020] transition" />
+                <div className="flex items-center mb-4">              
+                  <img src={t.image} alt={t.name} loading="lazy" decoding="async"  className="w-16 h-16 rounded-full object-cover mr-4 border-2 border-[#1A4D3E] group-hover:border-[#800020] transition" />
                   <div>
                     <h3 className="font-semibold text-[#1C2526]">{t.name}</h3>
                     <p className="text-sm text-[#1C2526]">{t.location}</p>

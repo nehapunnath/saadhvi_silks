@@ -437,6 +437,8 @@ const Gallery = () => {
                       <img
                         src={mainGalleryImage}
                         alt="Main Gallery"
+                        loading="lazy"
+                        decoding="async"
                         className="w-64 h-48 object-cover rounded-lg border-2 border-gray-200 shadow-sm"
                       />
                     </div>
@@ -531,6 +533,8 @@ const Gallery = () => {
                             <img
                               src={collection.image}
                               alt={collection.name}
+                              loading="lazy"
+                              decoding="async"
                               className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                             />
                             {collection.isActive === false && (
@@ -639,6 +643,8 @@ const Gallery = () => {
                         <img
                           src={slide.image}
                           alt={slide.title}
+                          loading="lazy"
+                          decoding="async"
                           className="w-24 h-16 object-cover rounded-lg border"
                         />
 
@@ -760,7 +766,7 @@ const Gallery = () => {
                           <label className="block text-sm font-medium text-gray-700 mb-2">Upload Image *</label>
                           {imagePreview ? (
                             <div className="border-2 border-dashed border-green-300 rounded-lg p-4 text-center bg-green-50">
-                              <img src={imagePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg mb-4 mx-auto" />
+                              <img src={imagePreview} alt="Preview" loading="lazy" decoding="async" className="w-full h-48 object-cover rounded-lg mb-4 mx-auto" />
                               <div className="flex justify-center space-x-4">
                                 <button onClick={removeImagePreview} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm">
                                   Remove
@@ -866,7 +872,7 @@ const Gallery = () => {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Current Image</label>
-                          <img src={imagePreview} alt="Current" className="w-full h-48 object-cover rounded-lg border mb-4" />
+                          <img src={imagePreview} alt="Current" decoding="async" loading="lazy" className="w-full h-48 object-cover rounded-lg border mb-4" />
                           <label className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] cursor-pointer inline-block text-sm">
                             Change Image
                             <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
@@ -973,7 +979,7 @@ const Gallery = () => {
                           <label className="block text-sm font-medium text-gray-700 mb-2">Upload Image *</label>
                           {collectionImagePreview ? (
                             <div className="border-2 border-dashed border-green-300 rounded-lg p-4 text-center bg-green-50">
-                              <img src={collectionImagePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg mb-4 mx-auto" />
+                              <img src={collectionImagePreview} alt="Preview" loading="lazy" decoding="async" className="w-full h-48 object-cover rounded-lg mb-4 mx-auto" />
                               <div className="flex justify-center space-x-4">
                                 <button onClick={removeCollectionImagePreview} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm">
                                   Remove
@@ -1095,7 +1101,7 @@ const Gallery = () => {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Current Image</label>
-                          <img src={collectionImagePreview} alt="Current" className="w-full h-48 object-cover rounded-lg border mb-4" />
+                          <img src={collectionImagePreview} loading="lazy" decoding="async" alt="Current" className="w-full h-48 object-cover rounded-lg border mb-4" />
                           <label className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] cursor-pointer inline-block text-sm">
                             Change Image
                             <input type="file" accept="image/*" onChange={handleCollectionImageUpload} className="hidden" />
@@ -1141,7 +1147,7 @@ const Gallery = () => {
                         <label className="block text-sm font-medium text-gray-700 mb-2">Upload Image *</label>
                         {mainImagePreview ? (
                           <div className="border-2 border-dashed border-green-300 rounded-lg p-4 text-center bg-green-50">
-                            <img src={mainImagePreview} alt="Preview" className="w-full h-48 object-cover rounded-lg mb-4 mx-auto" />
+                            <img src={mainImagePreview} alt="Preview" loading="lazy" decoding="async" className="w-full h-48 object-cover rounded-lg mb-4 mx-auto" />
                             <div className="flex justify-center space-x-4">
                               <button onClick={removeMainImagePreview} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm">
                                 Remove

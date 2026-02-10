@@ -446,6 +446,8 @@ const EditProducts = () => {
                               <img
                                 src={src}
                                 alt={`Preview ${i + 1}`}
+                                loading="lazy"
+                                decoding="async"
                                 className="w-full h-32 object-cover rounded-lg"
                               />
                               <button

@@ -1,17 +1,48 @@
 import BASE_URL from './base_url'; 
 
 import authApi from './authApi';
+import imageCompression from 'browser-image-compression';
+
+
+const compressImage = async (file) => {
+  const options = {
+    maxSizeMB: 2.5,
+    maxWidthOrHeight: 1920,
+    initialQuality: 0.95,
+    useWebWorker: true,
+  };
+
+  try {
+    const compressedFile = await imageCompression(file, options);
+    console.log(
+      `Compressed ${file.name}: ${(file.size / 1024 / 1024).toFixed(2)} MB → ` +
+      `${(compressedFile.size / 1024 / 1024).toFixed(2)} MB`
+    );
+    return compressedFile;
+  } catch (error) {
+    console.error('Compression failed for', file.name, error);
+    return file; // fallback
+  }
+};
 
 const productApi = {
   addProduct: async (productData) => {
     const token = authApi.getToken();
     const formData = new FormData();
-    
+
+    // Compress images if any
+    let compressedImages = [];
+    if (productData.images?.length > 0) {
+      compressedImages = await Promise.all(
+        productData.images.map(file => compressImage(file))
+      );
+    }
+
     Object.keys(productData).forEach(key => {
       if (key === 'occasion') {
         formData.append(key, JSON.stringify(productData[key]));
       } else if (key === 'images') {
-        productData.images.forEach((imageFile, index) => {
+        compressedImages.forEach(imageFile => {
           formData.append('images', imageFile);
         });
       } else {
@@ -24,14 +55,13 @@ const productApi = {
       headers: {
         'Authorization': `Bearer ${token}`,
       },
-      body: formData, 
+      body: formData,
     });
 
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     return data;
   },
-
 
   getProducts: async () => {
     const token = authApi.getToken();
@@ -61,35 +91,44 @@ const productApi = {
     return data;
   },
 
- updateProduct: async (id, productData, newImages = []) => {
-  const token = authApi.getToken();
-  const formData = new FormData();
-  
-  Object.keys(productData).forEach(key => {
-    if (key === 'images') return; 
-    if (key === 'occasion') {
-      formData.append(key, JSON.stringify(productData[key]));
-    } else {
-      formData.append(key, productData[key]);
+updateProduct: async (id, productData, newImages = []) => {
+    const token = authApi.getToken();
+    const formData = new FormData();
+
+    // Compress new images if any
+    let compressedNewImages = [];
+    if (newImages?.length > 0) {
+      compressedNewImages = await Promise.all(
+        newImages.map(file => compressImage(file))
+      );
     }
-  });
 
-  newImages.forEach((imageFile) => {
-    formData.append('images', imageFile);
-  });
+    Object.keys(productData).forEach(key => {
+      if (key === 'images') return;
+      if (key === 'occasion') {
+        formData.append(key, JSON.stringify(productData[key]));
+      } else {
+        formData.append(key, productData[key]);
+      }
+    });
 
-  console.log('🔄 Sending:', productData.name, 'New images:', newImages.length); 
+    compressedNewImages.forEach(imageFile => {
+      formData.append('images', imageFile);
+    });
 
-  const response = await fetch(`${BASE_URL}/admin/products/${id}`, {
-    method: 'PUT',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: formData,
-  });
+    console.log('🔄 Sending:', productData.name, 'New images:', compressedNewImages.length);
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error);
-  return data;
-},
+    const response = await fetch(`${BASE_URL}/admin/products/${id}`, {
+      method: 'PUT',
+      headers: { 'Authorization': `Bearer ${token}` },
+      body: formData,
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+  
   deleteProduct: async (id) => {
     const token = authApi.getToken();
     const response = await fetch(`${BASE_URL}/admin/products/${id}`, {
