@@ -64,7 +64,7 @@ const Home = () => {
         setLoadingMainImage(true);
         setMainImageError(null);
         const data = await GalleryApi.getPublicMainGalleryImage();
-        
+
         if (data.image) {
           setMainGalleryImage(data.image);
         } else {
@@ -108,7 +108,7 @@ const Home = () => {
         setLoadingCollections(true);
         setCollectionsError(null);
         const data = await GalleryApi.getPublicCollections();
-        
+
         if (data.collections && data.collections.length > 0) {
           console.log('Loaded collections from API:', data.collections);
           setCollections(data.collections);
@@ -219,68 +219,69 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] overflow-hidden">
 
       {/* Hero Carousel Section */}
-      <section className="relative h-screen">
+      <section className="relative h-[85vh] md:h-screen">  
         <div className="absolute inset-0 overflow-hidden">
           {carouselSlides.map((slide, idx) => (
             <div
               key={slide.id || slide._id || idx}
-              className={`absolute inset-0 transition-opacity duration-1000 ${
-                idx === currentSlide ? 'opacity-100' : 'opacity-0'
-              }`}
+              className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100' : 'opacity-0'
+                }`}
             >
               <img
                 src={slide.image}
                 alt={slide.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-fill bg-white"
                 loading="lazy"
-               decoding="async"
+                decoding="async"
+               
               />
-              <div className="absolute inset-0 bg-black/40"></div>
+              <div className="absolute inset-0 bg-black/15"></div> 
             </div>
           ))}
         </div>
 
         <div className="relative h-full flex items-center justify-center text-center px-4">
-          <div className="text-white max-w-4xl">
-            <h1 className="text-4xl md:text-6xl font-serif font-bold mb-4">
+          <div className="text-white max-w-4xl z-10">
+            <h1 className="text-4xl md:text-6xl font-serif font-bold mb-4 drop-shadow-lg">
               {carouselSlides[currentSlide]?.title}
             </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto">
+            <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto drop-shadow-md">
               {carouselSlides[currentSlide]?.subtitle}
             </p>
             <Link to="/products">
-              <button className="bg-[#800020] hover:bg-[#A0002A] text-white px-8 py-3 rounded-lg text-lg font-medium transition-colors duration-300 shadow-lg">
-                {carouselSlides[currentSlide]?.cta}
+              <button className="bg-[#800020] hover:bg-[#A0002A] text-white px-8 py-4 rounded-xl text-lg font-medium transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
+                {carouselSlides[currentSlide]?.cta || 'Shop Now'}
               </button>
             </Link>
           </div>
         </div>
 
-        <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3">
+        {/* Dots */}
+        <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3 z-10">
           {carouselSlides.map((_, i) => (
             <button
               key={i}
               onClick={() => setCurrentSlide(i)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                i === currentSlide ? 'bg-[#800020] scale-125' : 'bg-white/50'
-              }`}
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${i === currentSlide ? 'bg-white scale-125 shadow-lg' : 'bg-white/50 hover:bg-white/80'
+                }`}
             />
           ))}
         </div>
 
+        {/* Navigation Arrows */}
         <button
-          className="absolute left-4 top-1/2 -translate-y-1/2 text-white bg-[#800020]/50 hover:bg-[#A0002A]/50 rounded-full p-2 transition"
+          className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-10"
           onClick={() => setCurrentSlide((currentSlide - 1 + carouselSlides.length) % carouselSlides.length)}
         >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
         </button>
         <button
-          className="absolute right-4 top-1/2 -translate-y-1/2 text-white bg-[#800020]/50 hover:bg-[#A0002A]/50 rounded-full p-2 transition"
+          className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-10"
           onClick={() => setCurrentSlide((currentSlide + 1) % carouselSlides.length)}
         >
-          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
         </button>
@@ -330,7 +331,7 @@ const Home = () => {
                   alt="Elegance Woven with Tradition"
                   className="rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-700 group-hover:scale-105 object-cover h-96"
                   loading="lazy"
-               decoding="async"
+                  decoding="async"
 
                   onError={handleImageError}
                 />
@@ -369,19 +370,19 @@ const Home = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {collections.map((collection, index) => (
-                <div 
-                  key={collection.id || collection._id || index} 
+                <div
+                  key={collection.id || collection._id || index}
                   className="group relative overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-xl"
                   onMouseEnter={() => setHoveredCategory(index)}
                   onMouseLeave={() => setHoveredCategory(null)}
                 >
                   <div className="overflow-hidden h-80 relative">
-                    <img 
-                      src={collection.image} 
-                      alt={collection.name} 
+                    <img
+                      src={collection.image}
+                      alt={collection.name}
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                       loading="lazy"
-                     decoding="async"
+                      decoding="async"
                       onError={(e) => handleCollectionImageError(e, index)}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#800020]/80 via-[#800020]/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
@@ -437,7 +438,7 @@ const Home = () => {
                 const inStock = product.stock > 0;
                 const hasOffer = product.hasOffer === true && product.offerPrice && product.offerPrice > 0;
                 const displayPrice = hasOffer ? product.offerPrice : product.price;
-                
+
                 return (
                   <div key={product._id || product.id} className="bg-[#F8EDE3] rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl group border border-[#FDF6E3]">
                     <div className="relative overflow-hidden">
@@ -445,21 +446,21 @@ const Home = () => {
                       <span className={`absolute top-4 left-4 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A]' : 'bg-gray-600'}`}>
                         {inStock ? 'In Stock' : 'Sold Out'}
                       </span>
-                      
+
                       {/* Offer Badge */}
                       {hasOffer && (
                         <span className="absolute top-4 right-4 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md">
                           {product.offerName || 'OFFER'}
                         </span>
                       )}
-                      
+
                       <div className="h-80 overflow-hidden">
                         <img
                           src={product.images?.[0] || '/placeholder.jpg'}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           decoding="async"
-                          loading="lazy" 
+                          loading="lazy"
                           onError={(e) => (e.currentTarget.src = '/placeholder.jpg')}
                         />
                       </div>
@@ -551,7 +552,7 @@ const Home = () => {
       </section>
 
       {/* Testimonials Section */}
-        <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
+      <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
@@ -567,8 +568,8 @@ const Home = () => {
               { name: "Meena Kapoor", location: "Mumbai", rating: 4, review: "The designer sarees are so unique. I get compliments every time I wear one!", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" }
             ].map((t, i) => (
               <div key={i} className="bg-[#F8EDE3] rounded-2xl p-6 shadow-lg border border-[#FDF6E3] group">
-                <div className="flex items-center mb-4">              
-                  <img src={t.image} alt={t.name} loading="lazy" decoding="async"  className="w-16 h-16 rounded-full object-cover mr-4 border-2 border-[#1A4D3E] group-hover:border-[#800020] transition" />
+                <div className="flex items-center mb-4">
+                  <img src={t.image} alt={t.name} loading="lazy" decoding="async" className="w-16 h-16 rounded-full object-cover mr-4 border-2 border-[#1A4D3E] group-hover:border-[#800020] transition" />
                   <div>
                     <h3 className="font-semibold text-[#1C2526]">{t.name}</h3>
                     <p className="text-sm text-[#1C2526]">{t.location}</p>

@@ -144,6 +144,25 @@ const AdminProducts = () => {
     }
   };
 
+const handleVisibilityToggle = async (product) => {
+    const current = product.isVisible !== false;
+    const next = !current;
+
+    try {
+      await productApi.toggleProductVisibility(product.key, next);
+
+      setProducts(prev =>
+        prev.map(p =>
+          p.key === product.key ? { ...p, isVisible: next } : p
+        )
+      );
+
+      toast.success(`Product is now ${next ? 'visible' : 'hidden'}`);
+    } catch (err) {
+      toast.error('Failed to change visibility');
+      console.error(err);
+    }
+  };
   const getCategoryName = (categoryId) => {
     if (!categoryId) return 'N/A';
     const category = categories.find(cat => cat.id === categoryId);
@@ -322,14 +341,12 @@ const AdminProducts = () => {
                                     });
                                   }
                                 }}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:ring-offset-2 ${
-                                  product.hasOffer ? 'bg-[#6B2D2D]' : 'bg-gray-300'
-                                }`}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:ring-offset-2 ${product.hasOffer ? 'bg-[#6B2D2D]' : 'bg-gray-300'
+                                  }`}
                               >
                                 <span
-                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                    product.hasOffer ? 'translate-x-6' : 'translate-x-1'
-                                  }`}
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${product.hasOffer ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
                                 />
                               </button>
 
@@ -364,16 +381,26 @@ const AdminProducts = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-4">
                               <Link to={`/admin/viewproducts/${product.key}`} className="text-green-600 hover:text-green-800 flex items-center space-x-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                 <span>View</span>
                               </Link>
                               <Link to={`/admin/editproducts/${product.key}`} className="text-blue-600 hover:text-blue-800 flex items-center space-x-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                                 <span>Edit</span>
                               </Link>
                               <button onClick={() => handleDeleteProduct(product.key)} className="text-red-600 hover:text-red-800 flex items-center space-x-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                                 <span>Delete</span>
+                              </button>
+                              <button
+                                onClick={() => handleVisibilityToggle(product)}
+                                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                                  product.isVisible !== false
+                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
+                                }`}
+                              >
+                                {product.isVisible !== false ? 'Hide' : 'Show'}
                               </button>
                             </div>
                           </td>
@@ -387,7 +414,7 @@ const AdminProducts = () => {
                 {filteredProducts.length === 0 && (
                   <div className="text-center py-12">
                     <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                     </svg>
                     <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
                     <p className="text-gray-500">

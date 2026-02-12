@@ -872,7 +872,7 @@ const Gallery = () => {
                       <div className="space-y-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Current Image</label>
-                          <img src={imagePreview} alt="Current" decoding="async" loading="lazy" className="w-full h-48 object-cover rounded-lg border mb-4" />
+                          <img src={imagePreview} alt="Current" decoding="async" loading="lazy" className="w-full h-48 object-contain rounded-lg mb-4 mx-auto bg-gray-50" />
                           <label className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] cursor-pointer inline-block text-sm">
                             Change Image
                             <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />

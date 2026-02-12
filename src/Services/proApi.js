@@ -415,7 +415,28 @@ searchProducts: async (query) => {
       throw new Error(data.error || 'Failed to update offer');
 
     return data;
-    }}
+    }
+  },
+toggleProductVisibility: async (productId, isVisible) => {
+    const token = authApi.getToken();
+
+    const response = await fetch(`${BASE_URL}/admin/products/${productId}/visibility`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ isVisible })   // true = show, false = hide
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Failed to update product visibility');
+    }
+
+    return data;
+  },
 
   
 };

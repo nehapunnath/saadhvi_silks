@@ -173,9 +173,7 @@ const ViewProducts = () => {
                         <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusColor(product.stock)}`}>
                           {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                         </span>
-                        <span className="bg-indigo-100 text-indigo-800 px-4 py-2 rounded-full text-sm font-semibold">
-                          {product.category}
-                        </span>
+                     
                       </div>
                     </div>
 
