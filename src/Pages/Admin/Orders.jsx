@@ -65,7 +65,7 @@ const Orders = () => {
   const filteredOrders = orders.filter(order => {
     const matchesStatus = filterStatus === 'All' || order.status === filterStatus;
     const matchesPayment = filterPayment === 'All' || order.paymentStatus === filterPayment;
-    const matchesSearch = 
+    const matchesSearch =
       order.id?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.contact?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.contact?.email?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -154,7 +154,7 @@ const Orders = () => {
                 <h1 className="text-3xl font-bold text-gray-800">Orders Management</h1>
                 <p className="text-gray-600 mt-1">Manage and track customer orders</p>
               </div>
-            
+
             </div>
 
             {/* Stats */}
@@ -264,8 +264,10 @@ const Orders = () => {
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Payment Method</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -302,6 +304,14 @@ const Orders = () => {
                           </select>
                         </td>
                         <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${order.paymentMethod === 'cod'
+                              ? 'bg-purple-100 text-purple-800'
+                              : 'bg-indigo-100 text-indigo-800'
+                            }`}>
+                            {order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'UPI / Transfer'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
                           <select
                             value={order.paymentStatus || 'Pending'}
                             onChange={(e) => updatePaymentStatus(order.id, e.target.value)}
@@ -312,6 +322,7 @@ const Orders = () => {
                             ))}
                           </select>
                         </td>
+
                         <td className="px-6 py-4 text-sm">
                           <div className="flex gap-3">
                             <Link

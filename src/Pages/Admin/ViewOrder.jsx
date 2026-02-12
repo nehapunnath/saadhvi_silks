@@ -146,6 +146,24 @@ const ViewOrder = () => {
                     Ordered on {createdAt ? new Date(createdAt).toLocaleString('en-IN') : 'N/A'}
                   </p>
                 </div>
+                {/* Add this block inside the summary grid or as a new section */}
+                <div className="bg-white rounded-2xl shadow-xl p-8">
+                  <h2 className="text-xl font-semibold text-gray-800 mb-4">Payment Details</h2>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Method</span>
+                      <span className="font-medium">
+                        {order.paymentMethod === 'cod' ? 'Cash on Delivery' : 'UPI / Bank Transfer'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Status</span>
+                      <span className={`font-medium ${getStatusColor(order.paymentStatus)}`}>
+                        {order.paymentStatus || 'Pending'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800 mb-3">Customer</h3>

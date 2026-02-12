@@ -19,6 +19,7 @@ const Cart = () => {
     postalCode: '',
     phone: '',
     email: '',
+    paymentMethod: 'cod',
   });
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -39,7 +40,7 @@ const Cart = () => {
       setLoading(true);
       const { items = [] } = await productApi.getCart();
       setCartItems(items);
-     
+
     } catch (err) {
       setError(err.message || 'Failed to load cart');
     } finally {
@@ -89,33 +90,35 @@ const Cart = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
+  e.preventDefault();
+  setSubmitting(true);
 
-    try {
-      const payload = {
-        name: formData.name,
-        email: formData.email,
-        phone: formData.phone,
-        shipping: {
-          address: formData.address,
-          city: formData.city,
-          state: formData.state,
-          postalCode: formData.postalCode,
-        },
-      };
-      await productApi.checkout(payload);
-      setOrderConfirmed(true);
-      setCartItems([]);
-    
+  try {
+    const payload = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      shipping: {
+        address: formData.address,
+        city: formData.city,
+        state: formData.state,
+        postalCode: formData.postalCode,
+      },
+      paymentMethod: formData.paymentMethod,   // ← NEW
+    };
 
-      toast.success('Order placed successfully!');
-    } catch (err) {
-      toast.error(err.message || 'Order placement failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    const response = await productApi.checkout(payload);
+    console.log('Checkout response:', response);
+
+    setOrderConfirmed(true);
+    setCartItems([]);
+    toast.success('Order placed successfully!');
+  } catch (err) {
+    toast.error(err.message || 'Order placement failed');
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const toggleCheckout = () => setShowCheckout((p) => !p);
 
@@ -266,11 +269,55 @@ const Cart = () => {
                       </div>
                     ))}
                   </div>
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold text-[#2E2E2E] mb-4">Payment Method</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Cash on Delivery */}
+                      <label className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'cod'
+                          ? 'border-[#6B2D2D] bg-[#fdf4f4] shadow-sm'
+                          : 'border-gray-300 hover:border-[#D9A7A7]'
+                        }`}>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="cod"
+                          checked={formData.paymentMethod === 'cod'}
+                          onChange={handleInputChange}
+                          className="h-5 w-5 text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                          required
+                        />
+                        <div className="ml-4">
+                          <p className="font-medium text-[#2E2E2E]">Cash on Delivery</p>
+                          <p className="text-sm text-gray-600">Pay when you receive your order</p>
+                        </div>
+                      </label>
+
+                      {/* UPI / QR Code (existing method) */}
+                      <label className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'upi'
+                          ? 'border-[#6B2D2D] bg-[#fdf4f4] shadow-sm'
+                          : 'border-gray-300 hover:border-[#D9A7A7]'
+                        }`}>
+                        <input
+                          type="radio"
+                          name="paymentMethod"
+                          value="upi"
+                          checked={formData.paymentMethod === 'upi'}
+                          onChange={handleInputChange}
+                          className="h-5 w-5 text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                          required
+                        />
+                        <div className="ml-4">
+                          <p className="font-medium text-[#2E2E2E]">UPI</p>
+                          <p className="text-sm text-gray-600">Scan QR & share screenshot on WhatsApp</p>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
 
                   <div className="mt-10 p-6 bg-[#fdf4f4] rounded-2xl border-2 border-dashed border-[#D9A7A7] text-center">
                     <p className="text-[#2E2E2E] font-medium mb-4">Scan to Pay</p>
                     <div className="inline-block p-3 bg-white rounded-2xl shadow-md">
-                      <img src={qr} alt="QR Code"  className="w-56 h-56 object-contain" />
+                      <img src={qr} alt="QR Code" className="w-56 h-56 object-contain" />
                     </div>
                     <p className="text-sm text-[#555] mt-4">Share payment screenshot on WhatsApp</p>
                     <a href="https://wa.me/918861315710" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 text-green-600 font-medium hover:underline">
