@@ -162,11 +162,11 @@ const Header = () => {
             </svg>
 
             {/* Loading Spinner */}
-            {loading && (
+            {/* {loading && (
               <div className="absolute right-4 top-1/2 -translate-y-1/2">
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-[#800020] border-t-transparent"></div>
               </div>
-            )}
+            )} */}
 
             {/* Clear search button */}
             {searchQuery && !loading && (

@@ -1,3 +1,4 @@
+// src/pages/Products.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -17,7 +18,6 @@ const Products = () => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [wishlistItems, setWishlistItems] = useState([]);
@@ -26,11 +26,11 @@ const Products = () => {
   const occasions = ["Wedding", "Bridal", "Festival", "Party", "Formal", "Casual"];
 
   const prices = [
-    { label: "₹0 - ₹1,000", value: "0-1000" },
-    { label: "₹1,000 - ₹3,000", value: "1000-3000" },
-    { label: "₹3,000 - ₹5,000", value: "3000-5000" },
-    { label: "₹5,000 - ₹10,000", value: "5000-10000" },
-    { label: "₹15,000 - ₹20,000", value: "15000-20000" },
+    { label: "₹0 – ₹1,000", value: "0-1000" },
+    { label: "₹1,000 – ₹3,000", value: "1000-3000" },
+    { label: "₹3,000 – ₹5,000", value: "3000-5000" },
+    { label: "₹5,000 – ₹10,000", value: "5000-10000" },
+    { label: "₹15,000 – ₹20,000", value: "15000-20000" },
   ];
 
   const offerTypes = [
@@ -40,50 +40,35 @@ const Products = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true);
-
         const [productResult, categoriesResult] = await Promise.all([
           productApi.getPublicProducts(),
-          categoryApi.getPublicCategories()
+          categoryApi.getPublicCategories(),
         ]);
 
-        console.log('🔄 Fetching products...');
-        console.log('📦 Product result:', productResult);
-
-        if (productResult.success) {
-          // Debug: Check offers in products
-          const productsWithOffers = productResult.products.filter(p => p.hasOffer);
-          console.log('🎯 Products with offers:', productsWithOffers);
-          console.log('📊 Total products:', productResult.products.length);
-          console.log('📈 Products with offers count:', productsWithOffers.length);
-
+        if (productResult?.success) {
           setProducts(productResult.products || []);
           setFilteredProducts(productResult.products || []);
         } else {
-          setError('Failed to fetch products');
+          setError('Failed to load products');
         }
 
-        if (categoriesResult.success) {
+        if (categoriesResult?.success) {
           setCategories(categoriesResult.categories || []);
-        } else {
-          setCategories([]);
         }
 
         if (authApi.isLoggedIn()) {
           try {
             const wishlistResult = await productApi.getWishlist();
-            if (wishlistResult.success) {
-              setWishlistItems(wishlistResult.items.map(item => item.id));
+            if (wishlistResult?.success) {
+              setWishlistItems(wishlistResult.items.map((item) => item.id));
             }
           } catch (wishlistError) {
             console.error('Wishlist fetch failed:', wishlistError);
           }
         }
       } catch (err) {
-        setError(err.message);
-        console.error('Error fetching data:', err);
-      } finally {
-        setLoading(false);
+        setError(err.message || 'Something went wrong');
+        console.error('Data fetch error:', err);
       }
     };
 
@@ -93,58 +78,46 @@ const Products = () => {
   useEffect(() => {
     if (products.length === 0) return;
 
-    console.log('🔄 Filtering products...', selectedFilters);
-
-    let result = products;
+    let result = [...products];
 
     // Category filter
     if (selectedFilters.category.length > 0 && !selectedFilters.category.includes("All")) {
-      result = result.filter(product => {
-        return selectedFilters.category.some(filterCategory => {
-          return product.category === filterCategory;
-        });
-      });
+      result = result.filter((product) =>
+        selectedFilters.category.includes(product.category)
+      );
     }
 
-    // Price filter - use offer price if available
-    // In the filtering useEffect:
+    // Price filter (using offer price when available)
     if (selectedFilters.price.length > 0) {
-      result = result.filter(product => {
-        const displayPrice = product.hasOffer ? product.offerPrice : product.price;
-        return selectedFilters.price.some(priceRange => {
-          const [min, max] = priceRange.split('-').map(Number);
-          return displayPrice >= min && displayPrice <= max;
+      result = result.filter((product) => {
+        const price = product.hasOffer && product.offerPrice ? product.offerPrice : product.price;
+        return selectedFilters.price.some((range) => {
+          const [min, max] = range.split('-').map(Number);
+          return price >= min && price <= max;
         });
       });
     }
 
     // Occasion filter
     if (selectedFilters.occasion.length > 0) {
-      result = result.filter(product =>
-        product.occasion && product.occasion.some(occ => selectedFilters.occasion.includes(occ))
+      result = result.filter((product) =>
+        product.occasion?.some((occ) => selectedFilters.occasion.includes(occ))
       );
     }
 
-    // Offer filter - Show only products with offers
+    // Offers only filter
     if (selectedFilters.offers.length > 0) {
-      console.log('🔍 Filtering by offers...');
-      result = result.filter(product => {
-        const hasOffer = product.hasOffer === true;
-        console.log(`Product ${product.name}: hasOffer = ${hasOffer}`);
-        return hasOffer;
-      });
-      console.log('✅ Products after offer filter:', result.length);
+      result = result.filter((product) => product.hasOffer === true);
     }
 
     setFilteredProducts(result);
     setCurrentPage(1);
   }, [selectedFilters, products]);
 
-  // Get category name by ID
   const getCategoryName = (categoryValue) => {
     if (!categoryValue) return 'N/A';
-    const category = categories.find(cat => cat.id === categoryValue);
-    return category ? category.name : 'N/A';
+    const category = categories.find((cat) => cat.id === categoryValue);
+    return category?.name || 'Unknown';
   };
 
   const indexOfLastProduct = currentPage * productsPerPage;
@@ -152,15 +125,13 @@ const Products = () => {
   const currentProducts = filteredProducts.slice(indexOfFirstProduct, indexOfLastProduct);
   const totalPages = Math.ceil(filteredProducts.length / productsPerPage);
 
-  const toggleFilter = () => {
-    setFilterOpen(!filterOpen);
-  };
+  const toggleFilter = () => setFilterOpen(!filterOpen);
 
   const handleFilterChange = (filterType, value) => {
-    setSelectedFilters(prev => {
+    setSelectedFilters((prev) => {
       const newFilters = { ...prev };
       if (newFilters[filterType].includes(value)) {
-        newFilters[filterType] = newFilters[filterType].filter(item => item !== value);
+        newFilters[filterType] = newFilters[filterType].filter((item) => item !== value);
       } else {
         newFilters[filterType] = [...newFilters[filterType], value];
       }
@@ -179,35 +150,36 @@ const Products = () => {
 
   const handleWishlistToggle = async (product) => {
     if (!authApi.isLoggedIn()) {
-      toast.error('Please login first to add to wishlist!');
+      toast.error('Please login first!');
       navigate('/login');
       return;
     }
 
     try {
       const isInWishlist = wishlistItems.includes(product.id);
+      const displayPrice = product.hasOffer ? product.offerPrice : product.price;
+
       if (isInWishlist) {
         await productApi.removeFromWishlist(product.id);
-        setWishlistItems(prev => prev.filter(id => id !== product.id));
-        toast.success(`${product.name} removed from wishlist!`);
+        setWishlistItems((prev) => prev.filter((id) => id !== product.id));
+        toast.success(`${product.name} removed from wishlist`);
       } else {
-        const displayPrice = product.hasOffer ? product.offerPrice : product.price;
         await productApi.addToWishlist({
           id: product.id,
           name: product.name,
           price: displayPrice,
-          image: product.images && product.images[0] ? product.images[0] : '/placeholder-image.jpg'
+          image: product.images?.[0] || '/placeholder-image.jpg',
         });
-        setWishlistItems(prev => [...prev, product.id]);
-        toast.success(`${product.name} added to wishlist!`);
+        setWishlistItems((prev) => [...prev, product.id]);
+        toast.success(`${product.name} added to wishlist`);
       }
     } catch (err) {
-      toast.error('Failed to update wishlist: ' + err.message);
+      toast.error(err.message || 'Failed to update wishlist');
     }
   };
 
-  const formatPrice = price => {
-    if (!price && price !== 0) return '₹0';
+  const formatPrice = (price) => {
+    if (price == null || isNaN(price)) return '₹0';
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
@@ -215,29 +187,18 @@ const Products = () => {
     }).format(price);
   };
 
-  const paginate = pageNumber => {
+  const paginate = (pageNumber) => {
     if (pageNumber > 0 && pageNumber <= totalPages) {
       setCurrentPage(pageNumber);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  // Count products with offers for filter display
-  const productsWithOffers = products.filter(product => product.hasOffer === true).length;
+  const productsWithOffers = products.filter((p) => p.hasOffer === true).length;
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6B2D2D] mx-auto"></div>
-          <p className="mt-4 text-[#2E2E2E]">Loading products...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
+  // ──────────────────────────────────────────────
+  // RENDER
+  // ──────────────────────────────────────────────
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
@@ -275,8 +236,7 @@ const Products = () => {
         <div className="flex flex-col md:flex-row gap-8">
           {/* Filters Sidebar */}
           <div
-            className={`md:w-1/4 ${filterOpen ? 'block fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden'
-              } md:block`}
+            className={`md:w-1/4 ${filterOpen ? 'block fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden'} md:block`}
           >
             <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
               <div className="flex justify-between items-center mb-6">
@@ -289,34 +249,20 @@ const Products = () => {
                     Clear All
                   </button>
                   {filterOpen && (
-                    <button
-                      onClick={toggleFilter}
-                      className="md:hidden text-[#2E2E2E] hover:text-[#3A1A1A]"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-6 w-6"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M6 18L18 6M6 6l12 12"
-                        />
+                    <button onClick={toggleFilter} className="md:hidden text-[#2E2E2E]">
+                      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                     </button>
                   )}
                 </div>
               </div>
 
-              {/* Category Filter */}
+              {/* Category */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Category</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  <label key="all" className="flex items-center py-1">
+                  <label className="flex items-center py-1">
                     <input
                       type="checkbox"
                       className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
@@ -326,7 +272,7 @@ const Products = () => {
                     <span className="ml-3 text-[#2E2E2E]">All Categories</span>
                   </label>
                   {categories
-                    .filter(cat => cat.isActive !== false)
+                    .filter((cat) => cat.isActive !== false)
                     .map((category) => (
                       <label key={category.id} className="flex items-center py-1">
                         <input
@@ -341,12 +287,12 @@ const Products = () => {
                 </div>
               </div>
 
-              {/* Price Filter */}
+              {/* Price */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Price Range</h3>
                 <div className="space-y-2">
-                  {prices.map((price, index) => (
-                    <label key={index} className="flex items-center py-1">
+                  {prices.map((price, i) => (
+                    <label key={i} className="flex items-center py-1">
                       <input
                         type="checkbox"
                         className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
@@ -359,30 +305,30 @@ const Products = () => {
                 </div>
               </div>
 
-              {/* Occasion Filter */}
+              {/* Occasion */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Occasion</h3>
                 <div className="space-y-2">
-                  {occasions.map((occasion, index) => (
-                    <label key={index} className="flex items-center py-1">
+                  {occasions.map((occ, i) => (
+                    <label key={i} className="flex items-center py-1">
                       <input
                         type="checkbox"
                         className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
-                        checked={selectedFilters.occasion.includes(occasion)}
-                        onChange={() => handleFilterChange('occasion', occasion)}
+                        checked={selectedFilters.occasion.includes(occ)}
+                        onChange={() => handleFilterChange('occasion', occ)}
                       />
-                      <span className="ml-3 text-[#2E2E2E]">{occasion}</span>
+                      <span className="ml-3 text-[#2E2E2E]">{occ}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              {/* Offers Filter */}
+              {/* Offers */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Special Offers</h3>
                 <div className="space-y-2">
-                  {offerTypes.map((offer, index) => (
-                    <label key={index} className="flex items-center justify-between py-1">
+                  {offerTypes.map((offer, i) => (
+                    <label key={i} className="flex items-center justify-between py-1">
                       <div className="flex items-center">
                         <input
                           type="checkbox"
@@ -402,20 +348,14 @@ const Products = () => {
             </div>
           </div>
 
-          {/* Products Grid */}
+          {/* Main Content */}
           <div className="md:w-3/4">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
               <button
                 onClick={toggleFilter}
                 className="md:hidden flex items-center bg-white px-4 py-2 rounded-lg shadow-sm text-[#6B2D2D] font-medium"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mr-2"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
+                <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
@@ -425,30 +365,38 @@ const Products = () => {
                 </svg>
                 Filters
               </button>
-              <div className="text-[#2E2E2E]">
+
+              <div className="text-[#2E2E2E] text-sm sm:text-base">
                 Showing {currentProducts.length} of {filteredProducts.length} products
                 {selectedFilters.offers.length > 0 && (
-                  <span className="text-green-600 font-semibold ml-2">
-                    • Special Offers
-                  </span>
+                  <span className="text-green-600 font-semibold ml-2">• Special Offers</span>
                 )}
               </div>
             </div>
 
-            {/* Products Grid */}
-            {currentProducts.length > 0 ? (
+            {/* Product Grid + Skeleton */}
+            {products.length === 0 || filteredProducts.length === 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {currentProducts.map(product => {
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-2xl overflow-hidden shadow-md h-[460px] animate-pulse"
+                  >
+                    <div className="h-80 bg-gray-200" />
+                    <div className="p-5 space-y-3">
+                      <div className="h-6 bg-gray-200 rounded w-4/5" />
+                      <div className="h-4 bg-gray-200 rounded w-3/5" />
+                      <div className="h-5 bg-gray-200 rounded w-2/5" />
+                      <div className="h-10 bg-gray-200 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : currentProducts.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {currentProducts.map((product) => {
                   const hasOffer = product.hasOffer === true;
                   const displayPrice = hasOffer ? product.offerPrice : product.price;
-
-                  console.log(`🛍️ Rendering product: ${product.name}`, {
-                    hasOffer,
-                    displayPrice,
-                    offerPrice: product.offerPrice,
-                    regularPrice: product.price,
-                    offerName: product.offerName
-                  });
 
                   return (
                     <div
@@ -456,16 +404,12 @@ const Products = () => {
                       className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7]"
                     >
                       <div className="relative overflow-hidden">
-                        {/* Badges Container */}
                         <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-                          {/* Product Badge */}
                           {product.badge && (
                             <span className="bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full">
                               {product.badge}
                             </span>
                           )}
-
-                          {/* Offer Badge - Show if product has offer */}
                           {hasOffer && (
                             <span className="bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
                               {product.offerName || 'SPECIAL OFFER'}
@@ -475,27 +419,25 @@ const Products = () => {
 
                         <div className="h-80 overflow-hidden">
                           <img
-                            src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder-image.jpg'}
+                            src={product.images?.[0] || '/placeholder-image.jpg'}
                             alt={product.name}
                             loading="lazy"
                             decoding="async"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-
-                            onError={(e) => {
-                              e.target.src = '/placeholder-image.jpg';
-                            }}
+                            onError={(e) => (e.target.src = '/placeholder-image.jpg')}
                           />
                         </div>
+
                         <button
                           onClick={() => handleWishlistToggle(product)}
-                          className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${wishlistItems.includes(product.id)
+                          className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${
+                            wishlistItems.includes(product.id)
                               ? 'bg-[#6B2D2D] text-white'
                               : 'bg-white text-[#6B2D2D] hover:bg-[#D9A7A7]'
-                            }`}
+                          }`}
                           aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                         >
                           <svg
-                            xmlns="http://www.w3.org/2000/svg"
                             className="h-5 w-5"
                             fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'}
                             viewBox="0 0 24 24"
@@ -510,27 +452,23 @@ const Products = () => {
                           </svg>
                         </button>
                       </div>
+
                       <div className="p-5">
-                        <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#3A1A1A] transition-colors duration-300">
+                        <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#3A1A1A] transition-colors line-clamp-2">
                           {product.name}
                         </h3>
-                        <p className="text-[#2E2E2E] text-sm mb-3 line-clamp-2">{product.description}</p>
+                        <p className="text-[#2E2E2E] text-sm mb-3 line-clamp-2">{product.description || '—'}</p>
 
-                        {/* Display Category */}
                         <div className="mb-2">
                           <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
                             {getCategoryName(product.category)}
                           </span>
                         </div>
 
-                        {/* Price Display */}
                         <div className="flex items-center mt-2 mb-3">
-                          {/* Show offer price if available, otherwise regular price */}
                           <span className="text-[#6B2D2D] font-bold text-lg">
                             {formatPrice(displayPrice)}
                           </span>
-
-                          {/* Show original price as strikethrough only if there's an offer */}
                           {hasOffer && product.price && product.price > displayPrice && (
                             <span className="text-[#2E2E2E] text-sm line-through ml-2">
                               {formatPrice(product.price)}
@@ -540,7 +478,6 @@ const Products = () => {
 
                         <div className="flex items-center justify-between mt-4">
                           <div className="flex">
-                            {/* Stock indicator */}
                             {product.stock > 0 ? (
                               <span className="text-green-600 text-sm">In Stock</span>
                             ) : (
@@ -548,7 +485,7 @@ const Products = () => {
                             )}
                           </div>
                           <Link to={`/viewdetails/${product.id}`}>
-                            <button className="bg-[#800020] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6B2D2D] hover:text-white transition-all duration-300">
+                            <button className="bg-[#800020] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300">
                               View Details
                             </button>
                           </Link>
@@ -559,10 +496,9 @@ const Products = () => {
                 })}
               </div>
             ) : (
-              <div className="text-center py-12">
+              <div className="text-center py-16">
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-16 w-16 mx-auto text-[#2E2E2E] mb-4"
+                  className="h-20 w-20 mx-auto text-gray-400 mb-6"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
@@ -574,11 +510,11 @@ const Products = () => {
                     d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <h3 className="text-xl font-medium text-[#2E2E2E] mb-2">No products found</h3>
-                <p className="text-[#2E2E2E]">Try adjusting your filters to find what you're looking for.</p>
+                <h3 className="text-xl font-medium text-[#2E2E2E] mb-3">No products found</h3>
+                <p className="text-[#6B6B6B] mb-6">Try adjusting your filters</p>
                 <button
                   onClick={clearFilters}
-                  className="mt-4 bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#3A1A1A] transition-colors"
+                  className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#3A1A1A] transition-colors"
                 >
                   Clear All Filters
                 </button>
@@ -592,19 +528,20 @@ const Products = () => {
                   <button
                     onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 rounded-lg border text-[#2E2E2E] hover:bg-[#D9A7A7] hover:text-[#3A1A1A] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-5 py-2 rounded-lg border border-gray-300 text-[#2E2E2E] hover:bg-gray-100 disabled:opacity-50"
                   >
                     Previous
                   </button>
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <button
                       key={page}
                       onClick={() => paginate(page)}
-                      className={`px-4 py-2 rounded-lg border ${currentPage === page
-                          ? 'bg-[#6B2D2D] text-white'
-                          : 'text-[#2E2E2E] hover:bg-[#D9A7A7] hover:text-[#3A1A1A]'
-                        }`}
+                      className={`px-4 py-2 rounded-lg border ${
+                        currentPage === page
+                          ? 'bg-[#6B2D2D] text-white border-[#6B2D2D]'
+                          : 'border-gray-300 text-[#2E2E2E] hover:bg-gray-100'
+                      }`}
                     >
                       {page}
                     </button>
@@ -613,7 +550,7 @@ const Products = () => {
                   <button
                     onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 rounded-lg border text-[#2E2E2E] hover:bg-[#D9A7A7] hover:text-[#3A1A1A] disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-5 py-2 rounded-lg border border-gray-300 text-[#2E2E2E] hover:bg-gray-100 disabled:opacity-50"
                   >
                     Next
                   </button>

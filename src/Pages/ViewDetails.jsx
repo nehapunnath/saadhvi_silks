@@ -219,7 +219,7 @@ const ViewDetails = () => {
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6B2D2D] mx-auto" />
-          <p className="mt-4 text-[#2E2E2E]">Loading product...</p>
+          {/* <p className="mt-4 text-[#2E2E2E]">Loading product...</p> */}
         </div>
       </div>
     );

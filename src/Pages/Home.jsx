@@ -11,120 +11,58 @@ const Home = () => {
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [carouselSlides, setCarouselSlides] = useState([]);
-  const [loadingSlides, setLoadingSlides] = useState(true);
   const [products, setProducts] = useState([]);
-  const [loadingProducts, setLoadingProducts] = useState(true);
-  const [error, setError] = useState(null);
   const [mainGalleryImage, setMainGalleryImage] = useState(null);
-  const [loadingMainImage, setLoadingMainImage] = useState(true);
-  const [mainImageError, setMainImageError] = useState(null);
   const [collections, setCollections] = useState([]);
-  const [loadingCollections, setLoadingCollections] = useState(true);
-  const [collectionsError, setCollectionsError] = useState(null);
+  const [error, setError] = useState(null);
+  const [mainImageError, setMainImageError] = useState(null);
 
-  const fallbackSlides = [
-    {
-      id: 1,
-      title: "Exclusive Silk Collection",
-      subtitle: "Premium handcrafted sarees for every occasion",
-      image: "https://www.manyavar.com/on/demandware.static/-/Library-Sites-ManyavarSharedLibrary/default/dwe6547122/Ace_Your_Saree_Banner_D.jpg",
-      cta: "Shop Now"
-    },
-    {
-      id: 2,
-      title: "Bridal Special",
-      subtitle: "Make your special day even more memorable",
-      image: "https://kavyastyleplus.com/cdn/shop/files/Royal_20Satin_20Saroski_20Saroj_20Sarees_20_283_29_90970273-bbc2-4d06-938d-90af6cf314b2.jpg?v=1744633888&width=1946",
-      cta: "Bridal Collection"
-    },
-    {
-      id: 3,
-      title: "Festival Sale",
-      subtitle: "Upto 40% off on traditional wear",
-      image: "https://mysilklove.com/cdn/shop/articles/1800_26.png?v=1701089364&width=2048",
-      cta: "View Offers"
-    }
-  ];
-
-  const fallbackMainImage = "https://www.koskii.com/cdn/shop/products/koskii-mehendi-zariwork-pure-silk-designer-saree-saus0018591_mehendi_1.jpg?v=1633866706&width=1080";
-
-  const fallbackCollections = [
-    { name: "Traditional Silk Sarees", image: "https://oldsilksareebuyers.com/wp-content/uploads/2021/04/Old-Wedding-pattu-saree-buyers-1.jpg", description: "Timeless elegance with authentic craftsmanship", items: "120+ Products" },
-    { name: "Bridal Sarees", image: "https://cdn.shopify.com/s/files/1/0755/3495/8865/files/bridal_1.png?v=1694446298", description: "For your special day", items: "85+ Designs" },
-    { name: "Designer Sarees", image: "https://adn-static1.nykaa.com/nykdesignstudio-images/pub/media/catalog/product/7/c/7c90315SHMTPRM104_4.jpg?rnd=20200526195200&tr=w-512", description: "Contemporary designs by expert designers", items: "200+ Collections" },
-    { name: "Daily Wear", image: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjnA0wdFE62w9oKr5n3PsoRsbbbOX2HLii8w&s", description: "Comfortable elegance for everyday", items: "150+ Options" },
-    { name: "Festival Collection", image: "https://i.pinimg.com/736x/c5/b1/65/c5b1659e705b1b937fed0564f808ade0.jpg", description: "Celebratory styles for special occasions", items: "90+ Designs" },
-    { name: "Premium Collection", image: "https://www.vishalprints.in/cdn/shop/files/STAR_SILK-55337-01.jpg?v=1755161577", description: "Exclusive luxury pieces with zari work", items: "Limited Edition" }
-  ];
-
-  // Fetch main gallery image
+  // ──────────────────────────────────────────────
+  // Fetch data – no blocking, no loading states for UI
+  // ──────────────────────────────────────────────
   useEffect(() => {
-    const fetchMainGalleryImage = async () => {
+    // Main gallery image
+    (async () => {
       try {
-        setLoadingMainImage(true);
-        setMainImageError(null);
         const data = await GalleryApi.getPublicMainGalleryImage();
-
-        if (data.image) {
-          setMainGalleryImage(data.image);
-        } else {
-          setMainGalleryImage(fallbackMainImage);
-          console.log('No main gallery image found, using fallback');
-        }
+        setMainGalleryImage(data?.image || null);
       } catch (err) {
         console.error('Main gallery image fetch error:', err);
         setMainImageError(err.message);
-        setMainGalleryImage(fallbackMainImage);
-      } finally {
-        setLoadingMainImage(false);
       }
-    };
-    fetchMainGalleryImage();
-  }, []);
+    })();
 
-  // Fetch carousel slides
-  useEffect(() => {
-    const fetchSlides = async () => {
+    // Carousel slides
+    (async () => {
       try {
-        setLoadingSlides(true);
         const data = await GalleryApi.getPublicSlides();
-        const slides = data.slides || [];
-        setCarouselSlides(slides.length > 0 ? slides : fallbackSlides);
+        setCarouselSlides(data?.slides || []);
       } catch (err) {
         console.error('Carousel fetch error:', err);
         toast.error('Failed to load carousel');
-        setCarouselSlides(fallbackSlides);
-      } finally {
-        setLoadingSlides(false);
       }
-    };
-    fetchSlides();
-  }, []);
+    })();
 
-  // Fetch collections
-  useEffect(() => {
-    const fetchCollections = async () => {
+    // Collections
+    (async () => {
       try {
-        setLoadingCollections(true);
-        setCollectionsError(null);
         const data = await GalleryApi.getPublicCollections();
-
-        if (data.collections && data.collections.length > 0) {
-          console.log('Loaded collections from API:', data.collections);
-          setCollections(data.collections);
-        } else {
-          console.log('No collections found in API, using fallback');
-          setCollections(fallbackCollections);
-        }
+        setCollections(data?.collections || []);
       } catch (err) {
         console.error('Collections fetch error:', err);
-        setCollectionsError(err.message);
-        setCollections(fallbackCollections);
-      } finally {
-        setLoadingCollections(false);
       }
-    };
-    fetchCollections();
+    })();
+
+    // Products
+    (async () => {
+      try {
+        const data = await productApi.getPublicProducts();
+        setProducts(data?.products || []);
+      } catch (err) {
+        setError('Failed to load products.');
+        console.error('Product fetch error:', err);
+      }
+    })();
   }, []);
 
   // Auto slide carousel
@@ -138,42 +76,23 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [carouselSlides.length]);
 
-  // Fetch products
-  useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoadingProducts(true);
-        setError(null);
-        const data = await productApi.getPublicProducts();
-        setProducts(data.products || []);
-      } catch (err) {
-        setError('Failed to load products.');
-        console.error('Product fetch error:', err);
-      } finally {
-        setLoadingProducts(false);
-      }
-    };
-    fetchProducts();
-  }, []);
-
-  // Get unique offer names from products that have offers
+  // Get unique offer names
   const getUniqueOfferNames = () => {
     const offers = new Set();
-    products.forEach(product => {
+    products.forEach((product) => {
       if (product.hasOffer && product.offerName) {
         offers.add(product.offerName);
       }
     });
-    return Array.from(offers).slice(0, 8); // Get max 8 unique offers
+    return Array.from(offers).slice(0, 8);
   };
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-IN', {
+  const formatPrice = (price) =>
+    new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       maximumFractionDigits: 0,
-    }).format(price);
-  };
+    }).format(price || 0);
 
   const handleAddToWishlist = async (product) => {
     if (!authApi.isLoggedIn()) {
@@ -196,36 +115,25 @@ const Home = () => {
   };
 
   const handleImageError = (e) => {
-    console.error('Main gallery image failed to load:', e);
-    e.target.src = fallbackMainImage;
+    // You can leave it empty or set a static fallback if you want
+    // e.target.src = '/placeholder.jpg';
   };
 
-  const handleCollectionImageError = (e, index) => {
-    console.error('Collection image failed to load:', e);
-    if (fallbackCollections[index]) {
-      e.target.src = fallbackCollections[index].image;
-    }
-  };
-
-  if (loadingSlides) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-16 w-16 border-4 border-[#800020] border-t-transparent"></div>
-      </div>
-    );
-  }
-
+  // ──────────────────────────────────────────────
+  // RENDER – no loading checks, no fallbacks
+  // ──────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] overflow-hidden">
 
       {/* Hero Carousel Section */}
-      <section className="relative h-[85vh] md:h-screen">  
+      <section className="relative h-[85vh] md:h-screen">
         <div className="absolute inset-0 overflow-hidden">
           {carouselSlides.map((slide, idx) => (
             <div
               key={slide.id || slide._id || idx}
-              className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100' : 'opacity-0'
-                }`}
+              className={`absolute inset-0 transition-opacity duration-1000 ${
+                idx === currentSlide ? 'opacity-100' : 'opacity-0'
+              }`}
             >
               <img
                 src={slide.image}
@@ -233,9 +141,9 @@ const Home = () => {
                 className="w-full h-full object-fill bg-white"
                 loading="lazy"
                 decoding="async"
-               
+                onError={handleImageError}
               />
-              <div className="absolute inset-0 bg-black/15"></div> 
+              <div className="absolute inset-0 bg-black/15"></div>
             </div>
           ))}
         </div>
@@ -243,10 +151,10 @@ const Home = () => {
         <div className="relative h-full flex items-center justify-center text-center px-4">
           <div className="text-white max-w-4xl z-10">
             <h1 className="text-4xl md:text-6xl font-serif font-bold mb-4 drop-shadow-lg">
-              {carouselSlides[currentSlide]?.title}
+              {carouselSlides[currentSlide]?.title || ''}
             </h1>
             <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto drop-shadow-md">
-              {carouselSlides[currentSlide]?.subtitle}
+              {carouselSlides[currentSlide]?.subtitle || ''}
             </p>
             <Link to="/products">
               <button className="bg-[#800020] hover:bg-[#A0002A] text-white px-8 py-4 rounded-xl text-lg font-medium transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
@@ -257,37 +165,44 @@ const Home = () => {
         </div>
 
         {/* Dots */}
-        <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3 z-10">
-          {carouselSlides.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => setCurrentSlide(i)}
-              className={`w-3 h-3 rounded-full transition-all duration-300 ${i === currentSlide ? 'bg-white scale-125 shadow-lg' : 'bg-white/50 hover:bg-white/80'
+        {carouselSlides.length > 0 && (
+          <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3 z-10">
+            {carouselSlides.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentSlide(i)}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  i === currentSlide ? 'bg-white scale-125 shadow-lg' : 'bg-white/50 hover:bg-white/80'
                 }`}
-            />
-          ))}
-        </div>
+              />
+            ))}
+          </div>
+        )}
 
         {/* Navigation Arrows */}
-        <button
-          className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-10"
-          onClick={() => setCurrentSlide((currentSlide - 1 + carouselSlides.length) % carouselSlides.length)}
-        >
-          <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-        <button
-          className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-10"
-          onClick={() => setCurrentSlide((currentSlide + 1) % carouselSlides.length)}
-        >
-          <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
+        {carouselSlides.length > 1 && (
+          <>
+            <button
+              className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-10"
+              onClick={() => setCurrentSlide((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)}
+            >
+              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button
+              className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-10"
+              onClick={() => setCurrentSlide((prev) => (prev + 1) % carouselSlides.length)}
+            >
+              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
       </section>
 
-      {/* Elegance Woven with Tradition Section - WITH MAIN GALLERY IMAGE */}
+      {/* Elegance Woven with Tradition Section */}
       <section className="relative py-20 md:py-32 overflow-hidden">
         <div className="absolute top-0 left-0 w-72 h-72 bg-[#800020] opacity-5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#800020] opacity-5 rounded-full translate-x-1/3 translate-y-1/3"></div>
@@ -317,31 +232,21 @@ const Home = () => {
           </div>
 
           <div className="md:w-1/2 flex justify-center">
-            {loadingMainImage ? (
-              <div className="w-full max-w-md h-96 bg-gray-200 rounded-2xl shadow-2xl animate-pulse flex items-center justify-center">
-                <div className="flex flex-col items-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-[#800020] border-t-transparent mb-2"></div>
-                  <div className="text-gray-500 text-sm">Loading elegant image...</div>
+            <div className="relative group">
+              <img
+                src={mainGalleryImage}
+                alt="Elegance Woven with Tradition"
+                className="rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-700 group-hover:scale-105 object-cover h-96"
+                loading="lazy"
+                decoding="async"
+                onError={handleImageError}
+              />
+              {mainImageError && (
+                <div className="absolute bottom-2 left-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
+                  Image not available
                 </div>
-              </div>
-            ) : (
-              <div className="relative group">
-                <img
-                  src={mainGalleryImage}
-                  alt="Elegance Woven with Tradition"
-                  className="rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-700 group-hover:scale-105 object-cover h-96"
-                  loading="lazy"
-                  decoding="async"
-
-                  onError={handleImageError}
-                />
-                {mainImageError && (
-                  <div className="absolute bottom-2 left-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-                    Using default image
-                  </div>
-                )}
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       </section>
@@ -359,55 +264,45 @@ const Home = () => {
             </p>
           </div>
 
-          {loadingCollections ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#800020] border-t-transparent"></div>
-            </div>
-          ) : collectionsError ? (
-            <div className="text-center py-12 text-yellow-600">
-              <p>Using fallback collections</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {collections.map((collection, index) => (
-                <div
-                  key={collection.id || collection._id || index}
-                  className="group relative overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-xl"
-                  onMouseEnter={() => setHoveredCategory(index)}
-                  onMouseLeave={() => setHoveredCategory(null)}
-                >
-                  <div className="overflow-hidden h-80 relative">
-                    <img
-                      src={collection.image}
-                      alt={collection.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      loading="lazy"
-                      decoding="async"
-                      onError={(e) => handleCollectionImageError(e, index)}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#800020]/80 via-[#800020]/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
-                    <div className="absolute top-4 right-4 bg-gradient-to-r from-[#800020] to-[#A0002A] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
-                      {collection.items || `${Math.floor(Math.random() * 100)}+ Products`}
-                    </div>
-                  </div>
-                  <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
-                    <h3 className="text-xl font-bold mb-2">{collection.name}</h3>
-                    <p className="text-[#F8EDE3] mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                      {collection.description || "Beautifully crafted sarees for every occasion"}
-                    </p>
-                    <Link to="/products">
-                      <button className="self-start bg-gradient-to-r from-[#800020] to-[#A0002A] text-white px-5 py-2 rounded-lg font-medium hover:from-[#A0002A] hover:to-[#800020] transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 flex items-center shadow-md">
-                        <span>Explore</span>
-                        <svg className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                      </button>
-                    </Link>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {collections.map((collection, index) => (
+              <div
+                key={collection.id || collection._id || index}
+                className="group relative overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-xl"
+                onMouseEnter={() => setHoveredCategory(index)}
+                onMouseLeave={() => setHoveredCategory(null)}
+              >
+                <div className="overflow-hidden h-80 relative">
+                  <img
+                    src={collection.image}
+                    alt={collection.name}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    loading="lazy"
+                    decoding="async"
+                    onError={handleImageError}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#800020]/80 via-[#800020]/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
+                  <div className="absolute top-4 right-4 bg-gradient-to-r from-[#800020] to-[#A0002A] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
+                    {collection.items || 'Collection'}
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
+                <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                  <h3 className="text-xl font-bold mb-2">{collection.name}</h3>
+                  <p className="text-[#F8EDE3] mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                    {collection.description || 'Beautifully crafted sarees'}
+                  </p>
+                  <Link to="/products">
+                    <button className="self-start bg-gradient-to-r from-[#800020] to-[#A0002A] text-white px-5 py-2 rounded-lg font-medium hover:from-[#A0002A] hover:to-[#800020] transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 flex items-center shadow-md">
+                      <span>Explore</span>
+                      <svg className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                    </button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -424,14 +319,10 @@ const Home = () => {
             </p>
           </div>
 
-          {loadingProducts ? (
-            <div className="flex justify-center py-20">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#800020] border-t-transparent"></div>
-            </div>
-          ) : error ? (
+          {error ? (
             <div className="text-center py-10 text-red-600">{error}</div>
           ) : products.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">No products available.</div>
+            <div className="text-center py-10 text-gray-500">No products available yet.</div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {products.slice(0, 3).map((product) => {
@@ -440,14 +331,19 @@ const Home = () => {
                 const displayPrice = hasOffer ? product.offerPrice : product.price;
 
                 return (
-                  <div key={product._id || product.id} className="bg-[#F8EDE3] rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl group border border-[#FDF6E3]">
+                  <div
+                    key={product._id || product.id}
+                    className="bg-[#F8EDE3] rounded-2xl overflow-hidden shadow-lg transition-all duration-300 hover:shadow-xl group border border-[#FDF6E3]"
+                  >
                     <div className="relative overflow-hidden">
-                      {/* Product Badge */}
-                      <span className={`absolute top-4 left-4 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A]' : 'bg-gray-600'}`}>
+                      <span
+                        className={`absolute top-4 left-4 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md ${
+                          inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A]' : 'bg-gray-600'
+                        }`}
+                      >
                         {inStock ? 'In Stock' : 'Sold Out'}
                       </span>
 
-                      {/* Offer Badge */}
                       {hasOffer && (
                         <span className="absolute top-4 right-4 bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md">
                           {product.offerName || 'OFFER'}
@@ -456,12 +352,12 @@ const Home = () => {
 
                       <div className="h-80 overflow-hidden">
                         <img
-                          src={product.images?.[0] || '/placeholder.jpg'}
+                          src={product.images?.[0]}
                           alt={product.name}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           decoding="async"
                           loading="lazy"
-                          onError={(e) => (e.currentTarget.src = '/placeholder.jpg')}
+                          onError={handleImageError}
                         />
                       </div>
                     </div>
@@ -482,10 +378,18 @@ const Home = () => {
 
                       <div className="flex space-x-2">
                         <Link to={`/viewdetails/${product.id || product._id}`} className="flex-1">
-                          <button className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:from-[#A0002A] hover:to-[#800020]' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`} disabled={!inStock}>
+                          <button
+                            className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${
+                              inStock
+                                ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:from-[#A0002A] hover:to-[#800020]'
+                                : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                            }`}
+                            disabled={!inStock}
+                          >
                             {inStock ? 'View Details' : 'Out of Stock'}
                           </button>
                         </Link>
+
                         {inStock && (
                           <button
                             onClick={() => handleAddToWishlist(product)}
@@ -493,7 +397,12 @@ const Home = () => {
                             title="Add to Wishlist"
                           >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                              />
                             </svg>
                           </button>
                         )}
@@ -527,27 +436,25 @@ const Home = () => {
           <h2 className="text-2xl md:text-3xl font-serif font-bold text-white text-center mb-8">
             Special Offers
           </h2>
-          {loadingProducts ? (
-            <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-2 border-white border-t-transparent"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {getUniqueOfferNames().length > 0 ? (
-                getUniqueOfferNames().map((offerName, i) => (
-                  <div key={i} className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-lg hover:scale-105 transition-transform duration-300">
-                    <div className="text-white text-center">
-                      <h3 className="text-xl font-bold">{offerName}</h3>
-                    </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {getUniqueOfferNames().length > 0 ? (
+              getUniqueOfferNames().map((offerName, i) => (
+                <div
+                  key={i}
+                  className="bg-white/10 backdrop-blur-sm rounded-xl p-5 border border-white/20 shadow-lg hover:scale-105 transition-transform duration-300"
+                >
+                  <div className="text-white text-center">
+                    <h3 className="text-xl font-bold">{offerName}</h3>
                   </div>
-                ))
-              ) : (
-                <div className="col-span-4 text-center text-white/80">
-                  <p>No special offers available at the moment</p>
                 </div>
-              )}
-            </div>
-          )}
+              ))
+            ) : (
+              <div className="col-span-4 text-center text-white/80 py-8">
+                <p>No special offers available at the moment</p>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
@@ -563,19 +470,57 @@ const Home = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { name: "Priya Sharma", location: "Chennai", rating: 5, review: "The Kanjivaram saree I bought was absolutely stunning! The quality and craftsmanship are unmatched.", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" },
-              { name: "Anita Rao", location: "Hyderabad", rating: 5, review: "I wore their bridal saree for my wedding, and it made me feel like a queen. Highly recommend!", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" },
-              { name: "Meena Kapoor", location: "Mumbai", rating: 4, review: "The designer sarees are so unique. I get compliments every time I wear one!", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80" }
+              {
+                name: 'Priya Sharma',
+                location: 'Chennai',
+                rating: 5,
+                review:
+                  'The Kanjivaram saree I bought was absolutely stunning! The quality and craftsmanship are unmatched.',
+                image:
+                  'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
+              },
+              {
+                name: 'Anita Rao',
+                location: 'Hyderabad',
+                rating: 5,
+                review:
+                  'I wore their bridal saree for my wedding, and it made me feel like a queen. Highly recommend!',
+                image:
+                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
+              },
+              {
+                name: 'Meena Kapoor',
+                location: 'Mumbai',
+                rating: 4,
+                review:
+                  'The designer sarees are so unique. I get compliments every time I wear one!',
+                image:
+                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
+              },
             ].map((t, i) => (
-              <div key={i} className="bg-[#F8EDE3] rounded-2xl p-6 shadow-lg border border-[#FDF6E3] group">
+              <div
+                key={i}
+                className="bg-[#F8EDE3] rounded-2xl p-6 shadow-lg border border-[#FDF6E3] group"
+              >
                 <div className="flex items-center mb-4">
-                  <img src={t.image} alt={t.name} loading="lazy" decoding="async" className="w-16 h-16 rounded-full object-cover mr-4 border-2 border-[#1A4D3E] group-hover:border-[#800020] transition" />
+                  <img
+                    src={t.image}
+                    alt={t.name}
+                    loading="lazy"
+                    decoding="async"
+                    className="w-16 h-16 rounded-full object-cover mr-4 border-2 border-[#1A4D3E] group-hover:border-[#800020] transition"
+                  />
                   <div>
                     <h3 className="font-semibold text-[#1C2526]">{t.name}</h3>
                     <p className="text-sm text-[#1C2526]">{t.location}</p>
                     <div className="flex mt-1">
                       {[...Array(5)].map((_, j) => (
-                        <svg key={j} className={`w-4 h-4 ${j < t.rating ? 'text-[#800020]' : 'text-[#1A4D3E]'}`} fill="currentColor" viewBox="0 0 20 20">
+                        <svg
+                          key={j}
+                          className={`w-4 h-4 ${j < t.rating ? 'text-[#800020]' : 'text-[#1A4D3E]'}`}
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                       ))}
