@@ -1,9 +1,11 @@
+// src/pages/admin/EditProducts.js
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
 import productApi from '../../Services/proApi';
 import categoryApi from '../../Services/CategoryApi';
+import badgeApi from '../../Services/BadgeApi';           // ← NEW IMPORT
 
 const EditProducts = () => {
   const { id } = useParams();
@@ -15,30 +17,31 @@ const EditProducts = () => {
   const [selectedOccasions, setSelectedOccasions] = useState([]);
   const [newImages, setNewImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
-  
-  // Category Management States
+
+  // Category states
   const [categories, setCategories] = useState([]);
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [categoryName, setCategoryName] = useState('');
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryLoading, setCategoryLoading] = useState(false);
 
-  const occasions = [
-    'Wedding',
-    'Festival',
-    'Party',
-    'Casual',
-    'Office',
-    'Traditional',
-  ];
+  // Badge states  ← NEW
+  const [badges, setBadges] = useState([]);
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [badgeName, setBadgeName] = useState('');
+  const [editingBadge, setEditingBadge] = useState(null);
+  const [badgeLoading, setBadgeLoading] = useState(false);
 
+  const occasions = [
+    'Wedding', 'Festival', 'Party', 'Casual', 'Office', 'Traditional',
+  ];
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        
+
+        // Load product
         const res = await productApi.getProduct(id);
         const p = res.product;
 
@@ -46,8 +49,11 @@ const EditProducts = () => {
         setSelectedOccasions(p.occasion || []);
         setImagePreviews(p.images || []);
 
-        
-        await loadCategories();
+        // Load categories & badges
+        await Promise.all([
+          loadCategories(),
+          loadBadges()
+        ]);
       } catch (e) {
         toast.error('Failed to load product: ' + e.message);
         navigate('/admin/products');
@@ -61,16 +67,23 @@ const EditProducts = () => {
   const loadCategories = async () => {
     try {
       const result = await categoryApi.getCategories();
-      if (result.success) {
-        setCategories(result.categories);
-      }
+      if (result.success) setCategories(result.categories || []);
     } catch (error) {
       console.error('Failed to load categories:', error);
       toast.error('Failed to load categories');
     }
   };
 
- 
+  const loadBadges = async () => {                    // ← NEW
+    try {
+      const result = await badgeApi.getBadges();
+      if (result.success) setBadges(result.badges || []);
+    } catch (error) {
+      console.error('Failed to load badges:', error);
+      toast.error('Failed to load badges');
+    }
+  };
+
   const handleInputChange = e => {
     const { name, value } = e.target;
     setProduct(prev => ({ ...prev, [name]: value }));
@@ -90,7 +103,7 @@ const EditProducts = () => {
     const files = Array.from(e.target.files);
     const total = imagePreviews.length + files.length;
     if (total > 5) {
-      toast.error(`Maximum 5 images allowed! You have ${imagePreviews.length}`);
+      toast.error(`Maximum 5 images allowed! Current: ${imagePreviews.length}`);
       return;
     }
     const previews = files.map(f => URL.createObjectURL(f));
@@ -99,10 +112,10 @@ const EditProducts = () => {
   };
 
   const removeImage = idx => {
-    const originalCount = product.images?.length || 0;
+    const originalCount = product?.images?.length || 0;
 
     if (idx < originalCount) {
-      // keep old image on server, just hide preview
+      // Just remove from preview (old images stay on server unless replaced)
       setImagePreviews(prev => prev.filter((_, i) => i !== idx));
     } else {
       const newIdx = idx - originalCount;
@@ -121,13 +134,13 @@ const EditProducts = () => {
       toast.success('Product updated successfully!');
       navigate('/admin/products');
     } catch (err) {
-      toast.error('Update failed: ' + err.message);
+      toast.error('Update failed: ' + (err.message || 'Unknown error'));
     } finally {
       setSaving(false);
     }
   };
 
-
+  // ── Category Handlers (unchanged) ────────────────────────────────
   const handleAddCategory = async (e) => {
     e.preventDefault();
     if (!categoryName.trim()) {
@@ -163,31 +176,88 @@ const EditProducts = () => {
   };
 
   const handleDeleteCategory = async (category) => {
-  if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) {
-    return;
-  }
+    if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) return;
 
-  try {
-    const result = await categoryApi.deleteCategory(category.id, id);
-    if (result.success) {
-      toast.success('Category deleted successfully!');
-      await loadCategories();
-      
-      if (product.category === category.id) {
-        setProduct(prev => ({ ...prev, category: '' }));
+    try {
+      const result = await categoryApi.deleteCategory(category.id, id); // pass product id
+      if (result.success) {
+        toast.success('Category deleted successfully!');
+        await loadCategories();
+        if (product.category === category.id) {
+          setProduct(prev => ({ ...prev, category: '' }));
+        }
+      } else {
+        toast.error(result.error);
       }
-    } else {
-      toast.error(result.error);
+    } catch (error) {
+      toast.error(error.message);
     }
-  } catch (error) {
-    toast.error(error.message);
-  }
-};
+  };
 
   const openAddCategoryModal = () => {
     setEditingCategory(null);
     setCategoryName('');
     setShowCategoryModal(true);
+  };
+
+  // ── Badge Handlers ───────────────────────────────────────────────
+  const handleAddBadge = async (e) => {
+    e.preventDefault();
+    if (!badgeName.trim()) {
+      toast.error('Badge name is required');
+      return;
+    }
+
+    setBadgeLoading(true);
+    try {
+      if (editingBadge) {
+        await badgeApi.updateBadge(editingBadge.id, { name: badgeName.trim() });
+        toast.success('Badge updated successfully!');
+      } else {
+        await badgeApi.addBadge({ name: badgeName.trim() });
+        toast.success('Badge added successfully!');
+      }
+      
+      setShowBadgeModal(false);
+      setBadgeName('');
+      setEditingBadge(null);
+      await loadBadges();
+    } catch (error) {
+      toast.error(error.message || 'Badge operation failed');
+    } finally {
+      setBadgeLoading(false);
+    }
+  };
+
+  const handleEditBadge = (badge) => {
+    setEditingBadge(badge);
+    setBadgeName(badge.name);
+    setShowBadgeModal(true);
+  };
+
+  const handleDeleteBadge = async (badge) => {
+    if (!window.confirm(`Are you sure you want to delete badge "${badge.name}"?`)) return;
+
+    try {
+      const result = await badgeApi.deleteBadge(badge.id, id); // pass product id (optional safety)
+      if (result.success) {
+        toast.success('Badge deleted successfully!');
+        await loadBadges();
+        if (product.badge === badge.id) {
+          setProduct(prev => ({ ...prev, badge: '' }));
+        }
+      } else {
+        toast.error(result.error || 'Cannot delete badge (in use?)');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to delete badge');
+    }
+  };
+
+  const openAddBadgeModal = () => {
+    setEditingBadge(null);
+    setBadgeName('');
+    setShowBadgeModal(true);
   };
 
   const formatPrice = p =>
@@ -197,9 +267,6 @@ const EditProducts = () => {
       maximumFractionDigits: 0,
     }).format(p);
 
-  /* ------------------------------------------------------------------ */
-  /*  RENDER                                                            */
-  /* ------------------------------------------------------------------ */
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
@@ -252,12 +319,11 @@ const EditProducts = () => {
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-8">
-                {/* ---------- BASIC INFO ---------- */}
+                {/* BASIC INFO */}
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                   <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Product Information</h2>
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* LEFT */}
                     <div className="space-y-6">
                       {/* Name */}
                       <div>
@@ -265,7 +331,7 @@ const EditProducts = () => {
                         <input
                           type="text"
                           name="name"
-                          value={product.name}
+                          value={product.name || ''}
                           onChange={handleInputChange}
                           className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                           required
@@ -281,7 +347,7 @@ const EditProducts = () => {
                             <input
                               type="number"
                               name="price"
-                              value={product.price}
+                              value={product.price || ''}
                               onChange={handleInputChange}
                               className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                               required
@@ -314,7 +380,7 @@ const EditProducts = () => {
                             <input
                               type="number"
                               name="stock"
-                              value={product.stock}
+                              value={product.stock || 0}
                               onChange={handleInputChange}
                               className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                               min="0"
@@ -333,22 +399,22 @@ const EditProducts = () => {
                         )}
                       </div>
 
-                      {/* Enhanced Category Section */}
+                      {/* Category Section */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <label className="block text-sm font-medium text-[#2E2E2E]">Category *</label>
                           <button
                             type="button"
                             onClick={openAddCategoryModal}
-                            className="text-sm bg-[#6B2D2D] text-white px-3 py-1 rounded hover:bg-[#8B3A3A] transition-colors"
+                            className="text-sm bg-[#6B2D2D] text-white px-3 py-1 rounded hover:bg-[#8B3A3A]"
                           >
                             + Manage Categories
                           </button>
                         </div>
-                        
+
                         <select
                           name="category"
-                          value={product.category}
+                          value={product.category || ''}
                           onChange={handleInputChange}
                           className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                           required
@@ -356,51 +422,56 @@ const EditProducts = () => {
                           <option value="">Select Category</option>
                           {categories
                             .filter(cat => cat.isActive !== false)
-                            .map(category => (
-                              <option key={category.id} value={category.id}>
-                                {category.name}
+                            .map(cat => (
+                              <option key={cat.id} value={cat.id}>
+                                {cat.name}
                               </option>
-                            ))
-                          }
+                            ))}
                         </select>
 
-                        {/* Categories List with Edit/Delete */}
                         <div className="max-h-40 overflow-y-auto border rounded-lg p-2">
-                          <div className="grid grid-cols-1 gap-1">
-                            {categories
-                              .filter(cat => cat.isActive !== false)
-                              .map(category => (
-                                <div key={category.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
-                                  <span className="text-sm">{category.name}</span>
-                                  <div className="flex space-x-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleEditCategory(category)}
-                                      className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteCategory(category)}
-                                      className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
-                                    >
-                                      Delete
-                                    </button>
-                                  </div>
+                          {categories
+                            .filter(cat => cat.isActive !== false)
+                            .map(cat => (
+                              <div key={cat.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
+                                <span className="text-sm">{cat.name}</span>
+                                <div className="flex space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditCategory(cat)}
+                                    className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteCategory(cat)}
+                                    className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
+                                  >
+                                    Delete
+                                  </button>
                                 </div>
-                              ))
-                            }
-                            {categories.length === 0 && (
-                              <p className="text-sm text-gray-500 text-center p-2">No categories found. Add your first category!</p>
-                            )}
-                          </div>
+                              </div>
+                            ))}
+                          {categories.length === 0 && (
+                            <p className="text-sm text-gray-500 text-center p-2">No categories yet</p>
+                          )}
                         </div>
                       </div>
 
-                      {/* Badge */}
-                      <div>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Badge</label>
+                      {/* ── Dynamic Badge Section ── */}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-sm font-medium text-[#2E2E2E]">Badge</label>
+                          <button
+                            type="button"
+                            onClick={openAddBadgeModal}
+                            className="text-sm bg-[#6B2D2D] text-white px-3 py-1 rounded hover:bg-[#8B3A3A]"
+                          >
+                            + Manage Badges
+                          </button>
+                        </div>
+
                         <select
                           name="badge"
                           value={product.badge || ''}
@@ -408,11 +479,45 @@ const EditProducts = () => {
                           className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                         >
                           <option value="">No Badge</option>
-                          <option value="Bestseller">Bestseller</option>
-                          <option value="Popular">Popular</option>
-                          <option value="New">New</option>
-                          <option value="Sale">Sale</option>
+                          {badges
+                            .filter(b => b.isActive !== false)
+                            .map(badge => (
+                              <option key={badge.id} value={badge.id}>
+                                {badge.name}
+                              </option>
+                            ))}
                         </select>
+
+                        <div className="max-h-40 overflow-y-auto border rounded-lg p-2">
+                          {badges
+                            .filter(b => b.isActive !== false)
+                            .map(badge => (
+                              <div key={badge.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
+                                <span className="text-sm">{badge.name}</span>
+                                <div className="flex space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditBadge(badge)}
+                                    className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteBadge(badge)}
+                                    className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          {badges.length === 0 && (
+                            <p className="text-sm text-gray-500 text-center p-2">
+                              No badges yet. Add your first badge!
+                            </p>
+                          )}
+                        </div>
                       </div>
 
                       {/* Occasions */}
@@ -434,7 +539,7 @@ const EditProducts = () => {
                       </div>
                     </div>
 
-                    {/* RIGHT – Images */}
+                    {/* Images */}
                     <div className="space-y-6">
                       <div>
                         <label className="block text-sm font-medium text-[#2E2E2E] mb-2">
@@ -446,8 +551,6 @@ const EditProducts = () => {
                               <img
                                 src={src}
                                 alt={`Preview ${i + 1}`}
-                                loading="lazy"
-                                decoding="async"
                                 className="w-full h-32 object-cover rounded-lg"
                               />
                               <button
@@ -481,7 +584,7 @@ const EditProducts = () => {
                     <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Description *</label>
                     <textarea
                       name="description"
-                      value={product.description}
+                      value={product.description || ''}
                       onChange={handleInputChange}
                       rows={4}
                       className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
@@ -490,10 +593,9 @@ const EditProducts = () => {
                   </div>
                 </div>
 
-                {/* ---------- DETAILS ---------- */}
+                {/* DETAILS */}
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                   <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Product Details</h2>
-
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {[
                       { label: 'Material', name: 'material' },
@@ -529,18 +631,18 @@ const EditProducts = () => {
                   </div>
                 </div>
 
-                {/* ---------- ACTIONS ---------- */}
+                {/* ACTIONS */}
                 <div className="flex justify-end space-x-4">
                   <Link
                     to="/admin/products"
-                    className="bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+                    className="bg-gray-600 text-white px-8 py-3 rounded-lg hover:bg-gray-700"
                   >
                     Cancel
                   </Link>
                   <button
                     type="submit"
                     disabled={saving}
-                    className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors disabled:opacity-50"
+                    className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#8B3A3A] disabled:opacity-50"
                   >
                     {saving ? 'Saving...' : 'Update Product'}
                   </button>
@@ -549,54 +651,97 @@ const EditProducts = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Category Management Modal */}
-      {showCategoryModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold mb-4">
-              {editingCategory ? 'Edit Category' : 'Add New Category'}
-            </h3>
-            
-            <form onSubmit={handleAddCategory}>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={categoryName}
-                    onChange={(e) => setCategoryName(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                    placeholder="Enter category name"
-                    required
-                    autoFocus
-                  />
+        {/* Category Modal */}
+        {showCategoryModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+              <h3 className="text-xl font-semibold mb-4">
+                {editingCategory ? 'Edit Category' : 'Add New Category'}
+              </h3>
+              <form onSubmit={handleAddCategory}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Category Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={categoryName}
+                      onChange={e => setCategoryName(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                      placeholder="Enter category name"
+                      required
+                      autoFocus
+                    />
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowCategoryModal(false)}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={categoryLoading}
-                  className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] disabled:bg-gray-400"
-                >
-                  {categoryLoading ? 'Saving...' : editingCategory ? 'Update' : 'Add'}
-                </button>
-              </div>
-            </form>
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowCategoryModal(false)}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={categoryLoading}
+                    className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] disabled:bg-gray-400"
+                  >
+                    {categoryLoading ? 'Saving...' : editingCategory ? 'Update' : 'Add'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Badge Modal */}
+        {showBadgeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+              <h3 className="text-xl font-semibold mb-4">
+                {editingBadge ? 'Edit Badge' : 'Add New Badge'}
+              </h3>
+              <form onSubmit={handleAddBadge}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Badge Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={badgeName}
+                      onChange={e => setBadgeName(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                      placeholder="e.g. Bestseller, New Arrival, Limited Stock"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowBadgeModal(false)}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={badgeLoading}
+                    className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] disabled:bg-gray-400"
+                  >
+                    {badgeLoading ? 'Saving...' : editingBadge ? 'Update' : 'Add'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

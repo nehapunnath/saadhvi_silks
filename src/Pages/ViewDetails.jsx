@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
 import authApi from '../Services/authApi';
 import categoryApi from '../Services/CategoryApi';
+import badgeApi from '../Services/BadgeApi';
 
 const ViewDetails = () => {
   const { id } = useParams();
@@ -11,6 +12,7 @@ const ViewDetails = () => {
 
   const [product, setProduct] = useState(null);
   const [categories, setCategories] = useState([]);
+  const [badges, setBadges] = useState([]);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,38 +23,42 @@ const ViewDetails = () => {
   const [isInWishlist, setIsInWishlist] = useState(false);
 
  
-  useEffect(() => {
+ useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Fetch categories first
-        const categoriesResult = await categoryApi.getPublicCategories();
+
+        // Fetch categories + badges + product in parallel
+        const [categoriesResult, badgesResult, productResult] = await Promise.all([
+          categoryApi.getPublicCategories(),
+          badgeApi.getPublicBadges ? badgeApi.getPublicBadges() : badgeApi.getBadges(), // use public if exists, else admin fallback
+          productApi.getPublicProduct(id),
+        ]);
+
         if (categoriesResult.success) {
-          setCategories(categoriesResult.categories);
+          setCategories(categoriesResult.categories || []);
         }
 
-        // Fetch product data
-        const result = await productApi.getPublicProduct(id);
-        if (result.success) {
-          const p = result.product;
-          setProduct(p);
-          setQuantity(1); // Reset quantity on product change
+        setBadges(badgesResult.badges || []);                    // ← NEW
 
-          /* ---- Wishlist check ---- */
+        if (productResult.success) {
+          const p = productResult.product;
+          setProduct(p);
+          setQuantity(1);
+
+          // Wishlist check
           if (authApi.isLoggedIn()) {
             try {
               const wl = await productApi.getWishlist();
               if (wl.success) {
-                const inWishlist = wl.items.some(i => i.id === p.id);
-                setIsInWishlist(inWishlist);
+                setIsInWishlist(wl.items.some(i => i.id === p.id));
               }
             } catch (e) {
               console.error('Wishlist check failed', e);
             }
           }
 
-          /* ---- Related products ---- */
+          // Related products
           await fetchRelatedProducts(p.category, p.id);
         } else {
           setError('Product not found');
@@ -67,6 +73,13 @@ const ViewDetails = () => {
     if (id) fetchData();
   }, [id]);
 
+  // Helper: Get badge name from ID
+  const getBadgeName = (badgeId) => {           // ← NEW HELPER
+    if (!badgeId) return null;
+    const badge = badges.find(b => b.id === badgeId);
+    return badge ? badge.name : 'N/A';
+  };
+
   const fetchRelatedProducts = async (category, currentId) => {
     try {
       const res = await productApi.getPublicProducts();
@@ -80,6 +93,8 @@ const ViewDetails = () => {
       console.error('Related products error', e);
     }
   };
+
+
 
   /* ------------------------------------------------------------------ */
   /*  CATEGORY NAME HELPER                                             */
@@ -281,9 +296,9 @@ const ViewDetails = () => {
               {/* Badges Container */}
               <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                 {/* Product Badge */}
-                {product.badge && (
-                  <span className="bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full">
-                    {product.badge}
+                {product.badge && getBadgeName(product.badge) && (
+                  <span className="bg-[#800020] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                    {getBadgeName(product.badge)}
                   </span>
                 )}
                 

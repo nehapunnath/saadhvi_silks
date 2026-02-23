@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
 import authApi from '../Services/authApi';
 import GalleryApi from '../Services/GalleryApi';
+import logo from '../assets/saadhvi_silks.png';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -17,9 +18,10 @@ const Home = () => {
   const [error, setError] = useState(null);
   const [mainImageError, setMainImageError] = useState(null);
 
-  // ──────────────────────────────────────────────
-  // Fetch data – no blocking, no loading states for UI
-  // ──────────────────────────────────────────────
+  // Brand constants
+  const brandName = "Saadhvi Silks";
+  const brandTagline = "Timeless Elegance in Every Thread";
+
   useEffect(() => {
     // Main gallery image
     (async () => {
@@ -76,7 +78,6 @@ const Home = () => {
     return () => clearInterval(interval);
   }, [carouselSlides.length]);
 
-  // Get unique offer names
   const getUniqueOfferNames = () => {
     const offers = new Set();
     products.forEach((product) => {
@@ -106,7 +107,7 @@ const Home = () => {
         id: product._id,
         name: product.name,
         price: product.price,
-        image: product.images?.[0] || '/placeholder.jpg',
+        image: product.images?.[0] || logo,
       });
       toast.success(`${product.name} added to wishlist!`);
     } catch (err) {
@@ -115,71 +116,97 @@ const Home = () => {
   };
 
   const handleImageError = (e) => {
-    // You can leave it empty or set a static fallback if you want
-    // e.target.src = '/placeholder.jpg';
+    e.target.src = logo; // fallback to brand logo
   };
 
-  // ──────────────────────────────────────────────
-  // RENDER – no loading checks, no fallbacks
-  // ──────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] overflow-hidden">
 
       {/* Hero Carousel Section */}
+      {/* Hero Carousel Section */}
       <section className="relative h-[85vh] md:h-screen">
         <div className="absolute inset-0 overflow-hidden">
-          {carouselSlides.map((slide, idx) => (
-            <div
-              key={slide.id || slide._id || idx}
-              className={`absolute inset-0 transition-opacity duration-1000 ${
-                idx === currentSlide ? 'opacity-100' : 'opacity-0'
-              }`}
-            >
-              <img
-                src={slide.image}
-                alt={slide.title}
-                className="w-full h-full object-fill bg-white"
-                loading="lazy"
-                decoding="async"
-                onError={handleImageError}
-              />
-              <div className="absolute inset-0 bg-black/15"></div>
+          {carouselSlides.length > 0 ? (
+            carouselSlides.map((slide, idx) => (
+              <div
+                key={slide.id || slide._id || idx}
+                className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100' : 'opacity-0'
+                  }`}
+              >
+                <img
+                  src={slide.image}
+                  alt={slide.title || brandName}
+                  className="w-full h-full object-fill bg-white"
+                  loading="lazy"
+                  decoding="async"
+                  onError={handleImageError}
+                />
+                <div className="absolute inset-0 bg-black/15"></div>
+              </div>
+            ))
+          ) : (
+            // Only show centered brand placeholder when no slides
+            <div className="w-full h-full bg-gradient-to-br from-[#800020]/90 to-[#A0002A]/80 flex items-center justify-center animate-pulse">
+              <div className="text-center text-white px-6">
+                <img
+                  src={logo}
+                  alt={brandName}
+                  className="w-48 md:w-64 mx-auto mb-6 opacity-90"
+                />
+                <h1 className="text-5xl md:text-7xl font-serif font-bold mb-4">
+                  {brandName}
+                </h1>
+                <p className="text-xl md:text-2xl opacity-90">
+                  {brandTagline}
+                </p>
+              </div>
             </div>
-          ))}
+          )}
         </div>
 
         <div className="relative h-full flex items-center justify-center text-center px-4">
           <div className="text-white max-w-4xl z-10">
-            <h1 className="text-4xl md:text-6xl font-serif font-bold mb-4 drop-shadow-lg">
-              {carouselSlides[currentSlide]?.title || ''}
-            </h1>
-            <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto drop-shadow-md">
-              {carouselSlides[currentSlide]?.subtitle || ''}
-            </p>
-            <Link to="/products">
-              <button className="bg-[#800020] hover:bg-[#A0002A] text-white px-8 py-4 rounded-xl text-lg font-medium transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
-                {carouselSlides[currentSlide]?.cta || 'Shop Now'}
-              </button>
-            </Link>
+            {/* Only show title/subtitle/CTA when there is actual slide data */}
+            {carouselSlides.length > 0 && carouselSlides[currentSlide] ? (
+              <>
+                <h1 className="text-4xl md:text-6xl font-serif font-bold mb-4 drop-shadow-lg">
+                  {carouselSlides[currentSlide].title}
+                </h1>
+                <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto drop-shadow-md">
+                  {carouselSlides[currentSlide].subtitle}
+                </p>
+                <Link to="/products">
+                  <button className="bg-[#800020] hover:bg-[#A0002A] text-white px-8 py-4 rounded-xl text-lg font-medium transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
+                    {carouselSlides[currentSlide].cta || 'Shop Now'}
+                  </button>
+                </Link>
+              </>
+            ) : (
+              // During loading → show nothing or minimal CTA only (no duplicate title)
+              <Link to="/products">
+                <button className="bg-white text-[#800020] px-10 py-5 rounded-xl text-xl font-medium hover:bg-gray-100 transition-all shadow-2xl transform hover:-translate-y-1">
+                  Explore Collection
+                </button>
+              </Link>
+            )}
           </div>
         </div>
 
-        {/* Dots */}
+        {/* Dots - only when slides exist */}
         {carouselSlides.length > 0 && (
           <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3 z-10">
             {carouselSlides.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentSlide(i)}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  i === currentSlide ? 'bg-white scale-125 shadow-lg' : 'bg-white/50 hover:bg-white/80'
-                }`}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${i === currentSlide ? 'bg-white scale-125 shadow-lg' : 'bg-white/50 hover:bg-white/80'
+                  }`}
               />
             ))}
           </div>
         )}
 
-        {/* Navigation Arrows */}
+        {/* Navigation Arrows - only when multiple slides */}
         {carouselSlides.length > 1 && (
           <>
             <button
@@ -232,16 +259,28 @@ const Home = () => {
           </div>
 
           <div className="md:w-1/2 flex justify-center">
-            <div className="relative group">
-              <img
-                src={mainGalleryImage}
-                alt="Elegance Woven with Tradition"
-                className="rounded-2xl shadow-2xl w-full max-w-md transform transition-all duration-700 group-hover:scale-105 object-cover h-96"
-                loading="lazy"
-                decoding="async"
-                onError={handleImageError}
-              />
-              {mainImageError && (
+            <div className="relative group w-full max-w-md">
+              {mainGalleryImage ? (
+                <img
+                  src={mainGalleryImage}
+                  alt="Elegance Woven with Tradition"
+                  className="rounded-2xl shadow-2xl w-full transform transition-all duration-700 group-hover:scale-105 object-cover h-96"
+                  loading="lazy"
+                  decoding="async"
+                  onError={handleImageError}
+                />
+              ) : (
+                // Skeleton + brand logo while loading
+                <div className="w-full h-96 bg-gray-200 rounded-2xl animate-pulse flex items-center justify-center">
+                  <img
+                    src={logo}
+                    alt={brandName}
+                    className="w-32 md:w-48 opacity-70"
+                  />
+                </div>
+              )}
+
+              {mainImageError && mainGalleryImage && (
                 <div className="absolute bottom-2 left-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
                   Image not available
                 </div>
@@ -265,43 +304,60 @@ const Home = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {collections.map((collection, index) => (
-              <div
-                key={collection.id || collection._id || index}
-                className="group relative overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-xl"
-                onMouseEnter={() => setHoveredCategory(index)}
-                onMouseLeave={() => setHoveredCategory(null)}
-              >
-                <div className="overflow-hidden h-80 relative">
-                  <img
-                    src={collection.image}
-                    alt={collection.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    loading="lazy"
-                    decoding="async"
-                    onError={handleImageError}
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#800020]/80 via-[#800020]/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
-                  <div className="absolute top-4 right-4 bg-gradient-to-r from-[#800020] to-[#A0002A] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
-                    {collection.items || 'Collection'}
+            {collections.length > 0 ? (
+              collections.map((collection, index) => (
+                <div
+                  key={collection.id || collection._id || index}
+                  className="group relative overflow-hidden rounded-2xl shadow-lg transition-all duration-500 hover:shadow-xl"
+                  onMouseEnter={() => setHoveredCategory(index)}
+                  onMouseLeave={() => setHoveredCategory(null)}
+                >
+                  <div className="overflow-hidden h-80 relative">
+                    <img
+                      src={collection.image}
+                      alt={collection.name}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                      loading="lazy"
+                      decoding="async"
+                      onError={handleImageError}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#800020]/80 via-[#800020]/20 to-transparent opacity-80 group-hover:opacity-90 transition-opacity duration-300"></div>
+                    <div className="absolute top-4 right-4 bg-gradient-to-r from-[#800020] to-[#A0002A] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-md">
+                      {collection.items || 'Collection'}
+                    </div>
+                  </div>
+                  <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
+                    <h3 className="text-xl font-bold mb-2">{collection.name}</h3>
+                    <p className="text-[#F8EDE3] mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                      {collection.description || 'Beautifully crafted sarees'}
+                    </p>
+                    <Link to="/products">
+                      <button className="self-start bg-gradient-to-r from-[#800020] to-[#A0002A] text-white px-5 py-2 rounded-lg font-medium hover:from-[#A0002A] hover:to-[#800020] transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 flex items-center shadow-md">
+                        <span>Explore</span>
+                        <svg className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </button>
+                    </Link>
                   </div>
                 </div>
-                <div className="absolute inset-0 flex flex-col justify-end p-6 text-white">
-                  <h3 className="text-xl font-bold mb-2">{collection.name}</h3>
-                  <p className="text-[#F8EDE3] mb-4 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
-                    {collection.description || 'Beautifully crafted sarees'}
-                  </p>
-                  <Link to="/products">
-                    <button className="self-start bg-gradient-to-r from-[#800020] to-[#A0002A] text-white px-5 py-2 rounded-lg font-medium hover:from-[#A0002A] hover:to-[#800020] transition-all duration-300 transform translate-y-8 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 flex items-center shadow-md">
-                      <span>Explore</span>
-                      <svg className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                      </svg>
-                    </button>
-                  </Link>
+              ))
+            ) : (
+              // Skeleton cards while loading
+              Array(6).fill().map((_, i) => (
+                <div
+                  key={i}
+                  className="relative overflow-hidden rounded-2xl shadow-lg bg-white animate-pulse h-96"
+                >
+                  <div className="h-80 bg-gray-200" />
+                  <div className="absolute inset-0 flex flex-col justify-end p-6">
+                    <div className="h-7 bg-gray-300 rounded w-3/4 mb-2" />
+                    <div className="h-5 bg-gray-300 rounded w-1/2 mb-4 opacity-0" />
+                    <div className="h-10 bg-gray-300 rounded w-1/3" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       </section>
@@ -322,7 +378,11 @@ const Home = () => {
           {error ? (
             <div className="text-center py-10 text-red-600">{error}</div>
           ) : products.length === 0 ? (
-            <div className="text-center py-10 text-gray-500">No products available yet.</div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              {Array(3).fill().map((_, i) => (
+                <div key={i} className="bg-[#F8EDE3] rounded-2xl h-[480px] animate-pulse shadow-lg" />
+              ))}
+            </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {products.slice(0, 3).map((product) => {
@@ -337,9 +397,8 @@ const Home = () => {
                   >
                     <div className="relative overflow-hidden">
                       <span
-                        className={`absolute top-4 left-4 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md ${
-                          inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A]' : 'bg-gray-600'
-                        }`}
+                        className={`absolute top-4 left-4 text-white text-xs font-semibold px-3 py-1 rounded-full z-10 shadow-md ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A]' : 'bg-gray-600'
+                          }`}
                       >
                         {inStock ? 'In Stock' : 'Sold Out'}
                       </span>
@@ -379,11 +438,10 @@ const Home = () => {
                       <div className="flex space-x-2">
                         <Link to={`/viewdetails/${product.id || product._id}`} className="flex-1">
                           <button
-                            className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${
-                              inStock
+                            className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${inStock
                                 ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:from-[#A0002A] hover:to-[#800020]'
                                 : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                            }`}
+                              }`}
                             disabled={!inStock}
                           >
                             {inStock ? 'View Details' : 'Out of Stock'}
@@ -450,8 +508,8 @@ const Home = () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-4 text-center text-white/80 py-8">
-                <p>No special offers available at the moment</p>
+              <div className="col-span-4 text-center text-white/80 py-8 animate-pulse">
+                <p>Loading special offers...</p>
               </div>
             )}
           </div>

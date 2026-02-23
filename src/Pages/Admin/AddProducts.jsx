@@ -6,6 +6,7 @@ import authApi from '../../Services/authApi';
 import { toast } from 'react-hot-toast';
 import productApi from '../../Services/proApi';
 import categoryApi from '../../Services/CategoryApi';
+import badgeApi from '../../Services/BadgeApi';
 
 const AddProducts = () => {
   const [product, setProduct] = useState({
@@ -30,6 +31,7 @@ const AddProducts = () => {
   });
 
   const [categories, setCategories] = useState([]);
+  const [badges, setBadges] = useState([]);
   const [selectedOccasions, setSelectedOccasions] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,12 +42,18 @@ const AddProducts = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryLoading, setCategoryLoading] = useState(false);
 
+  const [showBadgeModal, setShowBadgeModal] = useState(false);
+  const [badgeName, setBadgeName] = useState('');
+  const [editingBadge, setEditingBadge] = useState(null);
+  const [badgeLoading, setBadgeLoading] = useState(false);
+
   const occasions = ['Wedding', 'Festival', 'Party', 'Casual', 'Office', 'Traditional'];
   const maxImages = 5;
 
   // Load categories on component mount
   useEffect(() => {
     loadCategories();
+    loadBadges();
   }, []);
 
   const loadCategories = async () => {
@@ -56,7 +64,19 @@ const AddProducts = () => {
       }
     } catch (error) {
       console.error('Failed to load categories:', error);
-      toast.error('Failed to load categories');
+      toast.error('Something Went Wrong!!!');
+    }
+  };
+
+  const loadBadges = async () => {                  // ← NEW
+    try {
+      const result = await badgeApi.getBadges();
+      if (result.success) {
+        setBadges(result.badges || []);
+      }
+    } catch (error) {
+      console.error('Failed to load badges:', error);
+      toast.error('Something Went Wrong!!!');
     }
   };
 
@@ -188,6 +208,66 @@ const AddProducts = () => {
     setEditingCategory(null);
     setCategoryName('');
     setShowCategoryModal(true);
+  };
+
+// ── Badge Handlers ───────────────────────────────────────────
+  const handleAddBadge = async (e) => {               // ← NEW
+    e.preventDefault();
+    if (!badgeName.trim()) {
+      toast.error('Badge name is required');
+      return;
+    }
+
+    setBadgeLoading(true);
+    try {
+      if (editingBadge) {
+        await badgeApi.updateBadge(editingBadge.id, { name: badgeName.trim() });
+        toast.success('Badge updated successfully!');
+      } else {
+        await badgeApi.addBadge({ name: badgeName.trim() });
+        toast.success('Badge added successfully!');
+      }
+      
+      setShowBadgeModal(false);
+      setBadgeName('');
+      setEditingBadge(null);
+      await loadBadges();
+    } catch (error) {
+      toast.error(error.message || 'Badge operation failed');
+    } finally {
+      setBadgeLoading(false);
+    }
+  };
+
+  const handleEditBadge = (badge) => {                // ← NEW
+    setEditingBadge(badge);
+    setBadgeName(badge.name);
+    setShowBadgeModal(true);
+  };
+
+  const handleDeleteBadge = async (badge) => {        // ← NEW
+    if (!window.confirm(`Are you sure you want to delete badge "${badge.name}"?`)) return;
+
+    try {
+      const result = await badgeApi.deleteBadge(badge.id);
+      if (result.success) {
+        toast.success('Badge deleted successfully!');
+        await loadBadges();
+        if (product.badge === badge.id) {
+          setProduct(prev => ({ ...prev, badge: '' }));
+        }
+      } else {
+        toast.error(result.error || 'Cannot delete this badge (possibly in use)');
+      }
+    } catch (error) {
+      toast.error(error.message || 'Failed to delete badge');
+    }
+  };
+
+  const openAddBadgeModal = () => {                   // ← NEW
+    setEditingBadge(null);
+    setBadgeName('');
+    setShowBadgeModal(true);
   };
 
   const formatPrice = (price) => {
@@ -370,21 +450,62 @@ const AddProducts = () => {
                         </div>
                       </div>
 
-                      {/* Badge */}
-                      <div>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Badge</label>
+                     <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-sm font-medium text-[#2E2E2E]">Badge</label>
+                          <button
+                            type="button"
+                            onClick={openAddBadgeModal}
+                            className="text-sm bg-[#6B2D2D] text-white px-3 py-1 rounded hover:bg-[#8B3A3A]"
+                          >
+                            + Manage Badges
+                          </button>
+                        </div>
+
                         <select
                           name="badge"
                           value={product.badge}
                           onChange={handleInputChange}
-                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                         >
                           <option value="">No Badge</option>
-                          <option value="Bestseller">Bestseller</option>
-                          <option value="Popular">Popular</option>
-                          <option value="New">New</option>
-                          <option value="Sale">Sale</option>
+                          {badges
+                            .filter(b => b.isActive !== false)
+                            .map(badge => (
+                              <option key={badge.id} value={badge.id}>
+                                {badge.name}
+                              </option>
+                            ))}
                         </select>
+
+                        <div className="max-h-40 overflow-y-auto border rounded-lg p-2">
+                          {badges
+                            .filter(b => b.isActive !== false)
+                            .map(badge => (
+                              <div key={badge.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
+                                <span className="text-sm">{badge.name}</span>
+                                <div className="flex space-x-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleEditBadge(badge)}
+                                    className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteBadge(badge)}
+                                    className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          {badges.length === 0 && (
+                            <p className="text-sm text-gray-500 text-center p-2">No badges yet. Add your first badge!</p>
+                          )}
+                        </div>
                       </div>
 
                       {/* Occasions */}
@@ -656,6 +777,52 @@ const AddProducts = () => {
           </div>
         </div>
       )}
+      {/* ── NEW ── Badge Management Modal */}
+        {showBadgeModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+              <h3 className="text-xl font-semibold mb-4">
+                {editingBadge ? 'Edit Badge' : 'Add New Badge'}
+              </h3>
+              
+              <form onSubmit={handleAddBadge}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Badge Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={badgeName}
+                      onChange={(e) => setBadgeName(e.target.value)}
+                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                      placeholder="e.g. Bestseller, New Arrival, Limited Stock"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setShowBadgeModal(false)}
+                    className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={badgeLoading}
+                    className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] disabled:bg-gray-400"
+                  >
+                    {badgeLoading ? 'Saving...' : editingBadge ? 'Update' : 'Add'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
     </div>
   );
 };

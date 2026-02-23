@@ -5,10 +5,12 @@ import { Link } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
 import productApi from '../../Services/proApi';
 import categoryApi from '../../Services/CategoryApi';
+import badgeApi from '../../Services/BadgeApi';           // ← NEW IMPORT
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [badges, setBadges] = useState([]);                    // ← NEW
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,21 +29,21 @@ const AdminProducts = () => {
     try {
       setLoading(true);
 
-      const [productsResult, categoriesResult] = await Promise.all([
+      const [productsResult, categoriesResult, badgesResult] = await Promise.all([
         productApi.getProducts(),
-        categoryApi.getCategories()
+        categoryApi.getCategories(),
+        badgeApi.getBadges()                    // ← NEW
       ]);
 
       setProducts(productsResult.products || []);
 
       if (categoriesResult.success) {
         setCategories(categoriesResult.categories || []);
-      } else {
-        toast.error('Failed to load categories');
-        setCategories([]);
       }
 
-      toast.success(`Loaded ${productsResult.products?.length || 0} products!`);
+      setBadges(badgesResult.badges || []);     // ← NEW
+
+      toast.success(`Loaded ${productsResult.products?.length || 0} products`);
     } catch (error) {
       toast.error(error.message || 'Failed to load data');
     } finally {
@@ -49,12 +51,24 @@ const AdminProducts = () => {
     }
   };
 
+  const getCategoryName = (categoryId) => {
+    if (!categoryId) return 'N/A';
+    const cat = categories.find(c => c.id === categoryId);
+    return cat ? cat.name : 'N/A';
+  };
+
+  const getBadgeName = (badgeId) => {           // ← NEW HELPER
+    if (!badgeId) return null;
+    const badge = badges.find(b => b.id === badgeId);
+    return badge ? badge.name : 'N/A';
+  };
+
   const handleDeleteProduct = async (id) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
 
     try {
       await productApi.deleteProduct(id);
-      setProducts(products.filter(product => product.key !== id));
+      setProducts(prev => prev.filter(p => p.key !== id));
       toast.success('Product deleted successfully!');
     } catch (error) {
       toast.error('Delete failed: ' + error.message);
@@ -66,11 +80,11 @@ const AdminProducts = () => {
       const newStock = status === 'Available' ? 1 : 0;
       await productApi.updateStock(productId, newStock);
 
-      setProducts(products.map(product =>
-        product.key === productId
-          ? { ...product, stock: newStock }
-          : product
-      ));
+      setProducts(prev =>
+        prev.map(p =>
+          p.key === productId ? { ...p, stock: newStock } : p
+        )
+      );
 
       toast.success(`Stock updated to ${status}!`);
     } catch (error) {
@@ -78,7 +92,7 @@ const AdminProducts = () => {
     }
   };
 
-  // Offer Handlers
+  // Offer Handlers (unchanged)
   const openOfferModal = (productId, currentOffer = null) => {
     setSelectedProductId(productId);
     setOfferName(currentOffer?.offerName || 'Buy 1 Get 1 Free');
@@ -106,14 +120,13 @@ const AdminProducts = () => {
         offerPrice: Number(offerPrice)
       };
 
-      // Update backend (adjust endpoint as needed)
       await productApi.updateProductOffer(selectedProductId, offerData);
 
-      setProducts(products.map(p =>
-        p.key === selectedProductId
-          ? { ...p, ...offerData }
-          : p
-      ));
+      setProducts(prev =>
+        prev.map(p =>
+          p.key === selectedProductId ? { ...p, ...offerData } : p
+        )
+      );
 
       toast.success('Offer applied successfully!');
       closeOfferModal();
@@ -132,11 +145,11 @@ const AdminProducts = () => {
         offerPrice: null
       });
 
-      setProducts(products.map(p =>
-        p.key === productId
-          ? { ...p, hasOffer: false, offerName: null, offerPrice: null }
-          : p
-      ));
+      setProducts(prev =>
+        prev.map(p =>
+          p.key === productId ? { ...p, hasOffer: false, offerName: null, offerPrice: null } : p
+        )
+      );
 
       toast.success('Offer removed');
     } catch (error) {
@@ -144,7 +157,7 @@ const AdminProducts = () => {
     }
   };
 
-const handleVisibilityToggle = async (product) => {
+  const handleVisibilityToggle = async (product) => {
     const current = product.isVisible !== false;
     const next = !current;
 
@@ -163,15 +176,10 @@ const handleVisibilityToggle = async (product) => {
       console.error(err);
     }
   };
-  const getCategoryName = (categoryId) => {
-    if (!categoryId) return 'N/A';
-    const category = categories.find(cat => cat.id === categoryId);
-    return category ? category.name : 'N/A';
-  };
 
   const filteredProducts = products.filter(product => {
     const matchesCategory = filterCategory === 'All' || product.category === filterCategory;
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -226,7 +234,7 @@ const handleVisibilityToggle = async (product) => {
                 </Link>
               </div>
 
-              {/* Search and Stats */}
+              {/* Search + Stats + Category Filter */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                   <div className="flex items-center justify-between">
@@ -254,19 +262,18 @@ const handleVisibilityToggle = async (product) => {
                 </div>
               </div>
 
-              {/* Category Filter */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                 <select
                   value={filterCategory}
                   onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                  className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                 >
                   <option value="All">All Categories</option>
                   {categories
                     .filter(cat => cat.isActive !== false)
-                    .map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
+                    .map(cat => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
                       </option>
                     ))}
                 </select>
@@ -275,7 +282,7 @@ const handleVisibilityToggle = async (product) => {
               {/* Products Table */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="w-full min-w-max">
                     <thead className="bg-gray-50">
                       <tr>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
@@ -294,16 +301,20 @@ const handleVisibilityToggle = async (product) => {
                               <img
                                 src={product.images?.[0] || 'https://via.placeholder.com/48?text=No+Image'}
                                 alt={product.name}
-                                loading="lazy"
-                                decoding="async"
                                 className="w-12 h-12 object-cover rounded-lg mr-4"
                               />
                               <div className="min-w-0 flex-1">
-                                <div className="text-sm font-medium text-gray-900 truncate max-w-xs">{product.name}</div>
-                                <div className="text-sm text-gray-500 truncate max-w-xs">{product.description}</div>
+                                <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                                  {product.name}
+                                </div>
+                                <div className="text-sm text-gray-500 truncate max-w-xs">
+                                  {product.description?.substring(0, 60)}{product.description?.length > 60 ? '...' : ''}
+                                </div>
+
+                                {/* Dynamic Badge Display */}
                                 {product.badge && (
-                                  <span className="inline-block bg-[#6B2D2D] text-white text-xs font-semibold px-2 py-1 rounded-full mt-1">
-                                    {product.badge}
+                                  <span className="inline-block bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1">
+                                    {getBadgeName(product.badge) || product.badge}
                                   </span>
                                 )}
                               </div>
@@ -327,7 +338,7 @@ const handleVisibilityToggle = async (product) => {
                             </div>
                           </td>
 
-                          {/* OFFER COLUMN */}
+                          {/* Offer Column */}
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center space-x-4">
                               <button
@@ -341,12 +352,14 @@ const handleVisibilityToggle = async (product) => {
                                     });
                                   }
                                 }}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:ring-offset-2 ${product.hasOffer ? 'bg-[#6B2D2D]' : 'bg-gray-300'
-                                  }`}
+                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:ring-offset-2 ${
+                                  product.hasOffer ? 'bg-[#6B2D2D]' : 'bg-gray-300'
+                                }`}
                               >
                                 <span
-                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${product.hasOffer ? 'translate-x-6' : 'translate-x-1'
-                                    }`}
+                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                    product.hasOffer ? 'translate-x-6' : 'translate-x-1'
+                                  }`}
                                 />
                               </button>
 
@@ -355,7 +368,7 @@ const handleVisibilityToggle = async (product) => {
                                   <div className="font-bold text-green-600">
                                     {formatPrice(product.offerPrice)}
                                   </div>
-                                  <div className="text-xs text-gray-600 truncate max-w-[120px]">
+                                  <div className="text-xs text-gray-600 truncate max-w-[140px]">
                                     {product.offerName}
                                   </div>
                                 </div>
@@ -379,19 +392,37 @@ const handleVisibilityToggle = async (product) => {
                           </td>
 
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-4">
-                              <Link to={`/admin/viewproducts/${product.key}`} className="text-green-600 hover:text-green-800 flex items-center space-x-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                            <div className="flex flex-wrap gap-3">
+                              <Link
+                                to={`/admin/viewproducts/${product.key}`}
+                                className="text-green-600 hover:text-green-800 flex items-center space-x-1"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
                                 <span>View</span>
                               </Link>
-                              <Link to={`/admin/editproducts/${product.key}`} className="text-blue-600 hover:text-blue-800 flex items-center space-x-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+
+                              <Link
+                                to={`/admin/editproducts/${product.key}`}
+                                className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
                                 <span>Edit</span>
                               </Link>
-                              <button onClick={() => handleDeleteProduct(product.key)} className="text-red-600 hover:text-red-800 flex items-center space-x-1">
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+
+                              <button
+                                onClick={() => handleDeleteProduct(product.key)}
+                                className="text-red-600 hover:text-red-800 flex items-center space-x-1"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
                                 <span>Delete</span>
                               </button>
+
                               <button
                                 onClick={() => handleVisibilityToggle(product)}
                                 className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
@@ -410,7 +441,6 @@ const handleVisibilityToggle = async (product) => {
                   </table>
                 </div>
 
-                {/* No Products */}
                 {filteredProducts.length === 0 && (
                   <div className="text-center py-12">
                     <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -422,7 +452,10 @@ const handleVisibilityToggle = async (product) => {
                         ? 'Try adjusting your search or filter.'
                         : 'Get started by adding your first product.'}
                     </p>
-                    <Link to="/admin/addproducts" className="mt-4 inline-flex items-center px-6 py-3 bg-[#6B2D2D] text-white rounded-lg hover:bg-[#8B3A3A]">
+                    <Link
+                      to="/admin/addproducts"
+                      className="mt-4 inline-flex items-center px-6 py-3 bg-[#6B2D2D] text-white rounded-lg hover:bg-[#8B3A3A]"
+                    >
                       Add Product
                     </Link>
                   </div>
@@ -431,56 +464,56 @@ const handleVisibilityToggle = async (product) => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* OFFER MODAL */}
-      {offerModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Set Product Offer</h2>
+        {/* Offer Modal (unchanged) */}
+        {offerModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Set Product Offer</h2>
 
-            <div className="space-y-5">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Offer Name</label>
-                <input
-                  type="text"
-                  value={offerName}
-                  onChange={(e) => setOfferName(e.target.value)}
-                  placeholder="e.g. Buy 1 Get 1 Free"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                />
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Offer Name</label>
+                  <input
+                    type="text"
+                    value={offerName}
+                    onChange={(e) => setOfferName(e.target.value)}
+                    placeholder="e.g. Buy 1 Get 1 Free"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Offer Price (₹)</label>
+                  <input
+                    type="number"
+                    value={offerPrice}
+                    onChange={(e) => setOfferPrice(e.target.value)}
+                    placeholder="Enter discounted price"
+                    min="1"
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Offer Price (₹)</label>
-                <input
-                  type="number"
-                  value={offerPrice}
-                  onChange={(e) => setOfferPrice(e.target.value)}
-                  placeholder="Enter discounted price"
-                  min="1"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                />
+              <div className="flex justify-end space-x-3 mt-8">
+                <button
+                  onClick={closeOfferModal}
+                  className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveOffer}
+                  className="px-6 py-2 bg-[#6B2D2D] text-white rounded-lg hover:bg-[#8B3A3A] transition"
+                >
+                  Apply Offer
+                </button>
               </div>
-            </div>
-
-            <div className="flex justify-end space-x-3 mt-8">
-              <button
-                onClick={closeOfferModal}
-                className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveOffer}
-                className="px-6 py-2 bg-[#6B2D2D] text-white rounded-lg hover:bg-[#8B3A3A] transition"
-              >
-                Apply Offer
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

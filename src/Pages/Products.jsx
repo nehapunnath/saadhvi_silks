@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
 import authApi from '../Services/authApi';
 import categoryApi from '../Services/CategoryApi';
+import badgeApi from '../Services/BadgeApi';
 
 const Products = () => {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ const Products = () => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [badges, setBadges] = useState([]);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [wishlistItems, setWishlistItems] = useState([]);
@@ -40,21 +42,35 @@ const Products = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [productResult, categoriesResult] = await Promise.all([
-          productApi.getPublicProducts(),
-          categoryApi.getPublicCategories(),
-        ]);
 
-        if (productResult?.success) {
-          setProducts(productResult.products || []);
-          setFilteredProducts(productResult.products || []);
-        } else {
-          setError('Failed to load products');
+      // 1. Fetch badges FIRST (very important)
+      let badgesData = [];
+      try {
+        const badgesRes = await badgeApi.getPublicBadges(); // or getPublicBadges if exists
+        if (badgesRes?.badges) {
+          badgesData = badgesRes.badges;
+          setBadges(badgesData);
+          console.log("Badges loaded:", badgesData.length, "items");
         }
+      } catch (badgeErr) {
+        console.warn("Could not load badges:", badgeErr);
+      }
 
-        if (categoriesResult?.success) {
-          setCategories(categoriesResult.categories || []);
-        }
+      // 2. Then fetch categories
+      const categoriesRes = await categoryApi.getPublicCategories();
+      if (categoriesRes?.success) {
+        setCategories(categoriesRes.categories || []);
+      }
+
+      // 3. Then fetch products
+      const productsRes = await productApi.getPublicProducts();
+      if (productsRes?.success) {
+        console.log("Products loaded:", productsRes.products?.length || 0);
+        setProducts(productsRes.products || []);
+        setFilteredProducts(productsRes.products || []);
+      } else {
+        setError('Failed to load products');
+      }
 
         if (authApi.isLoggedIn()) {
           try {
@@ -74,6 +90,18 @@ const Products = () => {
 
     fetchData();
   }, []);
+
+  const getBadgeName = (badgeId) => {           // ← NEW HELPER
+    if (!badgeId) return null;
+    const badge = badges.find(b => b.id === badgeId);
+    return badge ? badge.name : 'N/A';
+  };
+useEffect(() => {
+  console.log("Current badges array length:", badges.length);
+  if (badges.length > 0) {
+    console.log("First 3 badges:", badges.slice(0,3).map(b => `${b.id} → ${b.name}`));
+  }
+}, [badges]);
 
   useEffect(() => {
     if (products.length === 0) return;
@@ -397,6 +425,7 @@ const Products = () => {
                 {currentProducts.map((product) => {
                   const hasOffer = product.hasOffer === true;
                   const displayPrice = hasOffer ? product.offerPrice : product.price;
+                  const badgeName = getBadgeName(product.badge);
 
                   return (
                     <div
@@ -405,9 +434,9 @@ const Products = () => {
                     >
                       <div className="relative overflow-hidden">
                         <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
-                          {product.badge && (
-                            <span className="bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full">
-                              {product.badge}
+                          {badgeName && (
+                            <span className="bg-[#800020] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                              {badgeName}
                             </span>
                           )}
                           {hasOffer && (
