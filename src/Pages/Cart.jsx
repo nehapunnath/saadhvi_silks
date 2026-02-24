@@ -79,7 +79,7 @@ const Cart = () => {
       setCartItems((prev) => prev.filter((i) => i.id !== id));
       toast.success('Item removed');
     } catch (err) {
-      toast.error(err.message || 'Failed to remove item');
+      toast.error('Something Went Wrong !!!');
     }
   };
 
@@ -114,7 +114,7 @@ const Cart = () => {
     setCartItems([]);
     toast.success('Order placed successfully!');
   } catch (err) {
-    toast.error(err.message || 'Order placement failed');
+    toast.error('Order placement failed');
   } finally {
     setSubmitting(false);
   }

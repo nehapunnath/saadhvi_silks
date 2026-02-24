@@ -202,7 +202,7 @@ useEffect(() => {
         toast.success(`${product.name} added to wishlist`);
       }
     } catch (err) {
-      toast.error(err.message || 'Failed to update wishlist');
+      toast.error('Something Went Wrong !!!');
     }
   };
 

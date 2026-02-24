@@ -41,7 +41,7 @@ const Home = () => {
         setCarouselSlides(data?.slides || []);
       } catch (err) {
         console.error('Carousel fetch error:', err);
-        toast.error('Failed to load carousel');
+        toast.error('Something Went Wrong !!!');
       }
     })();
 
@@ -111,7 +111,7 @@ const Home = () => {
       });
       toast.success(`${product.name} added to wishlist!`);
     } catch (err) {
-      toast.error(err.message || 'Failed to add');
+      toast.error('Something Went Wrong !!!');
     }
   };
 

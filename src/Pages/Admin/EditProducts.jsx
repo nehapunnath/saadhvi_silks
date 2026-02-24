@@ -364,7 +364,7 @@ const EditProducts = () => {
                             />
                           </div>
                           <div>
-                            <label className="block text-xs text-gray-500 mb-1">Extra Charges</label>
+                            <label className="block text-xs text-gray-500 mb-1">Shipping Charges</label>
                             <input
                               type="number"
                               name="extraCharges"

@@ -313,7 +313,7 @@ const AdminProducts = () => {
 
                                 {/* Dynamic Badge Display */}
                                 {product.badge && (
-                                  <span className="inline-block bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1">
+                                  <span className="inline-block bg-[#800020] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1">
                                     {getBadgeName(product.badge) || product.badge}
                                   </span>
                                 )}

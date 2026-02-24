@@ -178,7 +178,7 @@ const ViewDetails = () => {
         toast.success('Added to wishlist');
       }
     } catch (err) {
-      toast.error(err.message || 'Wishlist error');
+      toast.error('Something Went Wrong !!!');
     }
   };
 
@@ -213,7 +213,7 @@ const ViewDetails = () => {
       });
       toast.success(`${quantity} × ${product.name} added to cart!`);
     } catch (err) {
-      toast.error(err.message || 'Failed to add to cart');
+      toast.error('Something Went Wrong !!!');
     }
   };
 

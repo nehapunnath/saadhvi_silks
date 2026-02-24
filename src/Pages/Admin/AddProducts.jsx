@@ -140,7 +140,7 @@ const AddProducts = () => {
       toast.success('Product added successfully!');
       window.location.href = '/admin/products';
     } catch (error) {
-      toast.error(error.message);
+      toast.error('Something Went Wrong !!!');
     } finally {
       setLoading(false);
     }

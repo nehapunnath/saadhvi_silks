@@ -4,27 +4,48 @@ import { toast } from 'react-hot-toast';
 import { Link, useParams } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
 import productApi from '../../Services/proApi';
+import badgeApi from '../../Services/BadgeApi';           // ← NEW IMPORT
 
 const ViewProducts = () => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
+  const [badges, setBadges] = useState([]);                    // ← NEW
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   useEffect(() => {
-    fetchProduct();
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch badges (parallel with product)
+        const [productResult, badgesResult] = await Promise.all([
+          productApi.getProduct(id),
+          badgeApi.getBadges()   // admin endpoint - safe here
+        ]);
+
+        setProduct(productResult.product);
+
+        if (badgesResult?.badges) {
+          setBadges(badgesResult.badges);
+        }
+
+        toast.success('Product loaded successfully!');
+      } catch (error) {
+        toast.error('Failed to load product: ' + error.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [id]);
 
-  const fetchProduct = async () => {
-    try {
-      const result = await productApi.getProduct(id);
-      setProduct(result.product);
-      toast.success('Product loaded successfully!');
-    } catch (error) {
-      toast.error('Failed to load product: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
+  // Helper: Convert badge ID → name
+  const getBadgeName = (badgeId) => {
+    if (!badgeId) return null;
+    const badge = badges.find(b => b.id === badgeId);
+    return badge ? badge.name : badgeId; // fallback to ID if not found
   };
 
   const formatPrice = (price) => {
@@ -127,11 +148,11 @@ const ViewProducts = () => {
                           className="w-full h-96 object-cover rounded-2xl shadow-lg"
                         />
 
-                        {/* Badges on Image */}
+                        {/* Badges on Image - now dynamic */}
                         <div className="absolute top-4 left-4 flex flex-col gap-2">
-                          {product.badge && (
+                          {product.badge && getBadgeName(product.badge) && (
                             <span className="bg-[#6B2D2D] text-white px-4 py-1.5 rounded-full text-sm font-bold shadow">
-                              {product.badge}
+                              {getBadgeName(product.badge)}
                             </span>
                           )}
                           {hasActiveOffer && (
@@ -173,7 +194,6 @@ const ViewProducts = () => {
                         <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusColor(product.stock)}`}>
                           {product.stock > 0 ? 'In Stock' : 'Out of Stock'}
                         </span>
-                     
                       </div>
                     </div>
 
@@ -248,30 +268,12 @@ const ViewProducts = () => {
 
                       {/* Quick Specs */}
                       <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-200">
-                        {product.material && (
-                          <div>
-                            <p className="text-sm text-gray-500">Material</p>
-                            <p className="font-semibold text-gray-900">{product.material}</p>
+                        {['material', 'weave', 'border', 'care', 'weight', 'origin'].map(field => product[field] && (
+                          <div key={field} className="mb-5">
+                            <p className="text-sm text-gray-500 capitalize">{field.replace('weave', 'Weave Type').replace('border', 'Border Design')}</p>
+                            <p className="font-medium text-gray-900">{product[field]}</p>
                           </div>
-                        )}
-                        {product.weight && (
-                          <div>
-                            <p className="text-sm text-gray-500">Weight</p>
-                            <p className="font-semibold text-gray-900">{product.weight}</p>
-                          </div>
-                        )}
-                        {product.origin && (
-                          <div>
-                            <p className="text-sm text-gray-500">Origin</p>
-                            <p className="font-semibold text-gray-900">{product.origin}</p>
-                          </div>
-                        )}
-                        {product.length && (
-                          <div>
-                            <p className="text-sm text-gray-500">Length</p>
-                            <p className="font-semibold text-gray-900">{product.length}</p>
-                          </div>
-                        )}
+                        ))}
                       </div>
                     </div>
                   </div>

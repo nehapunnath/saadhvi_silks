@@ -5,6 +5,8 @@ import authApi from '../Services/authApi';
 import productApi from '../Services/proApi';
 import categoryApi from '../Services/CategoryApi';
 import toast from 'react-hot-toast';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../Services/firebase';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -13,13 +15,14 @@ const Header = () => {
   const [categories, setCategories] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+  const [currentUser, setCurrentUser] = useState(null);
+
   const navigate = useNavigate();
   const searchRef = useRef(null);
 
-  const isLoggedIn = authApi.isLoggedIn();
-  const username = localStorage.getItem('username') || 'User';
-  const userType = authApi.getUserType();
+  const username = currentUser?.displayName || 'User';
+  const isLoggedIn = !!currentUser;
+  const userType = currentUser?.isAdmin ? 'admin' : 'user';
 
   // Load categories on component mount
   useEffect(() => {
@@ -37,6 +40,25 @@ const Header = () => {
     loadCategories();
   }, []);
 
+  useEffect(() => {
+    // Real-time listener (fires on every tab independently)
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userInfo = await authApi.getCurrentUser();
+          setCurrentUser(userInfo);
+        } catch (err) {
+          console.error("Failed to load user info:", err);
+          setCurrentUser(null);
+        }
+      } else {
+        setCurrentUser(null);
+      }
+    });
+
+    return () => unsubscribe(); // cleanup listener
+  }, []);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -51,14 +73,14 @@ const Header = () => {
   // Get category name by ID
   const getCategoryName = (categoryValue) => {
     if (!categoryValue) return 'N/A';
-    
+
     // Try to find category by ID in the database categories
     const category = categories.find(cat => cat.id === categoryValue);
-    
+
     if (category) {
       return category.name;
     }
-    
+
     return 'N/A';
   };
 
@@ -108,11 +130,10 @@ const Header = () => {
     }
   };
 
-  const handleLogout = () => {
-    authApi.logout();
-    setIsMenuOpen(false);
-    navigate('/');
-    toast.success("Thanks for visiting! You’ve been safely logged out.")
+  const handleLogout = async () => {
+    await authApi.logout();
+    setCurrentUser(null);
+    toast.success("Thanks for visiting! You’ve been safely logged out.");
   };
 
   const formatPrice = (price) => {
@@ -257,20 +278,17 @@ const Header = () => {
             {isLoggedIn ? (
               <div className="flex items-center space-x-3">
                 <span className="text-[#2E2E2E] font-semibold">
-                  {userType === 'admin' ? 'Admin' : username}
+                  {userType === 'admin' ? 'Admin' : (username || 'User')}
                 </span>
-                <button 
-                  onClick={handleLogout} 
+                <button
+                  onClick={handleLogout}
                   className="text-[#800020] font-semibold hover:underline transition"
                 >
                   Logout
                 </button>
               </div>
             ) : (
-              <Link 
-                to="/login" 
-                className="bg-[#800020] text-white px-6 py-2 rounded-full font-semibold hover:bg-[#A0002A] transition"
-              >
+              <Link to="/login" className="bg-[#800020] text-white px-6 py-2 rounded-full font-semibold hover:bg-[#A0002A] transition">
                 Login
               </Link>
             )}
@@ -296,59 +314,59 @@ const Header = () => {
       {isMenuOpen && (
         <div className="lg:hidden bg-white border-t shadow-lg">
           <div className="px-6 py-4 space-y-4">
-            <Link 
-              to="/" 
-              onClick={() => setIsMenuOpen(false)} 
+            <Link
+              to="/"
+              onClick={() => setIsMenuOpen(false)}
               className="block text-lg font-medium hover:text-[#800020] transition py-2"
             >
               Home
             </Link>
-            <Link 
-              to="/about" 
-              onClick={() => setIsMenuOpen(false)} 
+            <Link
+              to="/about"
+              onClick={() => setIsMenuOpen(false)}
               className="block text-lg font-medium hover:text-[#800020] transition py-2"
             >
               About
             </Link>
-            <Link 
-              to="/products" 
-              onClick={() => setIsMenuOpen(false)} 
+            <Link
+              to="/products"
+              onClick={() => setIsMenuOpen(false)}
               className="block text-lg font-medium hover:text-[#800020] transition py-2"
             >
               Collections
             </Link>
-            <Link 
-              to="/contact" 
-              onClick={() => setIsMenuOpen(false)} 
+            <Link
+              to="/contact"
+              onClick={() => setIsMenuOpen(false)}
               className="block text-lg font-medium hover:text-[#800020] transition py-2"
             >
               Contact
             </Link>
-            <Link 
-              to="/wishlist" 
-              onClick={() => setIsMenuOpen(false)} 
+            <Link
+              to="/wishlist"
+              onClick={() => setIsMenuOpen(false)}
               className="block text-lg font-medium hover:text-[#800020] transition py-2"
             >
               Wishlist
             </Link>
-            <Link 
-              to="/cart" 
-              onClick={() => setIsMenuOpen(false)} 
+            <Link
+              to="/cart"
+              onClick={() => setIsMenuOpen(false)}
               className="block text-lg font-medium hover:text-[#800020] transition py-2"
             >
               Cart
             </Link>
             {isLoggedIn ? (
-              <button 
-                onClick={handleLogout} 
+              <button
+                onClick={handleLogout}
                 className="block w-full text-left text-lg font-medium text-red-600 hover:text-red-700 transition py-2"
               >
                 Logout
               </button>
             ) : (
-              <Link 
-                to="/login" 
-                onClick={() => setIsMenuOpen(false)} 
+              <Link
+                to="/login"
+                onClick={() => setIsMenuOpen(false)}
                 className="block text-lg font-medium text-[#800020] hover:text-[#A0002A] transition py-2"
               >
                 Login

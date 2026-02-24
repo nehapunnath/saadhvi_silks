@@ -51,7 +51,7 @@ const Wishlist = () => {
       setWishlistItems((prevItems) => prevItems.filter((item) => item.id !== id));
       toast.success('Removed from wishlist!');
     } catch (err) {
-      toast.error('Failed to remove item: ' + err.message);
+      toast.error('Something Went Wrong !!!');
     }
   };
 
@@ -75,7 +75,7 @@ const Wishlist = () => {
       setWishlistItems((prevItems) => prevItems.filter((i) => i.id !== item.id));
       toast.success(`${item.name} moved to cart!`);
     } catch (err) {
-      toast.error('Failed to move to cart: ' + err.message);
+      toast.error('Something Went Wrong !!!');
     }
   };
 
