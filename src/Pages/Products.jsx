@@ -1,5 +1,5 @@
 // src/pages/Products.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
@@ -17,12 +17,16 @@ const Products = () => {
     offers: [],
   });
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState([]); // Renamed for clarity
   const [categories, setCategories] = useState([]);
   const [badges, setBadges] = useState([]);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [wishlistItems, setWishlistItems] = useState([]);
+  const [activeZoom, setActiveZoom] = useState(null);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  
+  const imageRefs = useRef({});
   const productsPerPage = 20;
 
   const occasions = ["Wedding", "Bridal", "Festival", "Party", "Formal", "Casual"];
@@ -42,36 +46,58 @@ const Products = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-
-      // 1. Fetch badges FIRST (very important)
-      let badgesData = [];
-      try {
-        const badgesRes = await badgeApi.getPublicBadges(); // or getPublicBadges if exists
-        if (badgesRes?.badges) {
-          badgesData = badgesRes.badges;
-          setBadges(badgesData);
-          console.log("Badges loaded:", badgesData.length, "items");
+        // Fetch badges
+        let badgesData = [];
+        try {
+          const badgesRes = await badgeApi.getPublicBadges();
+          if (badgesRes?.badges) {
+            badgesData = badgesRes.badges;
+            setBadges(badgesData);
+          }
+        } catch (badgeErr) {
+          console.warn("Could not load badges:", badgeErr);
         }
-      } catch (badgeErr) {
-        console.warn("Could not load badges:", badgeErr);
-      }
 
-      // 2. Then fetch categories
-      const categoriesRes = await categoryApi.getPublicCategories();
-      if (categoriesRes?.success) {
-        setCategories(categoriesRes.categories || []);
-      }
+        // Fetch categories
+        const categoriesRes = await categoryApi.getPublicCategories();
+        if (categoriesRes?.success) {
+          setCategories(categoriesRes.categories || []);
+        }
 
-      // 3. Then fetch products
-      const productsRes = await productApi.getPublicProducts();
-      if (productsRes?.success) {
-        console.log("Products loaded:", productsRes.products?.length || 0);
-        setProducts(productsRes.products || []);
-        setFilteredProducts(productsRes.products || []);
-      } else {
-        setError('Failed to load products');
-      }
-
+        // Fetch products
+        const productsRes = await productApi.getPublicProducts();
+        if (productsRes?.success) {
+          // Filter out hidden products first
+          const visibleProducts = (productsRes.products || [])
+            .filter(product => product.isVisible !== false);
+          
+          // Sort by displayOrder (ascending)
+          const sortedProducts = visibleProducts.sort((a, b) => {
+            // If displayOrder exists on both, use it
+            if (a.displayOrder !== undefined && a.displayOrder !== null &&
+                b.displayOrder !== undefined && b.displayOrder !== null) {
+              return a.displayOrder - b.displayOrder;
+            }
+            
+            // If only one has displayOrder, prioritize the one with order
+            if (a.displayOrder !== undefined && a.displayOrder !== null) return -1;
+            if (b.displayOrder !== undefined && b.displayOrder !== null) return 1;
+            
+            // Fallback: sort by creation date (newest first)
+            const aTime = a.createdAt || 0;
+            const bTime = b.createdAt || 0;
+            return bTime - aTime;
+          });
+          
+          console.log("Sorted products by displayOrder:");
+          sortedProducts.forEach((p, index) => {
+            console.log(`${index + 1}: ${p.name} (displayOrder: ${p.displayOrder})`);
+          });
+          
+          setAllProducts(sortedProducts);
+          setFilteredProducts(sortedProducts);
+        }
+        
         if (authApi.isLoggedIn()) {
           try {
             const wishlistResult = await productApi.getWishlist();
@@ -91,22 +117,18 @@ const Products = () => {
     fetchData();
   }, []);
 
-  const getBadgeName = (badgeId) => {           // ← NEW HELPER
+  const getBadgeName = (badgeId) => {
     if (!badgeId) return null;
     const badge = badges.find(b => b.id === badgeId);
     return badge ? badge.name : 'N/A';
   };
-useEffect(() => {
-  console.log("Current badges array length:", badges.length);
-  if (badges.length > 0) {
-    console.log("First 3 badges:", badges.slice(0,3).map(b => `${b.id} → ${b.name}`));
-  }
-}, [badges]);
 
+  // Filter products whenever filters change
   useEffect(() => {
-    if (products.length === 0) return;
+    if (allProducts.length === 0) return;
 
-    let result = [...products];
+    // Start with all visible products (already filtered for visibility)
+    let result = [...allProducts];
 
     // Category filter
     if (selectedFilters.category.length > 0 && !selectedFilters.category.includes("All")) {
@@ -138,9 +160,22 @@ useEffect(() => {
       result = result.filter((product) => product.hasOffer === true);
     }
 
-    setFilteredProducts(result);
+    // IMPORTANT: Sort by displayOrder to maintain admin order
+    // Since we're filtering from allProducts which is already sorted,
+    // we just need to ensure the order is preserved
+    const sortedResult = result.sort((a, b) => {
+      if (a.displayOrder !== undefined && a.displayOrder !== null &&
+          b.displayOrder !== undefined && b.displayOrder !== null) {
+        return a.displayOrder - b.displayOrder;
+      }
+      if (a.displayOrder !== undefined && a.displayOrder !== null) return -1;
+      if (b.displayOrder !== undefined && b.displayOrder !== null) return 1;
+      return 0;
+    });
+
+    setFilteredProducts(sortedResult);
     setCurrentPage(1);
-  }, [selectedFilters, products]);
+  }, [selectedFilters, allProducts]);
 
   const getCategoryName = (categoryValue) => {
     if (!categoryValue) return 'N/A';
@@ -222,35 +257,36 @@ useEffect(() => {
     }
   };
 
-  const productsWithOffers = products.filter((p) => p.hasOffer === true).length;
+  const handleImageMouseMove = (e, productId) => {
+    if (activeZoom !== productId || !imageRefs.current[productId]) return;
+    const { left, top, width, height } = imageRefs.current[productId].getBoundingClientRect();
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    const clampedX = Math.min(100, Math.max(0, x));
+    const clampedY = Math.min(100, Math.max(0, y));
+    setZoomPosition({ x: clampedX, y: clampedY });
+  };
 
-  // ──────────────────────────────────────────────
-  // RENDER
-  // ──────────────────────────────────────────────
+  const handleImageMouseEnter = (productId) => {
+    setActiveZoom(productId);
+  };
+
+  const handleImageMouseLeave = () => {
+    setActiveZoom(null);
+  };
+
+  const productsWithOffers = allProducts.filter((p) => p.hasOffer === true).length;
+
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center">
         <div className="text-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-16 w-16 mx-auto text-red-500 mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
-            />
+          <svg className="h-16 w-16 mx-auto text-red-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
           <h3 className="text-xl font-medium text-[#2E2E2E] mb-2">Error loading products</h3>
           <p className="text-[#2E2E2E] mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#3A1A1A] transition-colors"
-          >
+          <button onClick={() => window.location.reload()} className="bg-[#6B2D2D] text-white px-6 py-2 rounded-lg hover:bg-[#3A1A1A] transition-colors">
             Try Again
           </button>
         </div>
@@ -263,17 +299,12 @@ useEffect(() => {
       <div className="container mx-auto px-4 py-12">
         <div className="flex flex-col md:flex-row gap-8">
           {/* Filters Sidebar */}
-          <div
-            className={`md:w-1/4 ${filterOpen ? 'block fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden'} md:block`}
-          >
+          <div className={`md:w-1/4 ${filterOpen ? 'block fixed inset-0 z-50 bg-white p-6 overflow-y-auto' : 'hidden'} md:block`}>
             <div className="bg-white rounded-xl shadow-lg p-6 sticky top-24">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-semibold text-[#2E2E2E]">Filters</h2>
                 <div className="flex items-center">
-                  <button
-                    onClick={clearFilters}
-                    className="text-sm text-[#6B2D2D] hover:text-[#3A1A1A] mr-4"
-                  >
+                  <button onClick={clearFilters} className="text-sm text-[#6B2D2D] hover:text-[#3A1A1A] mr-4">
                     Clear All
                   </button>
                   {filterOpen && (
@@ -291,27 +322,21 @@ useEffect(() => {
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Category</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
                   <label className="flex items-center py-1">
-                    <input
-                      type="checkbox"
-                      className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                    <input type="checkbox" className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
                       checked={selectedFilters.category.includes("All")}
                       onChange={() => handleFilterChange('category', "All")}
                     />
                     <span className="ml-3 text-[#2E2E2E]">All Categories</span>
                   </label>
-                  {categories
-                    .filter((cat) => cat.isActive !== false)
-                    .map((category) => (
-                      <label key={category.id} className="flex items-center py-1">
-                        <input
-                          type="checkbox"
-                          className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
-                          checked={selectedFilters.category.includes(category.id)}
-                          onChange={() => handleFilterChange('category', category.id)}
-                        />
-                        <span className="ml-3 text-[#2E2E2E]">{category.name}</span>
-                      </label>
-                    ))}
+                  {categories.filter((cat) => cat.isActive !== false).map((category) => (
+                    <label key={category.id} className="flex items-center py-1">
+                      <input type="checkbox" className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                        checked={selectedFilters.category.includes(category.id)}
+                        onChange={() => handleFilterChange('category', category.id)}
+                      />
+                      <span className="ml-3 text-[#2E2E2E]">{category.name}</span>
+                    </label>
+                  ))}
                 </div>
               </div>
 
@@ -321,9 +346,7 @@ useEffect(() => {
                 <div className="space-y-2">
                   {prices.map((price, i) => (
                     <label key={i} className="flex items-center py-1">
-                      <input
-                        type="checkbox"
-                        className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                      <input type="checkbox" className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
                         checked={selectedFilters.price.includes(price.value)}
                         onChange={() => handleFilterChange('price', price.value)}
                       />
@@ -339,9 +362,7 @@ useEffect(() => {
                 <div className="space-y-2">
                   {occasions.map((occ, i) => (
                     <label key={i} className="flex items-center py-1">
-                      <input
-                        type="checkbox"
-                        className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                      <input type="checkbox" className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
                         checked={selectedFilters.occasion.includes(occ)}
                         onChange={() => handleFilterChange('occasion', occ)}
                       />
@@ -358,9 +379,7 @@ useEffect(() => {
                   {offerTypes.map((offer, i) => (
                     <label key={i} className="flex items-center justify-between py-1">
                       <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                        <input type="checkbox" className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
                           checked={selectedFilters.offers.includes(offer.value)}
                           onChange={() => handleFilterChange('offers', offer.value)}
                         />
@@ -379,21 +398,12 @@ useEffect(() => {
           {/* Main Content */}
           <div className="md:w-3/4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
-              <button
-                onClick={toggleFilter}
-                className="md:hidden flex items-center bg-white px-4 py-2 rounded-lg shadow-sm text-[#6B2D2D] font-medium"
-              >
+              <button onClick={toggleFilter} className="md:hidden flex items-center bg-white px-4 py-2 rounded-lg shadow-sm text-[#6B2D2D] font-medium">
                 <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                  />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 Filters
               </button>
-
               <div className="text-[#2E2E2E] text-sm sm:text-base">
                 Showing {currentProducts.length} of {filteredProducts.length} products
                 {selectedFilters.offers.length > 0 && (
@@ -402,14 +412,11 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Product Grid + Skeleton */}
-            {products.length === 0 || filteredProducts.length === 0 ? (
+            {/* Product Grid */}
+            {allProducts.length === 0 ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                 {Array.from({ length: 9 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="bg-white rounded-2xl overflow-hidden shadow-md h-[460px] animate-pulse"
-                  >
+                  <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-md h-[460px] animate-pulse">
                     <div className="h-80 bg-gray-200" />
                     <div className="p-5 space-y-3">
                       <div className="h-6 bg-gray-200 rounded w-4/5" />
@@ -426,12 +433,10 @@ useEffect(() => {
                   const hasOffer = product.hasOffer === true;
                   const displayPrice = hasOffer ? product.offerPrice : product.price;
                   const badgeName = getBadgeName(product.badge);
+                  const isZoomed = activeZoom === product.id;
 
                   return (
-                    <div
-                      key={product.id}
-                      className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7]"
-                    >
+                    <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7]">
                       <div className="relative overflow-hidden">
                         <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                           {badgeName && (
@@ -446,19 +451,40 @@ useEffect(() => {
                           )}
                         </div>
 
-                        <div className="h-80 overflow-hidden">
-                          <img
-                            src={product.images?.[0] || '/placeholder-image.jpg'}
-                            alt={product.name}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            onError={(e) => (e.target.src = '/placeholder-image.jpg')}
-                          />
+                        <div className="h-80 overflow-hidden cursor-zoom-in relative"
+                          ref={el => imageRefs.current[product.id] = el}
+                          onMouseEnter={() => handleImageMouseEnter(product.id)}
+                          onMouseLeave={handleImageMouseLeave}
+                          onMouseMove={(e) => handleImageMouseMove(e, product.id)}
+                        >
+                          {!isZoomed ? (
+                            <img src={product.images?.[0] || '/placeholder-image.jpg'} alt={product.name}
+                              loading="lazy" decoding="async"
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              onError={(e) => (e.target.src = '/placeholder-image.jpg')}
+                            />
+                          ) : (
+                            <div className="w-full h-full" style={{
+                              backgroundImage: `url(${product.images?.[0] || '/placeholder-image.jpg'})`,
+                              backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                              backgroundSize: '200%',
+                              backgroundRepeat: 'no-repeat',
+                            }} />
+                          )}
+                          
+                          {isZoomed && (
+                            <div className="absolute pointer-events-none shadow-lg"
+                              style={{
+                                left: `${zoomPosition.x}%`,
+                                top: `${zoomPosition.y}%`,
+                                transform: 'translate(-50%, -50%)',
+                                boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.3)',
+                              }}
+                            />
+                          )}
                         </div>
 
-                        <button
-                          onClick={() => handleWishlistToggle(product)}
+                        <button onClick={() => handleWishlistToggle(product)}
                           className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${
                             wishlistItems.includes(product.id)
                               ? 'bg-[#6B2D2D] text-white'
@@ -466,18 +492,8 @@ useEffect(() => {
                           }`}
                           aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                         >
-                          <svg
-                            className="h-5 w-5"
-                            fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'}
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                            />
+                          <svg className="h-5 w-5" fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                           </svg>
                         </button>
                       </div>
@@ -526,25 +542,12 @@ useEffect(() => {
               </div>
             ) : (
               <div className="text-center py-16">
-                <svg
-                  className="h-20 w-20 mx-auto text-gray-400 mb-6"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
+                <svg className="h-20 w-20 mx-auto text-gray-400 mb-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 <h3 className="text-xl font-medium text-[#2E2E2E] mb-3">No products found</h3>
                 <p className="text-[#6B6B6B] mb-6">Try adjusting your filters</p>
-                <button
-                  onClick={clearFilters}
-                  className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#3A1A1A] transition-colors"
-                >
+                <button onClick={clearFilters} className="bg-[#6B2D2D] text-white px-8 py-3 rounded-lg hover:bg-[#3A1A1A] transition-colors">
                   Clear All Filters
                 </button>
               </div>
@@ -554,33 +557,22 @@ useEffect(() => {
             {filteredProducts.length > productsPerPage && (
               <div className="flex justify-center mt-16">
                 <nav className="flex items-center space-x-2">
-                  <button
-                    onClick={() => paginate(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-5 py-2 rounded-lg border border-gray-300 text-[#2E2E2E] hover:bg-gray-100 disabled:opacity-50"
-                  >
+                  <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}
+                    className="px-5 py-2 rounded-lg border border-gray-300 text-[#2E2E2E] hover:bg-gray-100 disabled:opacity-50">
                     Previous
                   </button>
-
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button
-                      key={page}
-                      onClick={() => paginate(page)}
+                    <button key={page} onClick={() => paginate(page)}
                       className={`px-4 py-2 rounded-lg border ${
                         currentPage === page
                           ? 'bg-[#6B2D2D] text-white border-[#6B2D2D]'
                           : 'border-gray-300 text-[#2E2E2E] hover:bg-gray-100'
-                      }`}
-                    >
+                      }`}>
                       {page}
                     </button>
                   ))}
-
-                  <button
-                    onClick={() => paginate(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                    className="px-5 py-2 rounded-lg border border-gray-300 text-[#2E2E2E] hover:bg-gray-100 disabled:opacity-50"
-                  >
+                  <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages}
+                    className="px-5 py-2 rounded-lg border border-gray-300 text-[#2E2E2E] hover:bg-gray-100 disabled:opacity-50">
                     Next
                   </button>
                 </nav>

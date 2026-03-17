@@ -139,7 +139,7 @@ const Cart = () => {
     return (
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-[#2E2E2E] mb-4">
+          <h2 className="text-xl font-medium text-[#2E2E2E] mb-4">
             Please login to view your cart
           </h2>
           <Link

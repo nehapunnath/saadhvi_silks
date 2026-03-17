@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
@@ -21,9 +21,12 @@ const ViewDetails = () => {
   const [activeTab, setActiveTab] = useState('description');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isInWishlist, setIsInWishlist] = useState(false);
+  const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  
+  const imageRef = useRef(null);
+  const zoomRef = useRef(null);
 
- 
- useEffect(() => {
+  useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
@@ -39,7 +42,7 @@ const ViewDetails = () => {
           setCategories(categoriesResult.categories || []);
         }
 
-        setBadges(badgesResult.badges || []);                    // ← NEW
+        setBadges(badgesResult.badges || []);
 
         if (productResult.success) {
           const p = productResult.product;
@@ -74,7 +77,7 @@ const ViewDetails = () => {
   }, [id]);
 
   // Helper: Get badge name from ID
-  const getBadgeName = (badgeId) => {           // ← NEW HELPER
+  const getBadgeName = (badgeId) => {
     if (!badgeId) return null;
     const badge = badges.find(b => b.id === badgeId);
     return badge ? badge.name : 'N/A';
@@ -93,8 +96,6 @@ const ViewDetails = () => {
       console.error('Related products error', e);
     }
   };
-
-
 
   /* ------------------------------------------------------------------ */
   /*  CATEGORY NAME HELPER                                             */
@@ -218,9 +219,34 @@ const ViewDetails = () => {
   };
 
   /* ------------------------------------------------------------------ */
-  /*  IMAGE ZOOM & THUMBNAILS                                          */
+  /*  ENHANCED IMAGE ZOOM FUNCTIONALITY                                */
   /* ------------------------------------------------------------------ */
-  const handleImageZoom = () => setZoomActive(!zoomActive);
+  const handleImageClick = () => {
+    setZoomActive(!zoomActive);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!zoomActive || !imageRef.current) return;
+
+    const { left, top, width, height } = imageRef.current.getBoundingClientRect();
+    
+    // Calculate mouse position relative to the image (in percentage)
+    const x = ((e.clientX - left) / width) * 100;
+    const y = ((e.clientY - top) / height) * 100;
+    
+    // Clamp values between 0 and 100
+    const clampedX = Math.min(100, Math.max(0, x));
+    const clampedY = Math.min(100, Math.max(0, y));
+    
+    setZoomPosition({ x: clampedX, y: clampedY });
+  };
+
+  const handleMouseLeave = () => {
+    if (zoomActive) {
+      setZoomActive(false);
+    }
+  };
+
   const handleThumbnailClick = (idx) => {
     setSelectedImageIndex(idx);
     setZoomActive(false);
@@ -234,7 +260,6 @@ const ViewDetails = () => {
       <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center py-12">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#6B2D2D] mx-auto" />
-          {/* <p className="mt-4 text-[#2E2E2E]">Loading product...</p> */}
         </div>
       </div>
     );
@@ -310,18 +335,48 @@ const ViewDetails = () => {
                 )}
               </div>
 
-              <div className="relative h-[600px] overflow-hidden">
-                <img
-                  src={getSelectedImage()}
-                  alt={product.name}
-                  loading="lazy" 
-                  decoding="async"
-                  className={`w-full h-full object-cover transition-transform duration-500 ${
-                    zoomActive ? 'scale-150 cursor-zoom-out' : 'hover:scale-105 cursor-zoom-in'
-                  }`}
-                  onClick={handleImageZoom}
-                  onError={e => (e.target.src = '/placeholder-image.jpg')}
-                />
+              {/* Main Image with Zoom */}
+              <div 
+                className="relative h-[600px] overflow-hidden cursor-zoom-in"
+                ref={imageRef}
+                onClick={handleImageClick}
+                onMouseMove={handleMouseMove}
+                onMouseLeave={handleMouseLeave}
+              >
+                {!zoomActive ? (
+                  <img
+                    src={getSelectedImage()}
+                    alt={product.name}
+                    loading="lazy" 
+                    decoding="async"
+                    className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    onError={e => (e.target.src = '/placeholder-image.jpg')}
+                  />
+                ) : (
+                  <>
+                    {/* Zoomed Image */}
+                    <div 
+                      className="absolute inset-0"
+                      style={{
+                        backgroundImage: `url(${getSelectedImage()})`,
+                        backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                        backgroundSize: '200%',
+                        backgroundRepeat: 'no-repeat',
+                      }}
+                    />
+                    
+                    {/* Zoom Lens */}
+                    <div 
+                      className="absolute pointer-events-none shadow-lg"
+                      style={{
+                        left: `${zoomPosition.x}%`,
+                        top: `${zoomPosition.y}%`,
+                        transform: 'translate(-50%, -50%)',
+                        boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)',
+                      }}
+                    />
+                  </>
+                )}
               </div>
 
               {/* Wishlist Heart */}
@@ -349,25 +404,27 @@ const ViewDetails = () => {
               </button>
             </div>
 
-            {/* Thumbnails */}
+            {/* Thumbnails - 6 per row */}
             {product.images?.length > 1 && (
-              <div className="flex gap-4 mt-4 justify-center">
-                {product.images.map((img, idx) => (
-                  <img
-                    key={idx}
-                    src={img}
-                    loading="lazy"
-                    decoding="async"
-                    alt={`${product.name} thumbnail ${idx + 1}`}
-                    className={`w-20 h-20 object-cover rounded-lg border-2 cursor-pointer transition-all duration-300 hover:scale-105 ${
-                      selectedImageIndex === idx
-                        ? 'border-[#6B2D2D] scale-110'
-                        : 'border-[#D9A7A7] hover:border-[#6B2D2D]'
-                    }`}
-                    onClick={() => handleThumbnailClick(idx)}
-                    onError={e => (e.target.src = '/placeholder-image.jpg')}
-                  />
-                ))}
+              <div className="mt-4">
+                <div className="grid grid-cols-6 gap-2">
+                  {product.images.map((img, idx) => (
+                    <img
+                      key={idx}
+                      src={img}
+                      loading="lazy"
+                      decoding="async"
+                      alt={`${product.name} thumbnail ${idx + 1}`}
+                      className={`w-full h-20 object-cover rounded-lg border-2 cursor-pointer transition-all duration-300 hover:scale-105 ${
+                        selectedImageIndex === idx
+                          ? 'border-[#6B2D2D] scale-110'
+                          : 'border-[#D9A7A7] hover:border-[#6B2D2D]'
+                      }`}
+                      onClick={() => handleThumbnailClick(idx)}
+                      onError={e => (e.target.src = '/placeholder-image.jpg')}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -567,9 +624,9 @@ const ViewDetails = () => {
                       {/* Badges Container */}
                       <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                         {/* Product Badge */}
-                        {rp.badge && (
-                          <span className="bg-[#6B2D2D] text-white text-xs font-semibold px-3 py-1 rounded-full">
-                            {rp.badge}
+                        {rp.badge && getBadgeName(rp.badge) && (
+                          <span className="bg-[#800020] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                            {getBadgeName(rp.badge)}
                           </span>
                         )}
                         

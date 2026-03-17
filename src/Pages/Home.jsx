@@ -7,6 +7,30 @@ import authApi from '../Services/authApi';
 import GalleryApi from '../Services/GalleryApi';
 import logo from '../assets/saadhvi_silks.png';
 
+// Simple cache utility
+const homeCache = {
+  data: null,
+  timestamp: null,
+  expiry: 5 * 60 * 1000, // 5 minutes
+
+  get() {
+    if (this.timestamp && Date.now() - this.timestamp < this.expiry) {
+      return this.data;
+    }
+    return null;
+  },
+
+  set(data) {
+    this.data = data;
+    this.timestamp = Date.now();
+  },
+
+  clear() {
+    this.data = null;
+    this.timestamp = null;
+  }
+};
+
 const Home = () => {
   const navigate = useNavigate();
   const [hoveredCategory, setHoveredCategory] = useState(null);
@@ -17,66 +41,106 @@ const Home = () => {
   const [collections, setCollections] = useState([]);
   const [error, setError] = useState(null);
   const [mainImageError, setMainImageError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Brand constants
   const brandName = "Saadhvi Silks";
   const brandTagline = "Timeless Elegance in Every Thread";
 
   useEffect(() => {
-    // Main gallery image
-    (async () => {
+    const loadHomeData = async () => {
       try {
-        const data = await GalleryApi.getPublicMainGalleryImage();
-        setMainGalleryImage(data?.image || null);
-      } catch (err) {
-        console.error('Main gallery image fetch error:', err);
-        setMainImageError(err.message);
-      }
-    })();
+        setIsLoading(true);
+        console.time('Home page load');
 
-    // Carousel slides
-    (async () => {
-      try {
-        const data = await GalleryApi.getPublicSlides();
-        setCarouselSlides(data?.slides || []);
-      } catch (err) {
-        console.error('Carousel fetch error:', err);
-        toast.error('Something Went Wrong !!!');
-      }
-    })();
+        // Check cache first
+        const cachedData = homeCache.get();
+        if (cachedData) {
+          setCarouselSlides(cachedData.carouselSlides);
+          setMainGalleryImage(cachedData.mainGalleryImage);
+          setCollections(cachedData.collections);
+          setProducts(cachedData.products);
+          setIsLoading(false);
+          console.log('Loaded from cache');
+          console.timeEnd('Home page load');
+          return;
+        }
 
-    // Collections
-    (async () => {
-      try {
-        const data = await GalleryApi.getPublicCollections();
-        setCollections(data?.collections || []);
-      } catch (err) {
-        console.error('Collections fetch error:', err);
-      }
-    })();
+        // Load all data in parallel with error handling for each
+        const [slidesResult, mainImageResult, collectionsResult, productsResult] = await Promise.allSettled([
+          GalleryApi.getPublicSlides(),
+          GalleryApi.getPublicMainGalleryImage(),
+          GalleryApi.getPublicCollections(),
+          productApi.getPublicProducts()
+        ]);
 
-    // Products
-    (async () => {
-      try {
-        const data = await productApi.getPublicProducts();
-        setProducts(data?.products || []);
+        // Process slides
+        if (slidesResult.status === 'fulfilled') {
+          setCarouselSlides(slidesResult.value?.slides || []);
+        } else {
+          console.error('Slides fetch error:', slidesResult.reason);
+          toast.error('Failed to load carousel');
+        }
+
+        // Process main image
+        if (mainImageResult.status === 'fulfilled') {
+          setMainGalleryImage(mainImageResult.value?.image || null);
+        } else {
+          console.error('Main image fetch error:', mainImageResult.reason);
+          setMainImageError(mainImageResult.reason?.message);
+        }
+
+        // Process collections
+        if (collectionsResult.status === 'fulfilled') {
+          setCollections(collectionsResult.value?.collections || []);
+        } else {
+          console.error('Collections fetch error:', collectionsResult.reason);
+        }
+
+        // Process products
+        if (productsResult.status === 'fulfilled') {
+          setProducts(productsResult.value?.products || []);
+        } else {
+          console.error('Products fetch error:', productsResult.reason);
+          setError('Failed to load products');
+        }
+
+        // Save to cache
+        homeCache.set({
+          carouselSlides: slidesResult.status === 'fulfilled' ? slidesResult.value?.slides || [] : [],
+          mainGalleryImage: mainImageResult.status === 'fulfilled' ? mainImageResult.value?.image || null : null,
+          collections: collectionsResult.status === 'fulfilled' ? collectionsResult.value?.collections || [] : [],
+          products: productsResult.status === 'fulfilled' ? productsResult.value?.products || [] : []
+        });
+
+        console.timeEnd('Home page load');
+
       } catch (err) {
-        setError('Failed to load products.');
-        console.error('Product fetch error:', err);
+        console.error('Critical error loading home data:', err);
+        toast.error('Unable to load content. Please refresh.');
+      } finally {
+        setIsLoading(false);
       }
-    })();
+    };
+
+    loadHomeData();
+
+    // Cleanup function
+    return () => {
+      // Clear any pending timeouts if needed
+    };
   }, []);
 
   // Auto slide carousel
   useEffect(() => {
-    if (carouselSlides.length === 0) return;
+    if (carouselSlides.length === 0 || isLoading) return;
 
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % carouselSlides.length);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [carouselSlides.length]);
+  }, [carouselSlides.length, isLoading]);
 
   const getUniqueOfferNames = () => {
     const offers = new Set();
@@ -119,10 +183,33 @@ const Home = () => {
     e.target.src = logo; // fallback to brand logo
   };
 
+  const handleRetry = () => {
+    homeCache.clear();
+    window.location.reload();
+  };
+
+  // Show error state if critical data failed to load
+  if (error && carouselSlides.length === 0 && collections.length === 0 && products.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
+        <div className="text-center p-8 max-w-md">
+          <img src={logo} alt={brandName} className="w-32 mx-auto mb-6 opacity-50" />
+          <h2 className="text-2xl font-serif font-bold text-[#800020] mb-4">Unable to Load Content</h2>
+          <p className="text-gray-600 mb-6">Please check your internet connection and try again.</p>
+          <button
+            onClick={handleRetry}
+            className="bg-[#800020] text-white px-6 py-3 rounded-lg hover:bg-[#A0002A] transition"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] overflow-hidden">
 
-      {/* Hero Carousel Section */}
       {/* Hero Carousel Section */}
       <section className="relative h-[85vh] md:h-screen">
         <div className="absolute inset-0 overflow-hidden">
@@ -137,7 +224,7 @@ const Home = () => {
                   src={slide.image}
                   alt={slide.title || brandName}
                   className="w-full h-full object-fill bg-white"
-                  loading="lazy"
+                  loading={idx === 0 ? 'eager' : 'lazy'}
                   decoding="async"
                   onError={handleImageError}
                 />
@@ -145,7 +232,6 @@ const Home = () => {
               </div>
             ))
           ) : (
-            // Only show centered brand placeholder when no slides
             <div className="w-full h-full bg-gradient-to-br from-[#800020]/90 to-[#A0002A]/80 flex items-center justify-center animate-pulse">
               <div className="text-center text-white px-6">
                 <img
@@ -166,7 +252,6 @@ const Home = () => {
 
         <div className="relative h-full flex items-center justify-center text-center px-4">
           <div className="text-white max-w-4xl z-10">
-            {/* Only show title/subtitle/CTA when there is actual slide data */}
             {carouselSlides.length > 0 && carouselSlides[currentSlide] ? (
               <>
                 <h1 className="text-4xl md:text-6xl font-serif font-bold mb-4 drop-shadow-lg">
@@ -182,7 +267,6 @@ const Home = () => {
                 </Link>
               </>
             ) : (
-              // During loading → show nothing or minimal CTA only (no duplicate title)
               <Link to="/products">
                 <button className="bg-white text-[#800020] px-10 py-5 rounded-xl text-xl font-medium hover:bg-gray-100 transition-all shadow-2xl transform hover:-translate-y-1">
                   Explore Collection
@@ -192,7 +276,6 @@ const Home = () => {
           </div>
         </div>
 
-        {/* Dots - only when slides exist */}
         {carouselSlides.length > 0 && (
           <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3 z-10">
             {carouselSlides.map((_, i) => (
@@ -201,17 +284,18 @@ const Home = () => {
                 onClick={() => setCurrentSlide(i)}
                 className={`w-3 h-3 rounded-full transition-all duration-300 ${i === currentSlide ? 'bg-white scale-125 shadow-lg' : 'bg-white/50 hover:bg-white/80'
                   }`}
+                aria-label={`Go to slide ${i + 1}`}
               />
             ))}
           </div>
         )}
 
-        {/* Navigation Arrows - only when multiple slides */}
         {carouselSlides.length > 1 && (
           <>
             <button
               className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-10"
               onClick={() => setCurrentSlide((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)}
+              aria-label="Previous slide"
             >
               <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -220,6 +304,7 @@ const Home = () => {
             <button
               className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-10"
               onClick={() => setCurrentSlide((prev) => (prev + 1) % carouselSlides.length)}
+              aria-label="Next slide"
             >
               <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -270,19 +355,12 @@ const Home = () => {
                   onError={handleImageError}
                 />
               ) : (
-                // Skeleton + brand logo while loading
                 <div className="w-full h-96 bg-gray-200 rounded-2xl animate-pulse flex items-center justify-center">
                   <img
                     src={logo}
                     alt={brandName}
                     className="w-32 md:w-48 opacity-70"
                   />
-                </div>
-              )}
-
-              {mainImageError && mainGalleryImage && (
-                <div className="absolute bottom-2 left-2 bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">
-                  Image not available
                 </div>
               )}
             </div>
@@ -343,7 +421,6 @@ const Home = () => {
                 </div>
               ))
             ) : (
-              // Skeleton cards while loading
               Array(6).fill().map((_, i) => (
                 <div
                   key={i}
@@ -352,7 +429,7 @@ const Home = () => {
                   <div className="h-80 bg-gray-200" />
                   <div className="absolute inset-0 flex flex-col justify-end p-6">
                     <div className="h-7 bg-gray-300 rounded w-3/4 mb-2" />
-                    <div className="h-5 bg-gray-300 rounded w-1/2 mb-4 opacity-0" />
+                    <div className="h-5 bg-gray-300 rounded w-1/2 mb-4" />
                     <div className="h-10 bg-gray-300 rounded w-1/3" />
                   </div>
                 </div>
@@ -375,7 +452,7 @@ const Home = () => {
             </p>
           </div>
 
-          {error ? (
+          {error && products.length === 0 ? (
             <div className="text-center py-10 text-red-600">{error}</div>
           ) : products.length === 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">

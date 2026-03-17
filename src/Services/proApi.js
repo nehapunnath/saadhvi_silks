@@ -437,7 +437,54 @@ toggleProductVisibility: async (productId, isVisible) => {
 
     return data;
   },
+reorderProducts: async (orderMap) => {
+    const token = authApi.getToken();
 
+    if (!orderMap || typeof orderMap !== 'object' || Object.keys(orderMap).length === 0) {
+      throw new Error('orderMap must be a non-empty object { productId: number, ... }');
+    }
+
+    try {
+      const response = await fetch(`${BASE_URL}/admin/products/reorder`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ orderMap }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Reorder failed:', data);
+        throw new Error(data.error || 'Failed to reorder products');
+      }
+
+      console.log(`Reordered ${Object.keys(orderMap).length} products successfully`);
+      return data;
+    } catch (err) {
+      console.error('reorderProducts error:', err);
+      throw err;
+    }
+  },
+
+  // Optional: helper to fetch current order (mostly for debugging)
+  getVisibleProductsOrder: async () => {
+    const token = authApi.getToken();
+
+    const response = await fetch(`${BASE_URL}/admin/products/visible-order`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to fetch visible order');
+    return data;
+  },
   
 };
 

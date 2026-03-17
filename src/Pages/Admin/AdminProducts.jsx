@@ -5,15 +5,16 @@ import { Link } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
 import productApi from '../../Services/proApi';
 import categoryApi from '../../Services/CategoryApi';
-import badgeApi from '../../Services/BadgeApi';           // ← NEW IMPORT
+import badgeApi from '../../Services/BadgeApi';
 
 const AdminProducts = () => {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [badges, setBadges] = useState([]);                    // ← NEW
+  const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [showHidden, setShowHidden] = useState(false); // Toggle to show/hide hidden products
 
   // Offer Modal States
   const [offerModalOpen, setOfferModalOpen] = useState(false);
@@ -32,16 +33,45 @@ const AdminProducts = () => {
       const [productsResult, categoriesResult, badgesResult] = await Promise.all([
         productApi.getProducts(),
         categoryApi.getCategories(),
-        badgeApi.getBadges()                    // ← NEW
+        badgeApi.getBadges()
       ]);
 
-      setProducts(productsResult.products || []);
+      // Separate visible and hidden products
+      const allProducts = productsResult.products || [];
+      
+      // Sort products: first by visibility, then by displayOrder for visible ones, then by date for hidden ones
+      const sortedProducts = [...allProducts].sort((a, b) => {
+        // First, separate by visibility (visible products come first)
+        const aVisible = a.isVisible !== false;
+        const bVisible = b.isVisible !== false;
+        
+        if (aVisible && !bVisible) return -1;
+        if (!aVisible && bVisible) return 1;
+        
+        // If both are visible, sort by displayOrder
+        if (aVisible && bVisible) {
+          // If both have displayOrder, use it
+          if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
+            return a.displayOrder - b.displayOrder;
+          }
+          // If only one has displayOrder, the one with order comes first
+          if (a.displayOrder !== undefined) return -1;
+          if (b.displayOrder !== undefined) return 1;
+        }
+        
+        // For hidden products or products without displayOrder, sort by createdAt or id (newest first)
+        const aDate = a.createdAt || a.id || 0;
+        const bDate = b.createdAt || b.id || 0;
+        return bDate - aDate; // Newest first
+      });
+
+      setProducts(sortedProducts);
 
       if (categoriesResult.success) {
         setCategories(categoriesResult.categories || []);
       }
 
-      setBadges(badgesResult.badges || []);     // ← NEW
+      setBadges(badgesResult.badges || []);
 
       toast.success(`Loaded ${productsResult.products?.length || 0} products`);
     } catch (error) {
@@ -57,7 +87,7 @@ const AdminProducts = () => {
     return cat ? cat.name : 'N/A';
   };
 
-  const getBadgeName = (badgeId) => {           // ← NEW HELPER
+  const getBadgeName = (badgeId) => {
     if (!badgeId) return null;
     const badge = badges.find(b => b.id === badgeId);
     return badge ? badge.name : 'N/A';
@@ -92,7 +122,79 @@ const AdminProducts = () => {
     }
   };
 
-  // Offer Handlers (unchanged)
+// Reorder Products - Only for visible products
+const moveProduct = async (productId, direction) => {
+  setProducts((currentProducts) => {
+    // Work on fresh state copy
+    const visibleProducts = currentProducts
+      .filter(p => p.isVisible !== false)
+      .map(p => ({ ...p })); // deep copy visible ones
+
+    const currentIndex = visibleProducts.findIndex(p => p.key === productId);
+    if (currentIndex === -1) return currentProducts; // safety
+
+    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+    if (swapIndex < 0 || swapIndex >= visibleProducts.length) {
+      return currentProducts;
+    }
+
+    // Swap
+    const reorderedVisible = [...visibleProducts];
+    [reorderedVisible[currentIndex], reorderedVisible[swapIndex]] = 
+      [reorderedVisible[swapIndex], reorderedVisible[currentIndex]];
+
+    // Assign new orders (1-based)
+    const orderMap = {};
+    reorderedVisible.forEach((p, idx) => {
+      orderMap[p.key] = idx + 1;
+      p.displayOrder = idx + 1; // mutate copy
+    });
+
+    // Build new full products array
+    const newProducts = currentProducts.map(p => {
+      if (p.isVisible !== false) {
+        const updated = reorderedVisible.find(r => r.key === p.key);
+        return updated ? { ...updated } : p;
+      }
+      return p;
+    });
+
+    // Re-apply stable sort (same as fetchData)
+    newProducts.sort((a, b) => {
+      const aVis = a.isVisible !== false;
+      const bVis = b.isVisible !== false;
+
+      if (aVis !== bVis) return aVis ? -1 : 1;
+
+      if (aVis) {
+        const aOrder = a.displayOrder ?? 999999;
+        const bOrder = b.displayOrder ?? 999999;
+        return aOrder - bOrder;
+      }
+
+      // hidden products – keep original order or sort by createdAt
+      const aTime = a.createdAt || a.key || 0;
+      const bTime = b.createdAt || b.key || 0;
+      return bTime - aTime; // newest first for hidden
+    });
+
+    // Fire & forget API call (no await inside setState)
+    productApi.reorderProducts(orderMap)
+      .then(() => {
+        toast.success('Order saved');
+      })
+      .catch(err => {
+        toast.error('Failed to save order');
+        console.error(err);
+        // Revert only on real failure
+        fetchData();
+      });
+
+    // Return immediately – optimistic UI
+    return newProducts;
+  });
+};
+  // Offer Handlers
   const openOfferModal = (productId, currentOffer = null) => {
     setSelectedProductId(productId);
     setOfferName(currentOffer?.offerName || 'Buy 1 Get 1 Free');
@@ -164,12 +266,27 @@ const AdminProducts = () => {
     try {
       await productApi.toggleProductVisibility(product.key, next);
 
-      setProducts(prev =>
-        prev.map(p =>
-          p.key === product.key ? { ...p, isVisible: next } : p
-        )
+      // Update the product in the array
+      const updatedProducts = products.map(p =>
+        p.key === product.key ? { ...p, isVisible: next } : p
       );
 
+      // Re-sort after visibility change
+      const resortedProducts = [...updatedProducts].sort((a, b) => {
+        const aVisible = a.isVisible !== false;
+        const bVisible = b.isVisible !== false;
+        
+        if (aVisible && !bVisible) return -1;
+        if (!aVisible && bVisible) return 1;
+        
+        if (aVisible && bVisible) {
+          return (a.displayOrder || 0) - (b.displayOrder || 0);
+        }
+        
+        return 0;
+      });
+
+      setProducts(resortedProducts);
       toast.success(`Product is now ${next ? 'visible' : 'hidden'}`);
     } catch (err) {
       toast.error('Failed to change visibility');
@@ -177,10 +294,12 @@ const AdminProducts = () => {
     }
   };
 
+  // Filter products based on category, search, and visibility toggle
   const filteredProducts = products.filter(product => {
     const matchesCategory = filterCategory === 'All' || product.category === filterCategory;
     const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+    const matchesVisibility = showHidden ? true : product.isVisible !== false;
+    return matchesCategory && matchesSearch && matchesVisibility;
   });
 
   const formatPrice = (price) => {
@@ -242,11 +361,19 @@ const AdminProducts = () => {
                       <h3 className="text-lg font-semibold text-gray-800">Total Products</h3>
                       <p className="text-3xl font-bold text-[#6B2D2D] mt-1">{products.length}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-600">In Stock</p>
-                      <p className="text-xl font-semibold text-green-600">
-                        {products.filter(p => p.stock > 0).length}
-                      </p>
+                    <div className="flex space-x-4">
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">Visible</p>
+                        <p className="text-xl font-semibold text-green-600">
+                          {products.filter(p => p.isVisible !== false).length}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">Hidden</p>
+                        <p className="text-xl font-semibold text-gray-500">
+                          {products.filter(p => p.isVisible === false).length}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -262,29 +389,48 @@ const AdminProducts = () => {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                <select
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
-                >
-                  <option value="All">All Categories</option>
-                  {categories
-                    .filter(cat => cat.isActive !== false)
-                    .map(cat => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.name}
-                      </option>
-                    ))}
-                </select>
+              {/* Filter Controls */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <select
+                    value={filterCategory}
+                    onChange={(e) => setFilterCategory(e.target.value)}
+                    className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                  >
+                    <option value="All">All Categories</option>
+                    {categories
+                      .filter(cat => cat.isActive !== false)
+                      .map(cat => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                  <label className="flex items-center space-x-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showHidden}
+                      onChange={(e) => setShowHidden(e.target.checked)}
+                      className="w-5 h-5 text-[#6B2D2D] border-gray-300 rounded focus:ring-[#6B2D2D]"
+                    />
+                    <span className="text-gray-700 font-medium">Show hidden products</span>
+                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                      {products.filter(p => p.isVisible === false).length} hidden
+                    </span>
+                  </label>
+                </div>
               </div>
 
-              {/* Products Table */}
+              {/* Products Table with Reordering */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-max">
                     <thead className="bg-gray-50">
                       <tr>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
@@ -294,149 +440,198 @@ const AdminProducts = () => {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredProducts.map((product) => (
-                        <tr key={product.key} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <img
-                                src={product.images?.[0] || 'https://via.placeholder.com/48?text=No+Image'}
-                                alt={product.name}
-                                className="w-12 h-12 object-cover rounded-lg mr-4"
-                              />
-                              <div className="min-w-0 flex-1">
-                                <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
-                                  {product.name}
-                                </div>
-                                <div className="text-sm text-gray-500 truncate max-w-xs">
-                                  {product.description?.substring(0, 60)}{product.description?.length > 60 ? '...' : ''}
-                                </div>
-
-                                {/* Dynamic Badge Display */}
-                                {product.badge && (
-                                  <span className="inline-block bg-[#800020] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1">
-                                    {getBadgeName(product.badge) || product.badge}
+                      {filteredProducts.map((product, index) => {
+                        const isVisible = product.isVisible !== false;
+                        const visibleIndex = products
+                          .filter(p => p.isVisible !== false)
+                          .findIndex(p => p.key === product.key);
+                        
+                        return (
+                          <tr key={product.key} className={`hover:bg-gray-50 ${!isVisible ? 'bg-gray-50 opacity-75' : ''}`}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {isVisible ? (
+                                <div className="flex items-center space-x-2">
+                                  <span className="bg-[#6B2D2D] text-white text-sm font-medium px-3 py-1 rounded-full">
+                                    {visibleIndex + 1}
                                   </span>
+                                  <div className="flex flex-col space-y-1">
+                                    <button
+                                      onClick={() => moveProduct(product.key, 'up')}
+                                      disabled={visibleIndex === 0}
+                                      className={`p-1 rounded ${visibleIndex === 0 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:text-[#6B2D2D] hover:bg-gray-100'}`}
+                                      title="Move Up"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={() => moveProduct(product.key, 'down')}
+                                      disabled={visibleIndex === products.filter(p => p.isVisible !== false).length - 1}
+                                      className={`p-1 rounded ${visibleIndex === products.filter(p => p.isVisible !== false).length - 1 ? 'text-gray-400 cursor-not-allowed' : 'text-gray-600 hover:text-[#6B2D2D] hover:bg-gray-100'}`}
+                                      title="Move Down"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="bg-gray-400 text-white text-sm font-medium px-3 py-1 rounded-full">
+                                  Hidden
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <img
+                                  src={product.images?.[0] || 'https://via.placeholder.com/48?text=No+Image'}
+                                  alt={product.name}
+                                  className="w-12 h-12 object-cover rounded-lg mr-4"
+                                />
+                                <div className="min-w-0 flex-1">
+                                  <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
+                                    {product.name}
+                                  </div>
+                                  <div className="text-sm text-gray-500 truncate max-w-xs">
+                                    {product.description?.substring(0, 30)}{product.description?.length > 30 ? '...' : ''}
+                                  </div>
+
+                                  {/* Dynamic Badge Display */}
+                                  {product.badge && (
+                                    <span className="inline-block bg-[#800020] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1">
+                                      {getBadgeName(product.badge) || product.badge}
+                                    </span>
+                                  )}
+                                  
+                                  {/* Hidden Badge */}
+                                  {!isVisible && (
+                                    <span className="inline-block bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1 ml-1">
+                                      Hidden
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+                                {getCategoryName(product.category)}
+                              </span>
+                            </td>
+
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                              <div>
+                                <div>{formatPrice(product.price)}</div>
+                                {product.originalPrice && (
+                                  <div className="text-xs text-gray-500 line-through">
+                                    {formatPrice(product.originalPrice)}
+                                  </div>
                                 )}
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                              {getCategoryName(product.category)}
-                            </span>
-                          </td>
-
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
-                            <div>
-                              <div>{formatPrice(product.price)}</div>
-                              {product.originalPrice && (
-                                <div className="text-xs text-gray-500 line-through">
-                                  {formatPrice(product.originalPrice)}
-                                </div>
-                              )}
-                            </div>
-                          </td>
-
-                          {/* Offer Column */}
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center space-x-4">
-                              <button
-                                onClick={() => {
-                                  if (product.hasOffer) {
-                                    handleRemoveOffer(product.key);
-                                  } else {
-                                    openOfferModal(product.key, {
-                                      offerName: product.offerName,
-                                      offerPrice: product.offerPrice
-                                    });
-                                  }
-                                }}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:ring-offset-2 ${
-                                  product.hasOffer ? 'bg-[#6B2D2D]' : 'bg-gray-300'
-                                }`}
-                              >
-                                <span
-                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                    product.hasOffer ? 'translate-x-6' : 'translate-x-1'
+                            {/* Offer Column */}
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <div className="flex items-center space-x-4">
+                                <button
+                                  onClick={() => {
+                                    if (product.hasOffer) {
+                                      handleRemoveOffer(product.key);
+                                    } else {
+                                      openOfferModal(product.key, {
+                                        offerName: product.offerName,
+                                        offerPrice: product.offerPrice
+                                      });
+                                    }
+                                  }}
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:ring-offset-2 ${
+                                    product.hasOffer ? 'bg-[#6B2D2D]' : 'bg-gray-300'
                                   }`}
-                                />
-                              </button>
+                                >
+                                  <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                      product.hasOffer ? 'translate-x-6' : 'translate-x-1'
+                                    }`}
+                                  />
+                                </button>
 
-                              {product.hasOffer && (
-                                <div className="text-sm">
-                                  <div className="font-bold text-green-600">
-                                    {formatPrice(product.offerPrice)}
+                                {product.hasOffer && (
+                                  <div className="text-sm">
+                                    <div className="font-bold text-green-600">
+                                      {formatPrice(product.offerPrice)}
+                                    </div>
+                                    <div className="text-xs text-gray-600 truncate max-w-[140px]">
+                                      {product.offerName}
+                                    </div>
                                   </div>
-                                  <div className="text-xs text-gray-600 truncate max-w-[140px]">
-                                    {product.offerName}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </td>
+                                )}
+                              </div>
+                            </td>
 
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <select
-                              value={product.stock > 0 ? 'Available' : 'Out of Stock'}
-                              onChange={(e) => handleStockChange(product.key, e.target.value)}
-                              className="px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-[#6B2D2D]"
-                              style={{
-                                backgroundColor: product.stock > 0 ? '#dcfce7' : '#fecaca',
-                                color: product.stock > 0 ? '#166534' : '#991b1b'
-                              }}
-                            >
-                              <option value="Available">Available</option>
-                              <option value="Out of Stock">Out of Stock</option>
-                            </select>
-                          </td>
-
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex flex-wrap gap-3">
-                              <Link
-                                to={`/admin/viewproducts/${product.key}`}
-                                className="text-green-600 hover:text-green-800 flex items-center space-x-1"
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              <select
+                                value={product.stock > 0 ? 'Available' : 'Out of Stock'}
+                                onChange={(e) => handleStockChange(product.key, e.target.value)}
+                                className="px-3 py-1 text-xs font-semibold rounded-full border-0 focus:ring-2 focus:ring-[#6B2D2D]"
+                                style={{
+                                  backgroundColor: product.stock > 0 ? '#dcfce7' : '#fecaca',
+                                  color: product.stock > 0 ? '#166534' : '#991b1b'
+                                }}
                               >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                </svg>
-                                <span>View</span>
-                              </Link>
+                                <option value="Available">Available</option>
+                                <option value="Out of Stock">Out of Stock</option>
+                              </select>
+                            </td>
 
-                              <Link
-                                to={`/admin/editproducts/${product.key}`}
-                                className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                                <span>Edit</span>
-                              </Link>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                              <div className="flex flex-wrap gap-3">
+                                <Link
+                                  to={`/admin/viewproducts/${product.key}`}
+                                  className="text-green-600 hover:text-green-800 flex items-center space-x-1"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                  </svg>
+                                  <span>View</span>
+                                </Link>
 
-                              <button
-                                onClick={() => handleDeleteProduct(product.key)}
-                                className="text-red-600 hover:text-red-800 flex items-center space-x-1"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                                <span>Delete</span>
-                              </button>
+                                <Link
+                                  to={`/admin/editproducts/${product.key}`}
+                                  className="text-blue-600 hover:text-blue-800 flex items-center space-x-1"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  <span>Edit</span>
+                                </Link>
 
-                              <button
-                                onClick={() => handleVisibilityToggle(product)}
-                                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                                  product.isVisible !== false
-                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                    : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                }`}
-                              >
-                                {product.isVisible !== false ? 'Hide' : 'Show'}
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                <button
+                                  onClick={() => handleDeleteProduct(product.key)}
+                                  className="text-red-600 hover:text-red-800 flex items-center space-x-1"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  <span>Delete</span>
+                                </button>
+
+                                <button
+                                  onClick={() => handleVisibilityToggle(product)}
+                                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                                    isVisible
+                                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                      : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                  }`}
+                                >
+                                  {isVisible ? 'Hide' : 'Show'}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -465,7 +660,7 @@ const AdminProducts = () => {
           </div>
         </div>
 
-        {/* Offer Modal (unchanged) */}
+        {/* Offer Modal */}
         {offerModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
             <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
