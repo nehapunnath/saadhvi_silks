@@ -211,24 +211,41 @@ const Home = () => {
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] overflow-hidden">
 
       {/* Hero Carousel Section */}
-      <section className="relative h-[85vh] md:h-screen">
-        <div className="absolute inset-0 overflow-hidden">
+      {/* Hero Carousel Section */}
+      <section className="relative h-[85vh] md:h-screen overflow-hidden">
+        <div className="absolute inset-0">
+
           {carouselSlides.length > 0 ? (
             carouselSlides.map((slide, idx) => (
               <div
                 key={slide.id || slide._id || idx}
-                className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100' : 'opacity-0'
+                className={`absolute inset-0 transition-all duration-1000 ${idx === currentSlide
+                    ? "opacity-100 scale-100 z-10"
+                    : "opacity-0 scale-105 z-0"
                   }`}
               >
-                <img
-                  src={slide.image}
-                  alt={slide.title || brandName}
-                  className="w-full h-full object-fill bg-white"
-                  loading={idx === 0 ? 'eager' : 'lazy'}
-                  decoding="async"
-                  onError={handleImageError}
-                />
-                <div className="absolute inset-0 bg-black/15"></div>
+                <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
+
+                  {/* Blurred Background with Cinematic Zoom */}
+                  <img
+                    src={slide.image}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover blur-xl scale-105 animate-[zoom_8s_linear_infinite]"
+                  />
+
+                  {/*  Gradient Overlay (better than plain black) */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
+
+                  {/*  Main Image (FULL visible) */}
+                  <img
+                    src={slide.image}
+                    alt={slide.title || brandName}
+                    className="relative max-w-full max-h-full object-contain z-10"
+                    loading={idx === 0 ? "eager" : "lazy"}
+                    decoding="async"
+                    onError={handleImageError}
+                  />
+                </div>
               </div>
             ))
           ) : (
@@ -250,19 +267,20 @@ const Home = () => {
           )}
         </div>
 
+        {/* 🔹 Content */}
         <div className="relative h-full flex items-center justify-center text-center px-4">
-          <div className="text-white max-w-4xl z-10">
+          <div className="text-white max-w-4xl z-20">
             {carouselSlides.length > 0 && carouselSlides[currentSlide] ? (
               <>
-                <h1 className="text-4xl md:text-6xl font-serif font-bold mb-4 drop-shadow-lg">
+                <h1 className="text-4xl md:text-6xl font-serif font-bold mb-4 drop-shadow-lg transition-all duration-700">
                   {carouselSlides[currentSlide].title}
                 </h1>
-                <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto drop-shadow-md">
+                <p className="text-xl md:text-2xl mb-8 max-w-2xl mx-auto drop-shadow-md transition-all duration-700">
                   {carouselSlides[currentSlide].subtitle}
                 </p>
                 <Link to="/products">
                   <button className="bg-[#800020] hover:bg-[#A0002A] text-white px-8 py-4 rounded-xl text-lg font-medium transition-all duration-300 shadow-xl hover:shadow-2xl transform hover:-translate-y-1">
-                    {carouselSlides[currentSlide].cta || 'Shop Now'}
+                    {carouselSlides[currentSlide].cta || "Shop Now"}
                   </button>
                 </Link>
               </>
@@ -276,39 +294,43 @@ const Home = () => {
           </div>
         </div>
 
+        {/* 🔹 Dots Navigation */}
         {carouselSlides.length > 0 && (
-          <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3 z-10">
+          <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3 z-20">
             {carouselSlides.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentSlide(i)}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${i === currentSlide ? 'bg-white scale-125 shadow-lg' : 'bg-white/50 hover:bg-white/80'
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${i === currentSlide
+                    ? "bg-white scale-125 shadow-lg"
+                    : "bg-white/50 hover:bg-white/80"
                   }`}
-                aria-label={`Go to slide ${i + 1}`}
               />
             ))}
           </div>
         )}
 
+        {/* 🔹 Arrows */}
         {carouselSlides.length > 1 && (
           <>
             <button
-              className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-10"
-              onClick={() => setCurrentSlide((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)}
-              aria-label="Previous slide"
+              className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-20"
+              onClick={() =>
+                setCurrentSlide(
+                  (prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length
+                )
+              }
             >
-              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              ‹
             </button>
+
             <button
-              className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-10"
-              onClick={() => setCurrentSlide((prev) => (prev + 1) % carouselSlides.length)}
-              aria-label="Next slide"
+              className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white bg-black/40 hover:bg-black/60 rounded-full p-3 transition z-20"
+              onClick={() =>
+                setCurrentSlide((prev) => (prev + 1) % carouselSlides.length)
+              }
             >
-              <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              ›
             </button>
           </>
         )}
@@ -516,8 +538,8 @@ const Home = () => {
                         <Link to={`/viewdetails/${product.id || product._id}`} className="flex-1">
                           <button
                             className={`w-full py-3 rounded-lg font-medium transition-all duration-300 ${inStock
-                                ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:from-[#A0002A] hover:to-[#800020]'
-                                : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                              ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:from-[#A0002A] hover:to-[#800020]'
+                              : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                               }`}
                             disabled={!inStock}
                           >
@@ -585,8 +607,19 @@ const Home = () => {
                 </div>
               ))
             ) : (
-              <div className="col-span-4 text-center text-white/80 py-8 animate-pulse">
-                <p>Loading special offers...</p>
+              <div className="col-span-4 text-center py-12 flex flex-col items-center justify-center">
+
+                <div className="relative px-10 py-6 rounded-2xl shadow-2xl 
+                  bg-gradient-to-r from-[#800020] via-[#A0002A] to-[#C21833] 
+                  border border-white/20 overflow-hidden">
+
+                  <div className="absolute inset-0 bg-white/10 blur-xl opacity-30 animate-pulse"></div>
+                  <p className="relative text-lg md:text-xl font-semibold text-white tracking-wide">
+                    Exciting deals are on the way. Stay tuned!
+                  </p>
+
+                </div>
+
               </div>
             )}
           </div>
@@ -673,5 +706,7 @@ const Home = () => {
     </div>
   );
 };
+
+
 
 export default Home;

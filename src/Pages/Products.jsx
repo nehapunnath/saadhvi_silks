@@ -17,7 +17,7 @@ const Products = () => {
     offers: [],
   });
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState([]); // Renamed for clarity
+  const [allProducts, setAllProducts] = useState([]); 
   const [categories, setCategories] = useState([]);
   const [badges, setBadges] = useState([]);
   const [error, setError] = useState(null);
@@ -211,7 +211,11 @@ const Products = () => {
     });
   };
 
-  const handleWishlistToggle = async (product) => {
+  const handleWishlistToggle = async (e, product) => {
+    // Stop event propagation to prevent navigation when clicking wishlist button
+    e.preventDefault();
+    e.stopPropagation();
+    
     if (!authApi.isLoggedIn()) {
       toast.error('Please login first!');
       navigate('/login');
@@ -436,7 +440,11 @@ const Products = () => {
                   const isZoomed = activeZoom === product.id;
 
                   return (
-                    <div key={product.id} className="bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7]">
+                    <Link 
+                      key={product.id} 
+                      to={`/viewdetails/${product.id}`}
+                      className="block bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7] cursor-pointer"
+                    >
                       <div className="relative overflow-hidden">
                         <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
                           {badgeName && (
@@ -484,7 +492,8 @@ const Products = () => {
                           )}
                         </div>
 
-                        <button onClick={() => handleWishlistToggle(product)}
+                        <button 
+                          onClick={(e) => handleWishlistToggle(e, product)}
                           className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${
                             wishlistItems.includes(product.id)
                               ? 'bg-[#6B2D2D] text-white'
@@ -529,14 +538,22 @@ const Products = () => {
                               <span className="text-red-600 text-sm">Out of Stock</span>
                             )}
                           </div>
-                          <Link to={`/viewdetails/${product.id}`}>
-                            <button className="bg-[#800020] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300">
+                          {/* View Details Button */}
+                          <div onClick={(e) => e.preventDefault()} className="relative z-10">
+                            <button 
+                              className="bg-[#800020] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                navigate(`/viewdetails/${product.id}`);
+                              }}
+                            >
                               View Details
                             </button>
-                          </Link>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>

@@ -34,7 +34,7 @@ const ViewDetails = () => {
         // Fetch categories + badges + product in parallel
         const [categoriesResult, badgesResult, productResult] = await Promise.all([
           categoryApi.getPublicCategories(),
-          badgeApi.getPublicBadges ? badgeApi.getPublicBadges() : badgeApi.getBadges(), // use public if exists, else admin fallback
+          badgeApi.getPublicBadges ? badgeApi.getPublicBadges() : badgeApi.getBadges(),
           productApi.getPublicProduct(id),
         ]);
 
@@ -103,7 +103,6 @@ const ViewDetails = () => {
   const getCategoryName = (categoryValue) => {
     if (!categoryValue) return 'N/A';
     
-    // Try to find category by ID in the database categories
     const category = categories.find(cat => cat.id === categoryValue);
     
     if (category) {
@@ -136,6 +135,27 @@ const ViewDetails = () => {
   const displayPrice = hasOffer ? product.offerPrice : product?.price;
   const originalPrice = hasOffer ? product.price : product?.originalPrice;
   const showOriginalPrice = originalPrice && originalPrice > displayPrice;
+
+  /* ------------------------------------------------------------------ */
+  /*  IMAGE CAROUSEL NAVIGATION                                        */
+  /* ------------------------------------------------------------------ */
+  const handlePrevImage = () => {
+    if (!product?.images?.length) return;
+    setSelectedImageIndex((prev) => {
+      const newIndex = prev === 0 ? product.images.length - 1 : prev - 1;
+      setZoomActive(false); // Disable zoom when changing images
+      return newIndex;
+    });
+  };
+
+  const handleNextImage = () => {
+    if (!product?.images?.length) return;
+    setSelectedImageIndex((prev) => {
+      const newIndex = prev === product.images.length - 1 ? 0 : prev + 1;
+      setZoomActive(false); // Disable zoom when changing images
+      return newIndex;
+    });
+  };
 
   /* ------------------------------------------------------------------ */
   /*  QUANTITY HANDLERS (STOCK-CAPPED)                                 */
@@ -230,11 +250,9 @@ const ViewDetails = () => {
 
     const { left, top, width, height } = imageRef.current.getBoundingClientRect();
     
-    // Calculate mouse position relative to the image (in percentage)
     const x = ((e.clientX - left) / width) * 100;
     const y = ((e.clientY - top) / height) * 100;
     
-    // Clamp values between 0 and 100
     const clampedX = Math.min(100, Math.max(0, x));
     const clampedY = Math.min(100, Math.max(0, y));
     
@@ -308,6 +326,8 @@ const ViewDetails = () => {
     origin: product.origin || 'Not specified',
   };
 
+  const hasMultipleImages = product?.images?.length > 1;
+
   /* ------------------------------------------------------------------ */
   /*  RENDER                                                           */
   /* ------------------------------------------------------------------ */
@@ -334,6 +354,39 @@ const ViewDetails = () => {
                   </span>
                 )}
               </div>
+
+              {/* Left Navigation Button */}
+              {hasMultipleImages && (
+                <button
+                  onClick={handlePrevImage}
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-[#6B2D2D] p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+                  aria-label="Previous image"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Right Navigation Button */}
+              {hasMultipleImages && (
+                <button
+                  onClick={handleNextImage}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 z-20 bg-white/80 hover:bg-white text-[#6B2D2D] p-2 rounded-full shadow-lg transition-all duration-300 hover:scale-110"
+                  aria-label="Next image"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Image Counter */}
+              {hasMultipleImages && (
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                  {selectedImageIndex + 1} / {product.images.length}
+                </div>
+              )}
 
               {/* Main Image with Zoom */}
               <div 
@@ -405,7 +458,7 @@ const ViewDetails = () => {
             </div>
 
             {/* Thumbnails - 6 per row */}
-            {product.images?.length > 1 && (
+            {hasMultipleImages && (
               <div className="mt-4">
                 <div className="grid grid-cols-6 gap-2">
                   {product.images.map((img, idx) => (
