@@ -22,6 +22,8 @@ import ViewOrder from './Pages/Admin/ViewOrder'
 import Gallery from './Pages/Admin/Gallery'
 import Offers from './Pages/Admin/Offers'
 import { Toaster } from 'react-hot-toast'
+import AdminAbout from './Pages/Admin/AdminAbout'
+import AdminContact from './Pages/Admin/AdminContact'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -57,6 +59,8 @@ function App() {
         <Route path='/admin/vieworders/:id' element={<ViewOrder />} />
         <Route path='/admin/gallery' element={<Gallery />} />
         <Route path='/admin/offers' element={<Offers />} />
+        <Route path='/admin/about' element={<AdminAbout/>} />
+        <Route path='/admin/contact' element={<AdminContact/>} />
 
 
 

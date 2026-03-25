@@ -41,24 +41,24 @@ const Orders = () => {
 
   const getStatusColor = (status) => {
     const colors = {
+        Pending: 'bg-orange-100 text-orange-800',
       Delivered: 'bg-green-100 text-green-800',
       Shipped: 'bg-blue-100 text-blue-800',
       Processing: 'bg-yellow-100 text-yellow-800',
-      Pending: 'bg-orange-100 text-orange-800',
       Cancelled: 'bg-red-100 text-red-800',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] ;
   };
 
   const getPaymentStatusColor = (status) => {
     const colors = {
-      Paid: 'bg-green-100 text-green-800',
       Pending: 'bg-yellow-100 text-yellow-800',
+      Paid: 'bg-green-100 text-green-800',
       Refunded: 'bg-blue-100 text-blue-800',
       Failed: 'bg-red-100 text-red-800',
       Cancelled: 'bg-gray-100 text-gray-800',
     };
-    return colors[status] || 'bg-gray-100 text-gray-800';
+    return colors[status] 
   };
 
   // Filter logic
@@ -317,7 +317,7 @@ const Orders = () => {
                             onChange={(e) => updatePaymentStatus(order.id, e.target.value)}
                             className={`text-xs font-medium px-3 py-1 rounded-full border-0 focus:ring-2 focus:ring-[#6B2D2D] ${getPaymentStatusColor(order.paymentStatus)}`}
                           >
-                            {['Paid', 'Pending', 'Refunded', 'Failed', 'Cancelled'].map(s => (
+                            {['Pending','Paid', 'Pending', 'Refunded', 'Failed', 'Cancelled'].map(s => (
                               <option key={s} value={s}>{s}</option>
                             ))}
                           </select>

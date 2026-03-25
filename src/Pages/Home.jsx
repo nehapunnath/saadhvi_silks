@@ -213,42 +213,27 @@ const Home = () => {
       {/* Hero Carousel Section */}
       {/* Hero Carousel Section */}
       <section className="relative h-[85vh] md:h-screen overflow-hidden">
-        <div className="absolute inset-0">
-
+        <div className="absolute inset-0 overflow-hidden">
           {carouselSlides.length > 0 ? (
             carouselSlides.map((slide, idx) => (
               <div
                 key={slide.id || slide._id || idx}
-                className={`absolute inset-0 transition-all duration-1000 ${idx === currentSlide
-                    ? "opacity-100 scale-100 z-10"
-                    : "opacity-0 scale-105 z-0"
+                className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100' : 'opacity-0'
                   }`}
               >
-                <div className="relative w-full h-full flex items-center justify-center overflow-hidden">
-
-                  {/* Blurred Background with Cinematic Zoom */}
-                  <img
-                    src={slide.image}
-                    alt=""
-                    className="absolute inset-0 w-full h-full object-cover blur-xl scale-105 animate-[zoom_8s_linear_infinite]"
-                  />
-
-                  {/*  Gradient Overlay (better than plain black) */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-
-                  {/*  Main Image (FULL visible) */}
-                  <img
-                    src={slide.image}
-                    alt={slide.title || brandName}
-                    className="relative max-w-full max-h-full object-contain z-10"
-                    loading={idx === 0 ? "eager" : "lazy"}
-                    decoding="async"
-                    onError={handleImageError}
-                  />
-                </div>
+                <img
+                  src={slide.image}
+                  alt={slide.title || brandName}
+                  className="w-full h-full object-cover bg-transparent"
+                  loading={idx === 0 ? 'eager' : 'lazy'}
+                  decoding="async"
+                  onError={handleImageError}
+                />
+                <div className="absolute inset-0 bg-black/15"></div>
               </div>
             ))
-          ) : (
+          ) 
+          : (
             <div className="w-full h-full bg-gradient-to-br from-[#800020]/90 to-[#A0002A]/80 flex items-center justify-center animate-pulse">
               <div className="text-center text-white px-6">
                 <img
@@ -266,7 +251,6 @@ const Home = () => {
             </div>
           )}
         </div>
-
         {/* 🔹 Content */}
         <div className="relative h-full flex items-center justify-center text-center px-4">
           <div className="text-white max-w-4xl z-20">
