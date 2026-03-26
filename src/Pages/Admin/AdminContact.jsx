@@ -70,14 +70,14 @@ const AdminContact = () => {
         </div>
 
         {/* Edit Button */}
-        {/* <div className="mb-8">
+        <div className="mb-8">
           <button
             onClick={openModal}
             className="bg-[#800020] text-white px-6 py-3 rounded-lg hover:bg-[#5D4037] transition-colors font-medium shadow-md"
           >
             Edit Contact Information
           </button>
-        </div> */}
+        </div>
 
         {/* Saved Contact Information Display */}
         {contactInfo.isSaved && (
