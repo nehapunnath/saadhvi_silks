@@ -628,8 +628,8 @@ const Home = () => {
                 rating: 5,
                 review:
                   'The Kanjivaram saree I bought was absolutely stunning! The quality and craftsmanship are unmatched.',
-                image:
-                  'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
+                // image:
+                //   'https://images.unsplash.com/photo-1517841905240-472988babdf9?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
               },
               {
                 name: 'Anita Rao',
@@ -637,8 +637,8 @@ const Home = () => {
                 rating: 5,
                 review:
                   'I wore their bridal saree for my wedding, and it made me feel like a queen. Highly recommend!',
-                image:
-                  'https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
+                // image:
+                //   'https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
               },
               {
                 name: 'Meena Kapoor',
@@ -646,8 +646,8 @@ const Home = () => {
                 rating: 4,
                 review:
                   'The designer sarees are so unique. I get compliments every time I wear one!',
-                image:
-                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
+                // image:
+                //   'https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
               },
             ].map((t, i) => (
               <div
@@ -655,13 +655,13 @@ const Home = () => {
                 className="bg-[#F8EDE3] rounded-2xl p-6 shadow-lg border border-[#FDF6E3] group"
               >
                 <div className="flex items-center mb-4">
-                  <img
+                  {/* <img
                     src={t.image}
                     alt={t.name}
                     loading="lazy"
                     decoding="async"
                     className="w-16 h-16 rounded-full object-cover mr-4 border-2 border-[#1A4D3E] group-hover:border-[#800020] transition"
-                  />
+                  /> */}
                   <div>
                     <h3 className="font-semibold text-[#1C2526]">{t.name}</h3>
                     <p className="text-sm text-[#1C2526]">{t.location}</p>
