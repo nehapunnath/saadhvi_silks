@@ -5,7 +5,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
 import productApi from '../../Services/proApi';
 import categoryApi from '../../Services/CategoryApi';
-import badgeApi from '../../Services/BadgeApi';           // ← NEW IMPORT
+import badgeApi from '../../Services/BadgeApi';
 
 const EditProducts = () => {
   const { id } = useParams();
@@ -17,6 +17,9 @@ const EditProducts = () => {
   const [selectedOccasions, setSelectedOccasions] = useState([]);
   const [newImages, setNewImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  
+  // Track which existing images are marked for deletion
+  const [imagesToDelete, setImagesToDelete] = useState([]);
 
   // Category states
   const [categories, setCategories] = useState([]);
@@ -25,7 +28,7 @@ const EditProducts = () => {
   const [editingCategory, setEditingCategory] = useState(null);
   const [categoryLoading, setCategoryLoading] = useState(false);
 
-  // Badge states  ← NEW
+  // Badge states
   const [badges, setBadges] = useState([]);
   const [showBadgeModal, setShowBadgeModal] = useState(false);
   const [badgeName, setBadgeName] = useState('');
@@ -48,6 +51,7 @@ const EditProducts = () => {
         setProduct(p);
         setSelectedOccasions(p.occasion || []);
         setImagePreviews(p.images || []);
+        setImagesToDelete([]); // Reset deleted images tracking
 
         // Load categories & badges
         await Promise.all([
@@ -74,7 +78,7 @@ const EditProducts = () => {
     }
   };
 
-  const loadBadges = async () => {                    // ← NEW
+  const loadBadges = async () => {
     try {
       const result = await badgeApi.getBadges();
       if (result.success) setBadges(result.badges || []);
@@ -111,13 +115,16 @@ const EditProducts = () => {
     setImagePreviews(prev => [...prev, ...previews]);
   };
 
-  const removeImage = idx => {
+  const removeImage = (idx) => {
     const originalCount = product?.images?.length || 0;
 
     if (idx < originalCount) {
-      // Just remove from preview (old images stay on server unless replaced)
+      // This is an existing image - mark it for deletion
+      const imageUrlToDelete = imagePreviews[idx];
+      setImagesToDelete(prev => [...prev, imageUrlToDelete]);
       setImagePreviews(prev => prev.filter((_, i) => i !== idx));
     } else {
+      // This is a new image (not yet uploaded)
       const newIdx = idx - originalCount;
       setNewImages(prev => prev.filter((_, i) => i !== newIdx));
       setImagePreviews(prev => prev.filter((_, i) => i !== idx));
@@ -130,7 +137,8 @@ const EditProducts = () => {
     setSaving(true);
 
     try {
-      await productApi.updateProduct(id, product, newImages);
+      // Pass imagesToDelete to the API so it can remove them from storage
+      await productApi.updateProduct(id, product, newImages, imagesToDelete);
       toast.success('Product updated successfully!');
       navigate('/admin/products');
     } catch (err) {
@@ -140,7 +148,8 @@ const EditProducts = () => {
     }
   };
 
-  // ── Category Handlers (unchanged) ────────────────────────────────
+  // ... (rest of your category and badge handlers remain the same)
+  // Category Handlers
   const handleAddCategory = async (e) => {
     e.preventDefault();
     if (!categoryName.trim()) {
@@ -179,7 +188,7 @@ const EditProducts = () => {
     if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) return;
 
     try {
-      const result = await categoryApi.deleteCategory(category.id, id); // pass product id
+      const result = await categoryApi.deleteCategory(category.id, id);
       if (result.success) {
         toast.success('Category deleted successfully!');
         await loadCategories();
@@ -200,7 +209,7 @@ const EditProducts = () => {
     setShowCategoryModal(true);
   };
 
-  // ── Badge Handlers ───────────────────────────────────────────────
+  // Badge Handlers
   const handleAddBadge = async (e) => {
     e.preventDefault();
     if (!badgeName.trim()) {
@@ -239,7 +248,7 @@ const EditProducts = () => {
     if (!window.confirm(`Are you sure you want to delete badge "${badge.name}"?`)) return;
 
     try {
-      const result = await badgeApi.deleteBadge(badge.id, id); // pass product id (optional safety)
+      const result = await badgeApi.deleteBadge(badge.id, id);
       if (result.success) {
         toast.success('Badge deleted successfully!');
         await loadBadges();
@@ -459,7 +468,7 @@ const EditProducts = () => {
                         </div>
                       </div>
 
-                      {/* ── Dynamic Badge Section ── */}
+                      {/* Dynamic Badge Section */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <label className="block text-sm font-medium text-[#2E2E2E]">Badge</label>
@@ -547,7 +556,7 @@ const EditProducts = () => {
                         </label>
                         <div className="grid grid-cols-2 gap-4 max-h-96 overflow-y-auto">
                           {imagePreviews.map((src, i) => (
-                            <div key={i} className="relative">
+                            <div key={i} className="relative group">
                               <img
                                 src={src}
                                 alt={`Preview ${i + 1}`}
@@ -556,10 +565,15 @@ const EditProducts = () => {
                               <button
                                 type="button"
                                 onClick={() => removeImage(i)}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-all"
                               >
                                 ×
                               </button>
+                              {i < (product?.images?.length || 0) && imagesToDelete.includes(src) && (
+                                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center rounded-lg">
+                                  <span className="text-white text-xs font-medium">Marked for deletion</span>
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

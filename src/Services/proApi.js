@@ -91,7 +91,9 @@ const productApi = {
     return data;
   },
 
-updateProduct: async (id, productData, newImages = []) => {
+// Update the updateProduct function in your proApi.js file
+
+updateProduct: async (id, productData, newImages = [], imagesToDelete = []) => {
     const token = authApi.getToken();
     const formData = new FormData();
 
@@ -116,7 +118,14 @@ updateProduct: async (id, productData, newImages = []) => {
       formData.append('images', imageFile);
     });
 
-    console.log('🔄 Sending:', productData.name, 'New images:', compressedNewImages.length);
+    // Add images to delete as JSON string
+    if (imagesToDelete && imagesToDelete.length > 0) {
+      formData.append('imagesToDelete', JSON.stringify(imagesToDelete));
+    }
+
+    console.log('🔄 Sending:', productData.name, 
+                'New images:', compressedNewImages.length,
+                'Images to delete:', imagesToDelete.length);
 
     const response = await fetch(`${BASE_URL}/admin/products/${id}`, {
       method: 'PUT',
@@ -127,7 +136,7 @@ updateProduct: async (id, productData, newImages = []) => {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error);
     return data;
-  },
+},
   
   deleteProduct: async (id) => {
     const token = authApi.getToken();
