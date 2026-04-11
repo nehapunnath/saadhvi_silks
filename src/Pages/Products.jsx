@@ -43,6 +43,51 @@ const Products = () => {
     { label: "Special Offers", value: "hasOffer" },
   ];
 
+  // Helper function to normalize categories (convert string to array) - SAME AS ADMIN
+  const normalizeCategories = (categoriesInput) => {
+    if (!categoriesInput) return [];
+    
+    // If it's already an array, return it
+    if (Array.isArray(categoriesInput)) {
+      return categoriesInput;
+    }
+    
+    // If it's a string
+    if (typeof categoriesInput === 'string') {
+      // If it contains commas, split it
+      if (categoriesInput.includes(',')) {
+        return categoriesInput.split(',').map(id => id.trim());
+      } else {
+        // Single category
+        return [categoriesInput.trim()];
+      }
+    }
+    
+    return [];
+  };
+
+  // Get category name by ID - SAME AS ADMIN
+  const getCategoryName = (categoryId) => {
+    if (!categoryId) return 'N/A';
+    
+    // Clean the ID - remove any whitespace
+    let cleanId = String(categoryId).trim();
+    
+    // If the ID still contains commas, it means it wasn't split properly
+    if (cleanId.includes(',')) {
+      cleanId = cleanId.split(',')[0].trim();
+    }
+    
+    // Find the category
+    const category = categories.find(c => String(c.id) === cleanId);
+    
+    if (category) {
+      return category.name;
+    }
+    
+    return cleanId.substring(0, 8);
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -60,39 +105,58 @@ const Products = () => {
 
         // Fetch categories
         const categoriesRes = await categoryApi.getPublicCategories();
+        let categoriesList = [];
         if (categoriesRes?.success) {
-          setCategories(categoriesRes.categories || []);
+          categoriesList = categoriesRes.categories || [];
+          setCategories(categoriesList);
+          console.log("Categories loaded:", categoriesList);
         }
 
         // Fetch products
         const productsRes = await productApi.getPublicProducts();
         if (productsRes?.success) {
-          // Filter out hidden products first
-          const visibleProducts = (productsRes.products || [])
-            .filter(product => product.isVisible !== false);
+          // Process products - NORMALIZE CATEGORIES (SAME AS ADMIN)
+          const allProductsData = productsRes.products || [];
           
-          // Sort by displayOrder (ascending)
-          const sortedProducts = visibleProducts.sort((a, b) => {
-            // If displayOrder exists on both, use it
+          // Normalize each product's categories (SAME AS ADMIN)
+          const normalizedProducts = allProductsData
+            .filter(product => product.isVisible !== false)
+            .map(product => {
+              const normalizedProduct = { ...product };
+              
+              // Normalize categories from any source
+              let normalizedCategories = [];
+              
+              if (product.categories) {
+                normalizedCategories = normalizeCategories(product.categories);
+              } else if (product.category) {
+                normalizedCategories = normalizeCategories(product.category);
+              }
+              
+              // Special handling: If normalizedCategories has one item that still contains commas
+              if (normalizedCategories.length === 1 && typeof normalizedCategories[0] === 'string' && normalizedCategories[0].includes(',')) {
+                normalizedCategories = normalizedCategories[0].split(',').map(id => id.trim());
+              }
+              
+              // Remove any empty strings
+              normalizedCategories = normalizedCategories.filter(id => id && id.trim());
+              
+              normalizedProduct.categories = normalizedCategories;
+              return normalizedProduct;
+            });
+          
+          // Sort by displayOrder
+          const sortedProducts = normalizedProducts.sort((a, b) => {
             if (a.displayOrder !== undefined && a.displayOrder !== null &&
                 b.displayOrder !== undefined && b.displayOrder !== null) {
               return a.displayOrder - b.displayOrder;
             }
-            
-            // If only one has displayOrder, prioritize the one with order
             if (a.displayOrder !== undefined && a.displayOrder !== null) return -1;
             if (b.displayOrder !== undefined && b.displayOrder !== null) return 1;
-            
-            // Fallback: sort by creation date (newest first)
-            const aTime = a.createdAt || 0;
-            const bTime = b.createdAt || 0;
-            return bTime - aTime;
+            return 0;
           });
           
-          console.log("Sorted products by displayOrder:");
-          sortedProducts.forEach((p, index) => {
-            console.log(`${index + 1}: ${p.name} (displayOrder: ${p.displayOrder})`);
-          });
+          console.log("Products loaded:", sortedProducts.length);
           
           setAllProducts(sortedProducts);
           setFilteredProducts(sortedProducts);
@@ -127,17 +191,17 @@ const Products = () => {
   useEffect(() => {
     if (allProducts.length === 0) return;
 
-    // Start with all visible products (already filtered for visibility)
     let result = [...allProducts];
 
-    // Category filter
+    // Category filter - Check if product has ANY of the selected categories
     if (selectedFilters.category.length > 0 && !selectedFilters.category.includes("All")) {
-      result = result.filter((product) =>
-        selectedFilters.category.includes(product.category)
-      );
+      result = result.filter((product) => {
+        if (!product.categories || product.categories.length === 0) return false;
+        return product.categories.some(catId => selectedFilters.category.includes(catId));
+      });
     }
 
-    // Price filter (using offer price when available)
+    // Price filter
     if (selectedFilters.price.length > 0) {
       result = result.filter((product) => {
         const price = product.hasOffer && product.offerPrice ? product.offerPrice : product.price;
@@ -160,28 +224,9 @@ const Products = () => {
       result = result.filter((product) => product.hasOffer === true);
     }
 
-    // IMPORTANT: Sort by displayOrder to maintain admin order
-    // Since we're filtering from allProducts which is already sorted,
-    // we just need to ensure the order is preserved
-    const sortedResult = result.sort((a, b) => {
-      if (a.displayOrder !== undefined && a.displayOrder !== null &&
-          b.displayOrder !== undefined && b.displayOrder !== null) {
-        return a.displayOrder - b.displayOrder;
-      }
-      if (a.displayOrder !== undefined && a.displayOrder !== null) return -1;
-      if (b.displayOrder !== undefined && b.displayOrder !== null) return 1;
-      return 0;
-    });
-
-    setFilteredProducts(sortedResult);
+    setFilteredProducts(result);
     setCurrentPage(1);
   }, [selectedFilters, allProducts]);
-
-  const getCategoryName = (categoryValue) => {
-    if (!categoryValue) return 'N/A';
-    const category = categories.find((cat) => cat.id === categoryValue);
-    return category?.name || 'Unknown';
-  };
 
   const indexOfLastProduct = currentPage * productsPerPage;
   const indexOfFirstProduct = indexOfLastProduct - productsPerPage;
@@ -212,7 +257,6 @@ const Products = () => {
   };
 
   const handleWishlistToggle = async (e, product) => {
-    // Stop event propagation to prevent navigation when clicking wishlist button
     e.preventDefault();
     e.stopPropagation();
     
@@ -321,7 +365,7 @@ const Products = () => {
                 </div>
               </div>
 
-              {/* Category */}
+              {/* Category Filter */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Category</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
@@ -344,7 +388,7 @@ const Products = () => {
                 </div>
               </div>
 
-              {/* Price */}
+              {/* Price Filter */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Price Range</h3>
                 <div className="space-y-2">
@@ -360,7 +404,7 @@ const Products = () => {
                 </div>
               </div>
 
-              {/* Occasion */}
+              {/* Occasion Filter */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Occasion</h3>
                 <div className="space-y-2">
@@ -376,7 +420,7 @@ const Products = () => {
                 </div>
               </div>
 
-              {/* Offers */}
+              {/* Offers Filter */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Special Offers</h3>
                 <div className="space-y-2">
@@ -416,23 +460,23 @@ const Products = () => {
               </div>
             </div>
 
-            {/* Product Grid */}
+            {/* Product Grid - UPDATED FOR MOBILE: 2 columns, Tablet: 2 columns, Desktop: 3 columns */}
             {allProducts.length === 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {Array.from({ length: 9 }).map((_, i) => (
-                  <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-md h-[460px] animate-pulse">
-                    <div className="h-80 bg-gray-200" />
-                    <div className="p-5 space-y-3">
-                      <div className="h-6 bg-gray-200 rounded w-4/5" />
-                      <div className="h-4 bg-gray-200 rounded w-3/5" />
-                      <div className="h-5 bg-gray-200 rounded w-2/5" />
-                      <div className="h-10 bg-gray-200 rounded" />
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="bg-white rounded-2xl overflow-hidden shadow-md h-[380px] sm:h-[420px] md:h-[460px] animate-pulse">
+                    <div className="h-48 sm:h-64 md:h-80 bg-gray-200" />
+                    <div className="p-3 sm:p-5 space-y-2 sm:space-y-3">
+                      <div className="h-5 sm:h-6 bg-gray-200 rounded w-4/5" />
+                      <div className="h-3 sm:h-4 bg-gray-200 rounded w-3/5" />
+                      <div className="h-4 sm:h-5 bg-gray-200 rounded w-2/5" />
+                      <div className="h-8 sm:h-10 bg-gray-200 rounded" />
                     </div>
                   </div>
                 ))}
               </div>
             ) : currentProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                 {currentProducts.map((product) => {
                   const hasOffer = product.hasOffer === true;
                   const displayPrice = hasOffer ? product.offerPrice : product.price;
@@ -446,20 +490,20 @@ const Products = () => {
                       className="block bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7] cursor-pointer"
                     >
                       <div className="relative overflow-hidden">
-                        <div className="absolute top-4 left-4 flex flex-col gap-2 z-10">
+                        <div className="absolute top-2 sm:top-4 left-2 sm:left-4 flex flex-col gap-1 sm:gap-2 z-10">
                           {badgeName && (
-                            <span className="bg-[#800020] text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm">
+                            <span className="bg-[#800020] text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-sm">
                               {badgeName}
                             </span>
                           )}
                           {hasOffer && (
-                            <span className="bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                            <span className="bg-green-600 text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
                               {product.offerName || 'SPECIAL OFFER'}
                             </span>
                           )}
                         </div>
 
-                        <div className="h-80 overflow-hidden cursor-zoom-in relative"
+                        <div className="h-48 sm:h-64 md:h-80 overflow-hidden cursor-zoom-in relative"
                           ref={el => imageRefs.current[product.id] = el}
                           onMouseEnter={() => handleImageMouseEnter(product.id)}
                           onMouseLeave={handleImageMouseLeave}
@@ -494,54 +538,68 @@ const Products = () => {
 
                         <button 
                           onClick={(e) => handleWishlistToggle(e, product)}
-                          className={`absolute top-4 right-4 p-2 rounded-full shadow-md transition-all duration-300 ${
+                          className={`absolute top-2 sm:top-4 right-2 sm:right-4 p-1.5 sm:p-2 rounded-full shadow-md transition-all duration-300 ${
                             wishlistItems.includes(product.id)
                               ? 'bg-[#6B2D2D] text-white'
                               : 'bg-white text-[#6B2D2D] hover:bg-[#D9A7A7]'
                           }`}
                           aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                         >
-                          <svg className="h-5 w-5" fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="h-3.5 w-3.5 sm:h-5 sm:w-5" fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                           </svg>
                         </button>
                       </div>
 
-                      <div className="p-5">
-                        <h3 className="text-lg font-semibold text-[#2E2E2E] mb-2 group-hover:text-[#3A1A1A] transition-colors line-clamp-2">
+                      <div className="p-3 sm:p-5">
+                        <h3 className="text-sm sm:text-lg font-semibold text-[#2E2E2E] mb-1 sm:mb-2 group-hover:text-[#3A1A1A] transition-colors line-clamp-2">
                           {product.name}
                         </h3>
-                        <p className="text-[#2E2E2E] text-sm mb-3 line-clamp-2">{product.description || '—'}</p>
+                        <p className="text-[#2E2E2E] text-[11px] sm:text-sm mb-2 sm:mb-3 line-clamp-2">{product.description || '—'}</p>
 
-                        <div className="mb-2">
-                          <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
-                            {getCategoryName(product.category)}
-                          </span>
+                        {/* Categories Section - Display Multiple Categories (SAME AS ADMIN) */}
+                        <div className="mb-2 sm:mb-3 flex flex-wrap gap-1">
+                          {product.categories && product.categories.length > 0 ? (
+                            product.categories.map((categoryId, idx) => {
+                              const categoryName = getCategoryName(categoryId);
+                              return (
+                                <span
+                                  key={idx}
+                                  className="inline-block bg-blue-100 text-blue-800 text-[9px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded"
+                                >
+                                  {categoryName}
+                                </span>
+                              );
+                            })
+                          ) : (
+                            <span className="inline-block bg-gray-100 text-gray-500 text-[9px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
+                              No Category
+                            </span>
+                          )}
                         </div>
 
-                        <div className="flex items-center mt-2 mb-3">
-                          <span className="text-[#6B2D2D] font-bold text-lg">
+                        <div className="flex items-center mt-1 sm:mt-2 mb-2 sm:mb-3">
+                          <span className="text-[#6B2D2D] font-bold text-sm sm:text-lg">
                             {formatPrice(displayPrice)}
                           </span>
                           {hasOffer && product.price && product.price > displayPrice && (
-                            <span className="text-[#2E2E2E] text-sm line-through ml-2">
+                            <span className="text-[#2E2E2E] text-[10px] sm:text-sm line-through ml-1 sm:ml-2">
                               {formatPrice(product.price)}
                             </span>
                           )}
                         </div>
 
-                        <div className="flex items-center justify-between mt-4">
+                        <div className="flex items-center justify-between mt-2 sm:mt-4">
                           <div className="flex">
                             {product.stock > 0 ? (
-                              <span className="text-green-600 text-sm">In Stock</span>
+                              <span className="text-green-600 text-[10px] sm:text-sm">In Stock</span>
                             ) : (
-                              <span className="text-red-600 text-sm">Out of Stock</span>
+                              <span className="text-red-600 text-[10px] sm:text-sm">Out of Stock</span>
                             )}
                           </div>
-                          {/* View Details Button */}
                           <div onClick={(e) => e.preventDefault()} className="relative z-10">
                             <button 
-                              className="bg-[#800020] text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300"
+                              className="bg-[#800020] text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300"
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();

@@ -26,6 +26,67 @@ const ViewDetails = () => {
   const imageRef = useRef(null);
   const zoomRef = useRef(null);
 
+  // Helper function to normalize categories (convert string to array) - SAME AS ADMIN
+  const normalizeCategories = (categoriesInput) => {
+    if (!categoriesInput) return [];
+    
+    // If it's already an array, return it
+    if (Array.isArray(categoriesInput)) {
+      return categoriesInput;
+    }
+    
+    // If it's a string
+    if (typeof categoriesInput === 'string') {
+      // If it contains commas, split it
+      if (categoriesInput.includes(',')) {
+        return categoriesInput.split(',').map(id => id.trim());
+      } else {
+        // Single category
+        return [categoriesInput.trim()];
+      }
+    }
+    
+    return [];
+  };
+
+  // Get category name by ID - SAME AS ADMIN
+  const getCategoryName = (categoryId) => {
+    if (!categoryId) return 'N/A';
+    
+    // Clean the ID - remove any whitespace
+    let cleanId = String(categoryId).trim();
+    
+    // If the ID still contains commas, it means it wasn't split properly
+    if (cleanId.includes(',')) {
+      cleanId = cleanId.split(',')[0].trim();
+    }
+    
+    // Find the category
+    const category = categories.find(cat => String(cat.id) === cleanId);
+    
+    if (category) {
+      return category.name;
+    }
+    
+    return cleanId.substring(0, 8);
+  };
+
+  // Get category names array for multiple categories
+  const getCategoryNames = (categoryIds) => {
+    if (!categoryIds || !Array.isArray(categoryIds) || categoryIds.length === 0) {
+      return [];
+    }
+    
+    const names = [];
+    for (const id of categoryIds) {
+      const name = getCategoryName(id);
+      if (name !== 'N/A') {
+        names.push(name);
+      }
+    }
+    return names;
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -45,7 +106,26 @@ const ViewDetails = () => {
         setBadges(badgesResult.badges || []);
 
         if (productResult.success) {
-          const p = productResult.product;
+          let p = productResult.product;
+          
+          // Normalize categories for the product (SAME AS ADMIN)
+          let normalizedCategories = [];
+          if (p.categories) {
+            normalizedCategories = normalizeCategories(p.categories);
+          } else if (p.category) {
+            normalizedCategories = normalizeCategories(p.category);
+          }
+          
+          // Special handling: If normalizedCategories has one item that still contains commas
+          if (normalizedCategories.length === 1 && typeof normalizedCategories[0] === 'string' && normalizedCategories[0].includes(',')) {
+            normalizedCategories = normalizedCategories[0].split(',').map(id => id.trim());
+          }
+          
+          // Remove any empty strings
+          normalizedCategories = normalizedCategories.filter(id => id && id.trim());
+          
+          p.categories = normalizedCategories;
+          
           setProduct(p);
           setQuantity(1);
 
@@ -62,7 +142,7 @@ const ViewDetails = () => {
           }
 
           // Related products
-          await fetchRelatedProducts(p.category, p.id);
+          await fetchRelatedProducts(p.categories, p.id);
         } else {
           setError('Product not found');
         }
@@ -83,33 +163,41 @@ const ViewDetails = () => {
     return badge ? badge.name : 'N/A';
   };
 
-  const fetchRelatedProducts = async (category, currentId) => {
+  const fetchRelatedProducts = async (productCategories, currentId) => {
     try {
       const res = await productApi.getPublicProducts();
       if (res.success) {
-        const related = res.products
-          .filter(p => p.category === category && p.id !== currentId)
+        // Normalize related products categories
+        const normalizedRelated = res.products.map(p => {
+          let normalizedCategories = [];
+          if (p.categories) {
+            normalizedCategories = normalizeCategories(p.categories);
+          } else if (p.category) {
+            normalizedCategories = normalizeCategories(p.category);
+          }
+          
+          if (normalizedCategories.length === 1 && typeof normalizedCategories[0] === 'string' && normalizedCategories[0].includes(',')) {
+            normalizedCategories = normalizedCategories[0].split(',').map(id => id.trim());
+          }
+          normalizedCategories = normalizedCategories.filter(id => id && id.trim());
+          
+          return { ...p, categories: normalizedCategories };
+        });
+        
+        // Find related products based on shared categories
+        const related = normalizedRelated
+          .filter(p => {
+            if (p.id === currentId) return false;
+            // Check if product shares at least one category
+            return p.categories?.some(catId => productCategories?.includes(catId));
+          })
           .slice(0, 4);
+        
         setRelatedProducts(related);
       }
     } catch (e) {
       console.error('Related products error', e);
     }
-  };
-
-  /* ------------------------------------------------------------------ */
-  /*  CATEGORY NAME HELPER                                             */
-  /* ------------------------------------------------------------------ */
-  const getCategoryName = (categoryValue) => {
-    if (!categoryValue) return 'N/A';
-    
-    const category = categories.find(cat => cat.id === categoryValue);
-    
-    if (category) {
-      return category.name;
-    }
-    
-    return 'N/A';
   };
 
   /* ------------------------------------------------------------------ */
@@ -143,7 +231,7 @@ const ViewDetails = () => {
     if (!product?.images?.length) return;
     setSelectedImageIndex((prev) => {
       const newIndex = prev === 0 ? product.images.length - 1 : prev - 1;
-      setZoomActive(false); // Disable zoom when changing images
+      setZoomActive(false);
       return newIndex;
     });
   };
@@ -152,7 +240,7 @@ const ViewDetails = () => {
     if (!product?.images?.length) return;
     setSelectedImageIndex((prev) => {
       const newIndex = prev === product.images.length - 1 ? 0 : prev + 1;
-      setZoomActive(false); // Disable zoom when changing images
+      setZoomActive(false);
       return newIndex;
     });
   };
@@ -327,6 +415,7 @@ const ViewDetails = () => {
   };
 
   const hasMultipleImages = product?.images?.length > 1;
+  const categoryNames = getCategoryNames(product.categories || []);
 
   /* ------------------------------------------------------------------ */
   /*  RENDER                                                           */
@@ -610,10 +699,10 @@ const ViewDetails = () => {
                 </div>
               </div>
 
-              {/* OCCASION + CATEGORY */}
+              {/* OCCASION + CATEGORIES */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Suitable For</h3>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 mb-4">
                   {product.occasion?.length ? (
                     product.occasion.map((occ, i) => (
                       <span
@@ -627,9 +716,27 @@ const ViewDetails = () => {
                     <span className="text-[#2E2E2E]">All occasions</span>
                   )}
                 </div>
-                <p className="text-[#2E2E2E] mt-2">
-                  <span className="font-medium">Category:</span> {getCategoryName(product.category)}
-                </p>
+                
+                {/* Categories Section - Display Multiple Categories (SAME AS ADMIN) */}
+                <div>
+                  <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Categories</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {categoryNames.length > 0 ? (
+                      categoryNames.map((catName, idx) => (
+                        <span
+                          key={idx}
+                          className="inline-block bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full"
+                        >
+                          {catName}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="inline-block bg-gray-100 text-gray-500 text-sm font-medium px-3 py-1 rounded-full">
+                        No Category
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* ACTION BUTTONS */}
@@ -666,6 +773,7 @@ const ViewDetails = () => {
               {relatedProducts.map(rp => {
                 const relatedHasOffer = rp.hasOffer === true && rp.offerPrice && rp.offerPrice > 0;
                 const relatedDisplayPrice = relatedHasOffer ? rp.offerPrice : rp.price;
+                const relatedCategoryNames = getCategoryNames(rp.categories || []);
                 
                 return (
                   <Link
@@ -723,11 +831,19 @@ const ViewDetails = () => {
                         </p>
                       )}
                       
-                      {/* Display Category for Related Products */}
-                      <div className="mt-2">
-                        <span className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
-                          {getCategoryName(rp.category)}
-                        </span>
+                      {/* Display Categories for Related Products */}
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {relatedCategoryNames.length > 0 ? (
+                          relatedCategoryNames.slice(0, 2).map((catName, idx) => (
+                            <span key={idx} className="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2 py-1 rounded">
+                              {catName}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="inline-block bg-gray-100 text-gray-500 text-xs font-semibold px-2 py-1 rounded">
+                            No Category
+                          </span>
+                        )}
                       </div>
                     </div>
                   </Link>

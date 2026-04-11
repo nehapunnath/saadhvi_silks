@@ -14,7 +14,7 @@ const AddProducts = () => {
     price: '',
     originalPrice: '',
     extraCharges: '',
-    category: '',
+    categories: [],
     occasion: [],
     description: '',
     material: '',
@@ -31,6 +31,7 @@ const AddProducts = () => {
   });
 
   const [categories, setCategories] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([])
   const [badges, setBadges] = useState([]);
   const [selectedOccasions, setSelectedOccasions] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
@@ -80,13 +81,13 @@ const AddProducts = () => {
     }
   };
 
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setProduct(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+ const handleInputChange = (e) => {
+  const { name, value } = e.target;
+  setProduct(prev => ({
+    ...prev,
+    [name]: value
+  }));
+};
 
   const handleOccasionChange = (occasion) => {
     setSelectedOccasions(prev => {
@@ -132,19 +133,29 @@ const AddProducts = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      const result = await productApi.addProduct(product);
-      toast.success('Product added successfully!');
-      window.location.href = '/admin/products';
-    } catch (error) {
-      toast.error('Something Went Wrong !!!');
-    } finally {
-      setLoading(false);
-    }
-  };
+  try {
+    // Prepare product data with categories array
+    const productData = {
+      ...product,
+      categories: selectedCategories, // Ensure categories is an array
+      price: parseFloat(product.price),
+      originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : null,
+      extraCharges: product.extraCharges ? parseFloat(product.extraCharges) : null,
+      stock: parseInt(product.stock),
+    };
+    
+    const result = await productApi.addProduct(productData);
+    toast.success('Product added successfully!');
+    window.location.href = '/admin/products';
+  } catch (error) {
+    toast.error('Something Went Wrong !!!');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Category Management Functions
   const handleAddCategory = async (e) => {
@@ -181,34 +192,51 @@ const AddProducts = () => {
     setShowCategoryModal(true);
   };
 
-  const handleDeleteCategory = async (category) => {
-    if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) {
-      return;
-    }
+ const handleDeleteCategory = async (category) => {
+  if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) {
+    return;
+  }
 
-    try {
-      const result = await categoryApi.deleteCategory(category.id);
-      if (result.success) {
-        toast.success('Category deleted successfully!');
-        await loadCategories();
-        
-        // If the deleted category was selected in the product form, clear it
-        if (product.category === category.id) {
-          setProduct(prev => ({ ...prev, category: '' }));
-        }
-      } else {
-        toast.error(result.error);
+  try {
+    const result = await categoryApi.deleteCategory(category.id);
+    if (result.success) {
+      toast.success('Category deleted successfully!');
+      await loadCategories();
+      
+      // Remove the deleted category from selected categories if present
+      if (selectedCategories.includes(category.id)) {
+        const updatedCategories = selectedCategories.filter(id => id !== category.id);
+        setSelectedCategories(updatedCategories);
+        setProduct(prev => ({ ...prev, categories: updatedCategories }));
       }
-    } catch (error) {
-      toast.error(error.message);
+    } else {
+      toast.error(result.error);
     }
-  };
+  } catch (error) {
+    toast.error(error.message);
+  }
+};
 
   const openAddCategoryModal = () => {
     setEditingCategory(null);
     setCategoryName('');
     setShowCategoryModal(true);
   };
+
+  const handleCategoryChange = (categoryId) => {
+  setSelectedCategories(prev => {
+    const newCategories = prev.includes(categoryId)
+      ? prev.filter(id => id !== categoryId)
+      : [...prev, categoryId];
+    
+    setProduct(prevProduct => ({
+      ...prevProduct,
+      categories: newCategories
+    }));
+    
+    return newCategories;
+  });
+};
 
 // ── Badge Handlers ───────────────────────────────────────────
   const handleAddBadge = async (e) => {               // ← NEW
@@ -264,7 +292,7 @@ const AddProducts = () => {
     }
   };
 
-  const openAddBadgeModal = () => {                   // ← NEW
+  const openAddBadgeModal = () => {                   
     setEditingBadge(null);
     setBadgeName('');
     setShowBadgeModal(true);
@@ -386,69 +414,87 @@ const AddProducts = () => {
                       </div>
 
                       {/* Enhanced Category Section */}
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                          <label className="block text-sm font-medium text-[#2E2E2E]">Category</label>
-                          <button
-                            type="button"
-                            onClick={openAddCategoryModal}
-                            className="text-sm bg-[#6B2D2D] text-white px-3 py-1 rounded hover:bg-[#8B3A3A] transition-colors"
-                          >
-                            + Manage Categories
-                          </button>
-                        </div>
-                        
-                        <select
-                          name="category"
-                          value={product.category}
-                          onChange={handleInputChange}
-                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                          required
-                        >
-                          <option value="">Select Category</option>
-                          {categories
-                            .filter(cat => cat.isActive !== false)
-                            .map(category => (
-                              <option key={category.id} value={category.id}>
-                                {category.name}
-                              </option>
-                            ))
-                          }
-                        </select>
-
-                        {/* Categories List with Edit/Delete */}
-                        <div className="max-h-40 overflow-y-auto border rounded-lg p-2">
-                          <div className="grid grid-cols-1 gap-1">
-                            {categories
-                              .filter(cat => cat.isActive !== false)
-                              .map(category => (
-                                <div key={category.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
-                                  <span className="text-sm">{category.name}</span>
-                                  <div className="flex space-x-2">
-                                    <button
-                                      type="button"
-                                      onClick={() => handleEditCategory(category)}
-                                      className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
-                                    >
-                                      Edit
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => handleDeleteCategory(category)}
-                                      className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
-                                    >
-                                      Delete
-                                    </button>
-                                  </div>
-                                </div>
-                              ))
-                            }
-                            {categories.length === 0 && (
-                              <p className="text-sm text-gray-500 text-center p-2">No categories found. Add your first category!</p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                      {/* Enhanced Category Section - Multiple Selection */}
+<div className="space-y-4">
+  <div className="flex justify-between items-center">
+    <label className="block text-sm font-medium text-[#2E2E2E]">Categories (Select multiple)</label>
+    <button
+      type="button"
+      onClick={openAddCategoryModal}
+      className="text-sm bg-[#6B2D2D] text-white px-3 py-1 rounded hover:bg-[#8B3A3A] transition-colors"
+    >
+      + Manage Categories
+    </button>
+  </div>
+  
+  {/* Selected Categories Display */}
+  {selectedCategories.length > 0 && (
+    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg">
+      {selectedCategories.map(categoryId => {
+        const category = categories.find(cat => cat.id === categoryId);
+        return category ? (
+          <span key={categoryId} className="inline-flex items-center bg-[#6B2D2D] text-white px-3 py-1 rounded-full text-sm">
+            {category.name}
+            <button
+              type="button"
+              onClick={() => handleCategoryChange(categoryId)}
+              className="ml-2 hover:text-gray-200 focus:outline-none"
+            >
+              ×
+            </button>
+          </span>
+        ) : null;
+      })}
+    </div>
+  )}
+  
+  {/* Categories Grid with Checkboxes */}
+  <div className="border rounded-lg p-4 max-h-60 overflow-y-auto">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      {categories
+        .filter(cat => cat.isActive !== false)
+        .map(category => (
+          <label key={category.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+            <input
+              type="checkbox"
+              checked={selectedCategories.includes(category.id)}
+              onChange={() => handleCategoryChange(category.id)}
+              className="w-4 h-4 text-[#6B2D2D] border-[#D9A7A7] rounded focus:ring-[#6B2D2D]"
+            />
+            <span className="text-sm text-[#2E2E2E] flex-1">{category.name}</span>
+            <div className="flex space-x-1">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEditCategory(category);
+                }}
+                className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteCategory(category);
+                }}
+                className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
+              >
+                Delete
+              </button>
+            </div>
+          </label>
+        ))}
+    </div>
+    {categories.length === 0 && (
+      <p className="text-sm text-gray-500 text-center p-4">No categories found. Add your first category!</p>
+    )}
+  </div>
+  
+  {/* Help text */}
+  <p className="text-xs text-gray-500">Select multiple categories that apply to this product</p>
+</div>
 
                      <div className="space-y-4">
                         <div className="flex justify-between items-center">

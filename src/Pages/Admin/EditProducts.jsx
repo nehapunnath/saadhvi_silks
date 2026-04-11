@@ -15,9 +15,10 @@ const EditProducts = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [selectedOccasions, setSelectedOccasions] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState([]);
   const [newImages, setNewImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
-  
+
   // Track which existing images are marked for deletion
   const [imagesToDelete, setImagesToDelete] = useState([]);
 
@@ -39,39 +40,80 @@ const EditProducts = () => {
     'Wedding', 'Festival', 'Party', 'Casual', 'Office', 'Traditional',
   ];
 
+  // In the useEffect where you load the product data, replace the category parsing logic:
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // Load product
+        // Load categories first
+        await loadCategories();
+
+        // Then load product
         const res = await productApi.getProduct(id);
         const p = res.product;
 
+        console.log('Loaded product data:', p);
+
+        // Handle categories - support both old and new format
+        let productCategories = [];
+
+        if (p.categories && Array.isArray(p.categories) && p.categories.length > 0) {
+          // If it's already an array
+          productCategories = p.categories;
+        }
+        else if (p.category && p.category !== '') {
+          // If using old single category field
+          productCategories = [p.category];
+        }
+        else if (p.categories && typeof p.categories === 'string') {
+          // If it's a string, check if it contains commas (multiple IDs)
+          if (p.categories.includes(',')) {
+            // Split by comma and trim each ID
+            productCategories = p.categories.split(',').map(id => id.trim());
+          } else {
+            // Single ID as string
+            productCategories = [p.categories];
+          }
+        }
+
+        // CRITICAL FIX: If productCategories[0] is a string with commas, split it
+        if (productCategories.length === 1 && typeof productCategories[0] === 'string' && productCategories[0].includes(',')) {
+          productCategories = productCategories[0].split(',').map(id => id.trim());
+        }
+
+        console.log('Parsed product categories (after fix):', productCategories);
+
         setProduct(p);
         setSelectedOccasions(p.occasion || []);
+        setSelectedCategories(productCategories); // Now this will be a proper array
         setImagePreviews(p.images || []);
-        setImagesToDelete([]); // Reset deleted images tracking
+        setImagesToDelete([]);
 
-        // Load categories & badges
-        await Promise.all([
-          loadCategories(),
-          loadBadges()
-        ]);
+        // Load badges
+        await loadBadges();
+
       } catch (e) {
+        console.error('Failed to load product:', e);
         toast.error('Failed to load product: ' + e.message);
         navigate('/admin/products');
       } finally {
         setLoading(false);
       }
     };
+
     fetchData();
   }, [id, navigate]);
 
   const loadCategories = async () => {
     try {
       const result = await categoryApi.getCategories();
-      if (result.success) setCategories(result.categories || []);
+      if (result.success) {
+        const categoriesList = result.categories || [];
+        setCategories(categoriesList);
+        console.log('Loaded categories:', categoriesList);
+      }
     } catch (error) {
       console.error('Failed to load categories:', error);
       toast.error('Failed to load categories');
@@ -81,7 +123,10 @@ const EditProducts = () => {
   const loadBadges = async () => {
     try {
       const result = await badgeApi.getBadges();
-      if (result.success) setBadges(result.badges || []);
+      if (result.success) {
+        setBadges(result.badges || []);
+        console.log('Loaded badges:', result.badges);
+      }
     } catch (error) {
       console.error('Failed to load badges:', error);
       toast.error('Failed to load badges');
@@ -103,6 +148,35 @@ const EditProducts = () => {
     });
   };
 
+  const handleCategoryChange = (categoryId) => {
+    setSelectedCategories(prev => {
+      const newCategories = prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId];
+
+      console.log('Category toggled:', categoryId, 'New categories:', newCategories);
+
+      setProduct(prevProduct => ({
+        ...prevProduct,
+        categories: newCategories
+      }));
+
+      return newCategories;
+    });
+  };;
+
+  // Remove a specific category from selected list
+  const removeCategory = (categoryId) => {
+    setSelectedCategories(prev => {
+      const newCategories = prev.filter(id => id !== categoryId);
+      setProduct(prevProduct => ({
+        ...prevProduct,
+        categories: newCategories
+      }));
+      return newCategories;
+    });
+  };
+
   const handleImageChange = e => {
     const files = Array.from(e.target.files);
     const total = imagePreviews.length + files.length;
@@ -119,12 +193,10 @@ const EditProducts = () => {
     const originalCount = product?.images?.length || 0;
 
     if (idx < originalCount) {
-      // This is an existing image - mark it for deletion
       const imageUrlToDelete = imagePreviews[idx];
       setImagesToDelete(prev => [...prev, imageUrlToDelete]);
       setImagePreviews(prev => prev.filter((_, i) => i !== idx));
     } else {
-      // This is a new image (not yet uploaded)
       const newIdx = idx - originalCount;
       setNewImages(prev => prev.filter((_, i) => i !== newIdx));
       setImagePreviews(prev => prev.filter((_, i) => i !== idx));
@@ -137,8 +209,14 @@ const EditProducts = () => {
     setSaving(true);
 
     try {
-      // Pass imagesToDelete to the API so it can remove them from storage
-      await productApi.updateProduct(id, product, newImages, imagesToDelete);
+      const productToUpdate = {
+        ...product,
+        categories: selectedCategories
+      };
+
+      console.log('Submitting product with categories:', selectedCategories);
+
+      await productApi.updateProduct(id, productToUpdate, newImages, imagesToDelete);
       toast.success('Product updated successfully!');
       navigate('/admin/products');
     } catch (err) {
@@ -148,7 +226,6 @@ const EditProducts = () => {
     }
   };
 
-  // ... (rest of your category and badge handlers remain the same)
   // Category Handlers
   const handleAddCategory = async (e) => {
     e.preventDefault();
@@ -166,7 +243,7 @@ const EditProducts = () => {
         await categoryApi.addCategory({ name: categoryName });
         toast.success('Category added successfully!');
       }
-      
+
       setShowCategoryModal(false);
       setCategoryName('');
       setEditingCategory(null);
@@ -192,8 +269,12 @@ const EditProducts = () => {
       if (result.success) {
         toast.success('Category deleted successfully!');
         await loadCategories();
-        if (product.category === category.id) {
-          setProduct(prev => ({ ...prev, category: '' }));
+
+        // Remove the deleted category from selected categories if present
+        if (selectedCategories.includes(category.id)) {
+          const updatedCategories = selectedCategories.filter(catId => catId !== category.id);
+          setSelectedCategories(updatedCategories);
+          setProduct(prev => ({ ...prev, categories: updatedCategories }));
         }
       } else {
         toast.error(result.error);
@@ -202,6 +283,8 @@ const EditProducts = () => {
       toast.error(error.message);
     }
   };
+
+
 
   const openAddCategoryModal = () => {
     setEditingCategory(null);
@@ -226,7 +309,7 @@ const EditProducts = () => {
         await badgeApi.addBadge({ name: badgeName.trim() });
         toast.success('Badge added successfully!');
       }
-      
+
       setShowBadgeModal(false);
       setBadgeName('');
       setEditingBadge(null);
@@ -275,6 +358,12 @@ const EditProducts = () => {
       currency: 'INR',
       maximumFractionDigits: 0,
     }).format(p);
+
+  // Helper function to get category name by ID
+  const getCategoryName = (categoryId) => {
+    const category = categories.find(cat => cat.id === categoryId);
+    return category?.name || `Unknown (${categoryId})`;
+  };
 
   if (loading) {
     return (
@@ -408,10 +497,12 @@ const EditProducts = () => {
                         )}
                       </div>
 
-                      {/* Category Section */}
+                      {/* Categories Section - Fixed to show names */}
+                      {/* Categories Section - Shows names with X buttons */}
+                      {/* Categories Section - Fixed to show proper checkbox ticks */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
-                          <label className="block text-sm font-medium text-[#2E2E2E]">Category *</label>
+                          <label className="block text-sm font-medium text-[#2E2E2E]">Categories (Select multiple)</label>
                           <button
                             type="button"
                             onClick={openAddCategoryModal}
@@ -421,54 +512,53 @@ const EditProducts = () => {
                           </button>
                         </div>
 
-                        <select
-                          name="category"
-                          value={product.category || ''}
-                          onChange={handleInputChange}
-                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
-                          required
-                        >
-                          <option value="">Select Category</option>
-                          {categories
-                            .filter(cat => cat.isActive !== false)
-                            .map(cat => (
-                              <option key={cat.id} value={cat.id}>
-                                {cat.name}
-                              </option>
-                            ))}
-                        </select>
-
-                        <div className="max-h-40 overflow-y-auto border rounded-lg p-2">
-                          {categories
-                            .filter(cat => cat.isActive !== false)
-                            .map(cat => (
-                              <div key={cat.id} className="flex justify-between items-center p-2 hover:bg-gray-50 rounded">
-                                <span className="text-sm">{cat.name}</span>
-                                <div className="flex space-x-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleEditCategory(cat)}
-                                    className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => handleDeleteCategory(cat)}
-                                    className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          {categories.length === 0 && (
-                            <p className="text-sm text-gray-500 text-center p-2">No categories yet</p>
+                        {/* Categories Grid with Checkboxes - This should show the ticks */}
+                        <div className="border rounded-lg p-4 max-h-60 overflow-y-auto">
+                          {categories.length === 0 ? (
+                            <p className="text-sm text-gray-500 text-center p-4">No categories found. Add your first category!</p>
+                          ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                              {categories
+                                .filter(cat => cat.isActive !== false)
+                                .map(category => (
+                                  <label key={category.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedCategories.includes(category.id)}
+                                      onChange={() => handleCategoryChange(category.id)}
+                                      className="w-4 h-4 text-[#6B2D2D] border-[#D9A7A7] rounded focus:ring-[#6B2D2D]"
+                                    />
+                                    <span className="text-sm text-[#2E2E2E] flex-1">{category.name}</span>
+                                    <div className="flex space-x-1">
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditCategory(category);
+                                        }}
+                                        className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
+                                      >
+                                        Edit
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteCategory(category);
+                                        }}
+                                        className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </label>
+                                ))}
+                            </div>
                           )}
                         </div>
+                        <p className="text-xs text-gray-500">Select multiple categories that apply to this product</p>
                       </div>
-
-                      {/* Dynamic Badge Section */}
+                      {/* Badge Section */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <label className="block text-sm font-medium text-[#2E2E2E]">Badge</label>

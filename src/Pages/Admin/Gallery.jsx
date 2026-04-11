@@ -3,11 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import Sidebar from '../../Components/SideBar';
 import GalleryApi from '../../Services/GalleryApi';
+import categoryApi from '../../Services/CategoryApi';
 
 const Gallery = () => {
   const [carouselSlides, setCarouselSlides] = useState([]);
   const [mainGalleryImage, setMainGalleryImage] = useState(null);
   const [collections, setCollections] = useState([]);
+  const [categories, setCategories] = useState([]); // Add categories state
   const [loading, setLoading] = useState(true);
   const [loadingCollections, setLoadingCollections] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -39,7 +41,8 @@ const Gallery = () => {
     description: '',
     items: '',
     displayOrder: '',
-    isActive: true
+    isActive: true,
+    categoryId: '' // Add categoryId field
   });
 
   // Fetch all data on mount
@@ -53,7 +56,8 @@ const Gallery = () => {
       await Promise.all([
         fetchSlides(),
         fetchMainGalleryImage(),
-        fetchCollections()
+        fetchCollections(),
+        fetchCategories() // Fetch categories
       ]);
     } catch (err) {
       toast.error('Failed to load data');
@@ -90,6 +94,16 @@ const Gallery = () => {
       console.error('Collection fetch error:', err);
     } finally {
       setLoadingCollections(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const data = await categoryApi.getCategories();
+      setCategories(data.categories || []);
+    } catch (err) {
+      console.error('Category fetch error:', err);
+      toast.error('Failed to fetch categories');
     }
   };
 
@@ -169,24 +183,31 @@ const Gallery = () => {
   };
 
   // Add new collection
-  const handleAddCollection = async () => {
-    if (!selectedCollectionFile || !newCollection.name) {
-      toast.error('Please fill name and upload an image');
-      return;
-    }
+  // In CarouselGallery.js - handleAddCollection
+const handleAddCollection = async () => {
+  if (!selectedCollectionFile || !newCollection.name) {
+    toast.error('Please fill name and upload an image');
+    return;
+  }
 
-    setUploadingCollection(true);
-    try {
-      await GalleryApi.addCollection(newCollection, selectedCollectionFile);
-      toast.success('Collection added successfully!');
-      fetchCollections();
-      resetCollectionForm();
-    } catch (err) {
-      toast.error(err.message);
-    } finally {
-      setUploadingCollection(false);
-    }
-  };
+  setUploadingCollection(true);
+  try {
+    // Ensure categoryId is properly set (not undefined)
+    const collectionToSave = {
+      ...newCollection,
+      categoryId: newCollection.categoryId && newCollection.categoryId !== '' ? newCollection.categoryId : null
+    };
+    
+    await GalleryApi.addCollection(collectionToSave, selectedCollectionFile);
+    toast.success('Collection added successfully!');
+    fetchCollections();
+    resetCollectionForm();
+  } catch (err) {
+    toast.error(err.message);
+  } finally {
+    setUploadingCollection(false);
+  }
+};
 
   // Edit collection
   const handleEditCollection = (collection) => {
@@ -196,7 +217,8 @@ const Gallery = () => {
       description: collection.description || '',
       items: collection.items || '',
       displayOrder: collection.displayOrder || '',
-      isActive: collection.isActive !== false
+      isActive: collection.isActive !== false,
+      categoryId: collection.categoryId || '' // Include categoryId
     });
     setCollectionImagePreview(collection.image);
     setSelectedCollectionFile(null);
@@ -218,7 +240,7 @@ const Gallery = () => {
       setSelectedCollection(null);
       setSelectedCollectionFile(null);
       setCollectionImagePreview('');
-      setNewCollection({ name: '', description: '', items: '', displayOrder: '', isActive: true });
+      setNewCollection({ name: '', description: '', items: '', displayOrder: '', isActive: true, categoryId: '' });
     } catch (err) {
       toast.error(err.message);
     }
@@ -357,7 +379,7 @@ const Gallery = () => {
   };
 
   const resetCollectionForm = () => {
-    setNewCollection({ name: '', description: '', items: '', displayOrder: '', isActive: true });
+    setNewCollection({ name: '', description: '', items: '', displayOrder: '', isActive: true, categoryId: '' });
     setCollectionImagePreview('');
     setSelectedCollectionFile(null);
     setShowCollectionModal(false);
@@ -550,9 +572,16 @@ const Gallery = () => {
                             <h3 className="font-semibold text-gray-800 text-lg mb-2">{collection.name}</h3>
                             <p className="text-gray-600 text-sm mb-3 line-clamp-2">{collection.description}</p>
                             <div className="flex items-center justify-between text-sm">
-                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
-                                {collection.items}
-                              </span>
+                              <div className="space-y-1">
+                                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">
+                                  {collection.items}
+                                </span>
+                                {collection.categoryId && (
+                                  <div className="text-xs text-gray-500">
+                                    Category: {categories.find(c => c.id === collection.categoryId)?.name || 'Unknown'}
+                                  </div>
+                                )}
+                              </div>
                               <div className="flex space-x-2">
                                 <button
                                   onClick={() => moveCollection(collection.id, 'up')}
@@ -905,7 +934,7 @@ const Gallery = () => {
                 </div>
               )}
 
-              {/* Collection Upload Modal */}
+              {/* Collection Upload Modal with Category Dropdown */}
               {showCollectionModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                   <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -972,6 +1001,30 @@ const Gallery = () => {
                             </div>
                           </div>
                         </div>
+
+                        {/* Category Dropdown */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Link to Category
+                          </label>
+                          <select
+                            value={newCollection.categoryId}
+                            onChange={(e) => setNewCollection(prev => ({ ...prev, categoryId: e.target.value }))}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent bg-white"
+                          >
+                            <option value="">-- Select a category --</option>
+                            {categories
+                              .filter(cat => cat.isActive !== false)
+                              .map(category => (
+                                <option key={category.id} value={category.id}>
+                                  {category.name}
+                                </option>
+                              ))}
+                          </select>
+                          <p className="text-xs text-gray-500 mt-1">
+                            When clicked, this collection will show products from the selected category
+                          </p>
+                        </div>
                       </div>
 
                       <div className="space-y-4">
@@ -1033,7 +1086,7 @@ const Gallery = () => {
                 </div>
               )}
 
-              {/* Edit Collection Modal */}
+              {/* Edit Collection Modal with Category Dropdown */}
               {showEditCollectionModal && selectedCollection && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                   <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-2xl">
@@ -1096,6 +1149,30 @@ const Gallery = () => {
                             </div>
                           </div>
                         </div>
+
+                        {/* Category Dropdown in Edit Modal */}
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Link to Category 
+                          </label>
+                          <select
+                            value={newCollection.categoryId}
+                            onChange={(e) => setNewCollection(prev => ({ ...prev, categoryId: e.target.value }))}
+                            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent bg-white"
+                          >
+                            <option value="">-- Select a category --</option>
+                            {categories
+                              .filter(cat => cat.isActive !== false)
+                              .map(category => (
+                                <option key={category.id} value={category.id}>
+                                  {category.name}
+                                </option>
+                              ))}
+                          </select>
+                          <p className="text-xs text-gray-500 mt-1">
+                            When clicked, this collection will show products from the selected category
+                          </p>
+                        </div>
                       </div>
 
                       <div className="space-y-4">
@@ -1117,7 +1194,7 @@ const Gallery = () => {
                           setSelectedCollection(null);
                           setSelectedCollectionFile(null);
                           setCollectionImagePreview('');
-                          setNewCollection({ name: '', description: '', items: '', displayOrder: '', isActive: true });
+                          setNewCollection({ name: '', description: '', items: '', displayOrder: '', isActive: true, categoryId: '' });
                         }}
                         className="px-6 py-2 text-gray-600 hover:text-gray-800"
                       >

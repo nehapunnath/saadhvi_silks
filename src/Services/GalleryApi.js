@@ -190,7 +190,6 @@ deleteMainGalleryImage: async () => {
   return data;
 },
 
-// Public method for frontend
 getPublicMainGalleryImage: async () => {
   const response = await fetch(`${BASE_URL}/main-gallery-image`, {
     method: 'GET',
@@ -200,28 +199,29 @@ getPublicMainGalleryImage: async () => {
   if (!response.ok) throw new Error(data.error || 'Failed to load main gallery image');
   return data;
 },
+
 addCollection: async (collectionData, imageFile) => {
   const token = authApi.getToken();
   const formData = new FormData();
-
   formData.append('name', collectionData.name);
-  if (collectionData.description) formData.append('description', collectionData.description);
-  if (collectionData.items) formData.append('items', collectionData.items);
-  if (collectionData.displayOrder) formData.append('displayOrder', collectionData.displayOrder);
+  formData.append('description', collectionData.description || '');
+  formData.append('items', collectionData.items || '');
+  formData.append('displayOrder', collectionData.displayOrder || '');
   formData.append('isActive', collectionData.isActive);
-  if (imageFile) {
-      const compressed = await compressImage(imageFile);
-      formData.append('image', compressed);
-    }
+  if (collectionData.categoryId) {
+    formData.append('categoryId', collectionData.categoryId);
+  }
+  formData.append('image', imageFile);
 
   const response = await fetch(`${BASE_URL}/admin/collections`, {
     method: 'POST',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: formData,
+    headers: { 
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
   });
-
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Failed to add collection');
+  if (!response.ok) throw new Error(data.error);
   return data;
 },
 
@@ -253,30 +253,33 @@ getCollection: async (id) => {
   return data;
 },
 
-updateCollection: async (id, collectionData, imageFile = null) => {
+updateCollection: async (id, collectionData, imageFile) => {
   const token = authApi.getToken();
   const formData = new FormData();
-
   formData.append('name', collectionData.name);
-  if (collectionData.description) formData.append('description', collectionData.description);
-  if (collectionData.items) formData.append('items', collectionData.items);
-  if (collectionData.displayOrder) formData.append('displayOrder', collectionData.displayOrder);
+  formData.append('description', collectionData.description || '');
+  formData.append('items', collectionData.items || '');
+  formData.append('displayOrder', collectionData.displayOrder || '');
   formData.append('isActive', collectionData.isActive);
- if (imageFile) {
-      const compressed = await compressImage(imageFile);
-      formData.append('image', compressed);
-    }
+  if (collectionData.categoryId) {
+    formData.append('categoryId', collectionData.categoryId);
+  }
+  if (imageFile) {
+    formData.append('image', imageFile);
+  }
 
   const response = await fetch(`${BASE_URL}/admin/collections/${id}`, {
     method: 'PUT',
-    headers: { 'Authorization': `Bearer ${token}` },
-    body: formData,
+    headers: { 
+      'Authorization': `Bearer ${token}`
+    },
+    body: formData
   });
-
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Failed to update collection');
+  if (!response.ok) throw new Error(data.error);
   return data;
 },
+
 
 deleteCollection: async (id) => {
   const token = authApi.getToken();
@@ -310,10 +313,12 @@ reorderCollections: async (orderMap) => {
 getPublicCollections: async () => {
   const response = await fetch(`${BASE_URL}/collections`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json'
+    }
   });
   const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Failed to load collections');
+  if (!response.ok) throw new Error(data.error);
   return data;
 },
 

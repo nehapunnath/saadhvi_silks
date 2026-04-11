@@ -14,7 +14,10 @@ const AdminProducts = () => {
   const [loading, setLoading] = useState(true);
   const [filterCategory, setFilterCategory] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
-  const [showHidden, setShowHidden] = useState(false); // Toggle to show/hide hidden products
+  const [showHidden, setShowHidden] = useState(false);
+  const [selectedProducts, setSelectedProducts] = useState(new Set());
+  const [showHomepageCount, setShowHomepageCount] = useState(3);
+  const [isSaving, setIsSaving] = useState(false);
 
   // Offer Modal States
   const [offerModalOpen, setOfferModalOpen] = useState(false);
@@ -24,7 +27,63 @@ const AdminProducts = () => {
 
   useEffect(() => {
     fetchData();
+    loadHomepageSettings();
   }, []);
+
+  const loadHomepageSettings = async () => {
+    try {
+      const savedSettings = localStorage.getItem('homepage_products');
+      if (savedSettings) {
+        const settings = JSON.parse(savedSettings);
+        setSelectedProducts(new Set(settings.selectedProductIds || []));
+        setShowHomepageCount(settings.count || 3);
+      }
+    } catch (error) {
+      console.error('Error loading homepage settings:', error);
+    }
+  };
+
+  const saveHomepageSettings = async () => {
+    setIsSaving(true);
+    try {
+      const settings = {
+        selectedProductIds: Array.from(selectedProducts),
+        count: showHomepageCount,
+        updatedAt: new Date().toISOString()
+      };
+      
+      localStorage.setItem('homepage_products', JSON.stringify(settings));
+      
+      // You can also save to backend if needed
+      // await productApi.updateHomepageProducts(settings);
+      
+      toast.success(`Selected ${selectedProducts.size} products for homepage!`);
+    } catch (error) {
+      toast.error('Failed to save homepage settings');
+      console.error(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Helper function to normalize categories (convert string to array)
+  const normalizeCategories = (categoriesInput) => {
+    if (!categoriesInput) return [];
+    
+    if (Array.isArray(categoriesInput)) {
+      return categoriesInput;
+    }
+    
+    if (typeof categoriesInput === 'string') {
+      if (categoriesInput.includes(',')) {
+        return categoriesInput.split(',').map(id => id.trim());
+      } else {
+        return [categoriesInput.trim()];
+      }
+    }
+    
+    return [];
+  };
 
   const fetchData = async () => {
     try {
@@ -36,55 +95,110 @@ const AdminProducts = () => {
         badgeApi.getBadges()
       ]);
 
-      // Separate visible and hidden products
+      let categoriesList = [];
+      if (categoriesResult.success) {
+        categoriesList = categoriesResult.categories || [];
+        console.log('Categories loaded:', categoriesList.length);
+      } else {
+        console.error('Failed to load categories:', categoriesResult.error);
+      }
+      
+      setCategories(categoriesList);
+
       const allProducts = productsResult.products || [];
       
-      // Sort products: first by visibility, then by displayOrder for visible ones, then by date for hidden ones
-      const sortedProducts = [...allProducts].sort((a, b) => {
-        // First, separate by visibility (visible products come first)
+      const normalizedProducts = allProducts.map(product => {
+        const normalizedProduct = { ...product };
+        
+        let normalizedCategories = [];
+        
+        if (product.categories) {
+          normalizedCategories = normalizeCategories(product.categories);
+        } else if (product.category) {
+          normalizedCategories = normalizeCategories(product.category);
+        }
+        
+        if (normalizedCategories.length === 1 && typeof normalizedCategories[0] === 'string' && normalizedCategories[0].includes(',')) {
+          normalizedCategories = normalizedCategories[0].split(',').map(id => id.trim());
+        }
+        
+        normalizedCategories = normalizedCategories.filter(id => id && id.trim());
+        
+        normalizedProduct.categories = normalizedCategories;
+        return normalizedProduct;
+      });
+      
+      const sortedProducts = [...normalizedProducts].sort((a, b) => {
         const aVisible = a.isVisible !== false;
         const bVisible = b.isVisible !== false;
         
         if (aVisible && !bVisible) return -1;
         if (!aVisible && bVisible) return 1;
         
-        // If both are visible, sort by displayOrder
         if (aVisible && bVisible) {
-          // If both have displayOrder, use it
-          if (a.displayOrder !== undefined && b.displayOrder !== undefined) {
-            return a.displayOrder - b.displayOrder;
-          }
-          // If only one has displayOrder, the one with order comes first
-          if (a.displayOrder !== undefined) return -1;
-          if (b.displayOrder !== undefined) return 1;
+          const aOrder = a.displayOrder ?? 999999;
+          const bOrder = b.displayOrder ?? 999999;
+          return aOrder - bOrder;
         }
         
-        // For hidden products or products without displayOrder, sort by createdAt or id (newest first)
-        const aDate = a.createdAt || a.id || 0;
-        const bDate = b.createdAt || b.id || 0;
-        return bDate - aDate; // Newest first
+        const aTime = a.createdAt || a.key || 0;
+        const bTime = b.createdAt || b.key || 0;
+        return bTime - aTime;
       });
 
       setProducts(sortedProducts);
-
-      if (categoriesResult.success) {
-        setCategories(categoriesResult.categories || []);
-      }
-
       setBadges(badgesResult.badges || []);
-
+      
       toast.success(`Loaded ${productsResult.products?.length || 0} products`);
     } catch (error) {
+      console.error('Fetch data error:', error);
       toast.error(error.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSelectProduct = (productId) => {
+    setSelectedProducts(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(productId)) {
+        newSet.delete(productId);
+      } else {
+        newSet.add(productId);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    const visibleProducts = filteredProducts.filter(p => p.isVisible !== false);
+    if (selectedProducts.size === visibleProducts.length) {
+      setSelectedProducts(new Set());
+    } else {
+      setSelectedProducts(new Set(visibleProducts.map(p => p.key)));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedProducts(new Set());
+  };
+
   const getCategoryName = (categoryId) => {
     if (!categoryId) return 'N/A';
-    const cat = categories.find(c => c.id === categoryId);
-    return cat ? cat.name : 'N/A';
+    
+    let cleanId = String(categoryId).trim();
+    
+    if (cleanId.includes(',')) {
+      cleanId = cleanId.split(',')[0].trim();
+    }
+    
+    const category = categories.find(c => String(c.id) === cleanId);
+    
+    if (category) {
+      return category.name;
+    }
+    
+    return cleanId.substring(0, 8);
   };
 
   const getBadgeName = (badgeId) => {
@@ -99,6 +213,11 @@ const AdminProducts = () => {
     try {
       await productApi.deleteProduct(id);
       setProducts(prev => prev.filter(p => p.key !== id));
+      setSelectedProducts(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(id);
+        return newSet;
+      });
       toast.success('Product deleted successfully!');
     } catch (error) {
       toast.error('Delete failed: ' + error.message);
@@ -122,79 +241,69 @@ const AdminProducts = () => {
     }
   };
 
-// Reorder Products - Only for visible products
-const moveProduct = async (productId, direction) => {
-  setProducts((currentProducts) => {
-    // Work on fresh state copy
-    const visibleProducts = currentProducts
-      .filter(p => p.isVisible !== false)
-      .map(p => ({ ...p })); // deep copy visible ones
+  const moveProduct = async (productId, direction) => {
+    setProducts((currentProducts) => {
+      const visibleProducts = currentProducts
+        .filter(p => p.isVisible !== false)
+        .map(p => ({ ...p }));
 
-    const currentIndex = visibleProducts.findIndex(p => p.key === productId);
-    if (currentIndex === -1) return currentProducts; // safety
+      const currentIndex = visibleProducts.findIndex(p => p.key === productId);
+      if (currentIndex === -1) return currentProducts;
 
-    const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
-    if (swapIndex < 0 || swapIndex >= visibleProducts.length) {
-      return currentProducts;
-    }
-
-    // Swap
-    const reorderedVisible = [...visibleProducts];
-    [reorderedVisible[currentIndex], reorderedVisible[swapIndex]] = 
-      [reorderedVisible[swapIndex], reorderedVisible[currentIndex]];
-
-    // Assign new orders (1-based)
-    const orderMap = {};
-    reorderedVisible.forEach((p, idx) => {
-      orderMap[p.key] = idx + 1;
-      p.displayOrder = idx + 1; // mutate copy
-    });
-
-    // Build new full products array
-    const newProducts = currentProducts.map(p => {
-      if (p.isVisible !== false) {
-        const updated = reorderedVisible.find(r => r.key === p.key);
-        return updated ? { ...updated } : p;
-      }
-      return p;
-    });
-
-    // Re-apply stable sort (same as fetchData)
-    newProducts.sort((a, b) => {
-      const aVis = a.isVisible !== false;
-      const bVis = b.isVisible !== false;
-
-      if (aVis !== bVis) return aVis ? -1 : 1;
-
-      if (aVis) {
-        const aOrder = a.displayOrder ?? 999999;
-        const bOrder = b.displayOrder ?? 999999;
-        return aOrder - bOrder;
+      const swapIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
+      if (swapIndex < 0 || swapIndex >= visibleProducts.length) {
+        return currentProducts;
       }
 
-      // hidden products – keep original order or sort by createdAt
-      const aTime = a.createdAt || a.key || 0;
-      const bTime = b.createdAt || b.key || 0;
-      return bTime - aTime; // newest first for hidden
-    });
+      const reorderedVisible = [...visibleProducts];
+      [reorderedVisible[currentIndex], reorderedVisible[swapIndex]] = 
+        [reorderedVisible[swapIndex], reorderedVisible[currentIndex]];
 
-    // Fire & forget API call (no await inside setState)
-    productApi.reorderProducts(orderMap)
-      .then(() => {
-        toast.success('Order saved');
-      })
-      .catch(err => {
-        toast.error('Failed to save order');
-        console.error(err);
-        // Revert only on real failure
-        fetchData();
+      const orderMap = {};
+      reorderedVisible.forEach((p, idx) => {
+        orderMap[p.key] = idx + 1;
+        p.displayOrder = idx + 1;
       });
 
-    // Return immediately – optimistic UI
-    return newProducts;
-  });
-};
-  // Offer Handlers
+      const newProducts = currentProducts.map(p => {
+        if (p.isVisible !== false) {
+          const updated = reorderedVisible.find(r => r.key === p.key);
+          return updated ? { ...updated } : p;
+        }
+        return p;
+      });
+
+      newProducts.sort((a, b) => {
+        const aVis = a.isVisible !== false;
+        const bVis = b.isVisible !== false;
+
+        if (aVis !== bVis) return aVis ? -1 : 1;
+
+        if (aVis) {
+          const aOrder = a.displayOrder ?? 999999;
+          const bOrder = b.displayOrder ?? 999999;
+          return aOrder - bOrder;
+        }
+
+        const aTime = a.createdAt || a.key || 0;
+        const bTime = b.createdAt || b.key || 0;
+        return bTime - aTime;
+      });
+
+      productApi.reorderProducts(orderMap)
+        .then(() => {
+          toast.success('Order saved');
+        })
+        .catch(err => {
+          toast.error('Failed to save order');
+          console.error(err);
+          fetchData();
+        });
+
+      return newProducts;
+    });
+  };
+
   const openOfferModal = (productId, currentOffer = null) => {
     setSelectedProductId(productId);
     setOfferName(currentOffer?.offerName || 'Buy 1 Get 1 Free');
@@ -266,12 +375,10 @@ const moveProduct = async (productId, direction) => {
     try {
       await productApi.toggleProductVisibility(product.key, next);
 
-      // Update the product in the array
       const updatedProducts = products.map(p =>
         p.key === product.key ? { ...p, isVisible: next } : p
       );
 
-      // Re-sort after visibility change
       const resortedProducts = [...updatedProducts].sort((a, b) => {
         const aVisible = a.isVisible !== false;
         const bVisible = b.isVisible !== false;
@@ -294,11 +401,15 @@ const moveProduct = async (productId, direction) => {
     }
   };
 
-  // Filter products based on category, search, and visibility toggle
   const filteredProducts = products.filter(product => {
-    const matchesCategory = filterCategory === 'All' || product.category === filterCategory;
+    let matchesCategory = filterCategory === 'All';
+    if (!matchesCategory && product.categories && product.categories.length > 0) {
+      matchesCategory = product.categories.includes(filterCategory);
+    }
+    
     const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesVisibility = showHidden ? true : product.isVisible !== false;
+    
     return matchesCategory && matchesSearch && matchesVisibility;
   });
 
@@ -351,6 +462,55 @@ const moveProduct = async (productId, direction) => {
                   </svg>
                   <span>Add Product</span>
                 </Link>
+              </div>
+
+              {/* Homepage Selection Panel */}
+              <div className="bg-gradient-to-r from-[#6B2D2D] to-[#8B3A3A] rounded-xl shadow-lg p-6 text-white">
+                <div className="flex items-center justify-between flex-wrap gap-4">
+                  <div>
+                    <h2 className="text-xl font-bold mb-1">Homepage Latest Collection</h2>
+                    <p className="text-white/80 text-sm">
+                      Select products to showcase in the "Latest Collection" section on the homepage
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="bg-white/20 rounded-lg px-4 py-2">
+                      <span className="text-2xl font-bold">{selectedProducts.size}</span>
+                      <span className="ml-1 text-sm">selected</span>
+                    </div>
+                    <button
+                      onClick={handleClearSelection}
+                      className="px-4 py-2 bg-white/20 rounded-lg hover:bg-white/30 transition"
+                    >
+                      Clear All
+                    </button>
+                    <button
+                      onClick={saveHomepageSettings}
+                      disabled={isSaving}
+                      className="px-6 py-2 bg-white text-[#6B2D2D] rounded-lg font-semibold hover:bg-gray-100 transition disabled:opacity-50"
+                    >
+                      {isSaving ? 'Saving...' : 'Save to Homepage'}
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Display count selector */}
+                <div className="mt-4 flex items-center gap-4">
+                  <label className="text-sm">Show on homepage:</label>
+                  <select
+                    value={showHomepageCount}
+                    onChange={(e) => setShowHomepageCount(Number(e.target.value))}
+                    className="px-3 py-1 rounded-lg text-gray-800 bg-white"
+                  >
+                    <option value={2}>2 Products</option>
+                    <option value={3}>3 Products</option>
+                    <option value={4}>4 Products</option>
+                    <option value={6}>6 Products</option>
+                  </select>
+                  <p className="text-xs text-white/70">
+                    First {showHomepageCount} selected products will appear (ordered by display order)
+                  </p>
+                </div>
               </div>
 
               {/* Search + Stats + Category Filter */}
@@ -424,12 +584,13 @@ const moveProduct = async (productId, direction) => {
                 </div>
               </div>
 
-              {/* Products Table with Reordering */}
+              {/* Products Table with Checkboxes */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-max">
                     <thead className="bg-gray-50">
                       <tr>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest <br/>selection</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -445,13 +606,24 @@ const moveProduct = async (productId, direction) => {
                         const visibleIndex = products
                           .filter(p => p.isVisible !== false)
                           .findIndex(p => p.key === product.key);
+                        const isSelected = selectedProducts.has(product.key);
                         
                         return (
-                          <tr key={product.key} className={`hover:bg-gray-50 ${!isVisible ? 'bg-gray-50 opacity-75' : ''}`}>
+                          <tr key={product.key} className={`hover:bg-gray-50 ${!isVisible ? 'bg-gray-50 opacity-75' : ''} ${isSelected ? 'bg-green-50' : ''}`}>
+                            <td className="px-6 py-4 whitespace-nowrap">
+                              {isVisible && (
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleSelectProduct(product.key)}
+                                  className="w-5 h-5 text-[#6B2D2D] border-gray-300 rounded focus:ring-[#6B2D2D]"
+                                />
+                              )}
+                            </td>
                             <td className="px-6 py-4 whitespace-nowrap">
                               {isVisible ? (
                                 <div className="flex items-center space-x-2">
-                                  <span className="bg-[#6B2D2D] text-white text-sm font-medium px-3 py-1 rounded-full">
+                                  <span className={`text-sm font-medium px-3 py-1 rounded-full ${isSelected ? 'bg-green-600 text-white' : 'bg-[#6B2D2D] text-white'}`}>
                                     {visibleIndex + 1}
                                   </span>
                                   <div className="flex flex-col space-y-1">
@@ -493,19 +665,22 @@ const moveProduct = async (productId, direction) => {
                                 <div className="min-w-0 flex-1">
                                   <div className="text-sm font-medium text-gray-900 truncate max-w-xs">
                                     {product.name}
+                                    {isSelected && (
+                                      <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+                                        Homepage
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="text-sm text-gray-500 truncate max-w-xs">
                                     {product.description?.substring(0, 30)}{product.description?.length > 30 ? '...' : ''}
                                   </div>
 
-                                  {/* Dynamic Badge Display */}
                                   {product.badge && (
                                     <span className="inline-block bg-[#800020] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1">
                                       {getBadgeName(product.badge) || product.badge}
                                     </span>
                                   )}
                                   
-                                  {/* Hidden Badge */}
                                   {!isVisible && (
                                     <span className="inline-block bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1 ml-1">
                                       Hidden
@@ -515,10 +690,26 @@ const moveProduct = async (productId, direction) => {
                               </div>
                             </td>
 
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                                {getCategoryName(product.category)}
-                              </span>
+                            <td className="px-6 py-4">
+                              <div className="flex flex-wrap gap-1">
+                                {product.categories && product.categories.length > 0 ? (
+                                  product.categories.map((categoryId, idx) => {
+                                    const categoryName = getCategoryName(categoryId);
+                                    return (
+                                      <span
+                                        key={idx}
+                                        className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800 whitespace-nowrap"
+                                      >
+                                        {categoryName}
+                                      </span>
+                                    );
+                                  })
+                                ) : (
+                                  <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-500">
+                                    No Category
+                                  </span>
+                                )}
+                              </div>
                             </td>
 
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
@@ -532,7 +723,6 @@ const moveProduct = async (productId, direction) => {
                               </div>
                             </td>
 
-                            {/* Offer Column */}
                             <td className="px-6 py-4 whitespace-nowrap">
                               <div className="flex items-center space-x-4">
                                 <button
