@@ -567,7 +567,7 @@ const [budgetLoading, setBudgetLoading] = useState(false);
 <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
   <div className="container mx-auto px-4">
     <div className="text-center mb-16">
-      <h2 className="text-3xl md:text-4xl font-cinzel font-bold text-[#1C2526] mb-4 relative inline-block">
+      <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
         Shop by Budget
         <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
       </h2>
@@ -640,14 +640,14 @@ const [budgetLoading, setBudgetLoading] = useState(false);
                 </button>
 
                 {/* Budget Badge */}
-                <div className="absolute top-3 left-3 z-20">
+                {/* <div className="absolute top-3 left-3 z-20">
                   <span className="bg-[#800020] text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
                     {displayPrice <= 2000 && "Budget Friendly"}
                     {displayPrice > 2000 && displayPrice <= 5000 && "Value Pick"}
                     {displayPrice > 5000 && displayPrice <= 10000 && "Premium"}
                     {displayPrice > 10000 && "Luxury"}
                   </span>
-                </div>
+                </div> */}
 
                 {/* Product Image */}
                 <div className="h-64 overflow-hidden">
