@@ -46,7 +46,7 @@ const Home = () => {
   const [mainImageError, setMainImageError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [homepageProducts, setHomepageProducts] = useState([]);
-  const [selectedBudget, setSelectedBudget] = useState('all');
+  const [selectedBudget, setSelectedBudget] = useState('under2000')
 const [budgetProducts, setBudgetProducts] = useState([]);
 const [budgetLoading, setBudgetLoading] = useState(false);
 
@@ -181,56 +181,62 @@ const [budgetLoading, setBudgetLoading] = useState(false);
   }, [carouselSlides.length, isLoading]);
 
   useEffect(() => {
-  const filterProductsByBudget = () => {
+  const loadBudgetProducts = () => {
     setBudgetLoading(true);
     
-    // Get budget range
-    let min = 0;
-    let max = Infinity;
-    
-    switch(selectedBudget) {
-      case 'under2000':
-        min = 0;
-        max = 2000;
-        break;
-      case '2000-5000':
-        min = 2000;
-        max = 5000;
-        break;
-      case '5000-10000':
-        min = 5000;
-        max = 10000;
-        break;
-      case 'premium':
-        min = 10000;
-        max = Infinity;
-        break;
-      default:
-        min = 0;
-        max = Infinity;
+    try {
+      const savedBudget = localStorage.getItem('budget_selections');
+      if (savedBudget) {
+        const budget = JSON.parse(savedBudget);
+        let selectedProductIds = [];
+        
+        // Get product IDs based on selected budget (default is 'under2000')
+        switch(selectedBudget) {
+          case 'under2000':
+            selectedProductIds = budget.under2000 || [];
+            break;
+          case 'mid2000to5000':
+            selectedProductIds = budget.mid2000to5000 || [];
+            break;
+          case 'mid5000to10000':
+            selectedProductIds = budget.mid5000to10000 || [];
+            break;
+          case 'premium':
+            selectedProductIds = budget.premium || [];
+            break;
+          default:
+            selectedProductIds = budget.under2000 || []; // Default to under2000
+        }
+        
+        // Get products by IDs
+        let filtered = products
+          .filter(product => selectedProductIds.includes(product.id || product._id) && product.isVisible !== false);
+        
+        // Sort products by price (ascending)
+        filtered.sort((a, b) => {
+          const getPrice = (product) => {
+            return product.hasOffer && product.offerPrice ? product.offerPrice : product.price;
+          };
+          return getPrice(a) - getPrice(b);
+        });
+        
+        // Show up to 6 products (2 rows of 3)
+        setBudgetProducts(filtered.slice(0, 6));
+      } else {
+        setBudgetProducts([]);
+      }
+    } catch (error) {
+      console.error('Error loading budget products:', error);
+      setBudgetProducts([]);
+    } finally {
+      setBudgetLoading(false);
     }
-    
-    // Filter products by price range and visibility
-    const filtered = products.filter(product => {
-      if (product.isVisible === false) return false;
-      
-      const price = product.hasOffer && product.offerPrice 
-        ? product.offerPrice 
-        : product.price;
-      
-      return price >= min && price <= max;
-    });
-    
-    // Limit to 8 products for display
-    setBudgetProducts(filtered.slice(0, 8));
-    setBudgetLoading(false);
   };
   
   if (products.length > 0) {
-    filterProductsByBudget();
+    loadBudgetProducts();
   }
 }, [selectedBudget, products]);
-
 
   useEffect(() => {
     const script = document.createElement("script");
@@ -564,58 +570,56 @@ const [budgetLoading, setBudgetLoading] = useState(false);
       </section>
 
       {/* Budget Wise Collection Section */}
-<section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
+<section className="py-20 bg-gradient-to-b from-[#FFF8F5] to-[#FDF5F0] ">
   <div className="container mx-auto px-4">
     <div className="text-center mb-16">
       <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
         Shop by Budget
         <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
       </h2>
-      <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg font-light">
+      <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg">
         Find the perfect saree that fits your budget
       </p>
     </div>
 
     {/* Budget Filters */}
-    <div className="flex flex-wrap justify-center gap-4 mb-12">
-      {[
-        { label: "All", value: "all", min: 0, max: Infinity },
-        { label: "Under ₹2,000", value: "under2000", min: 0, max: 2000 },
-        { label: "₹2,000 - ₹5,000", value: "2000-5000", min: 2000, max: 5000 },
-        { label: "₹5,000 - ₹10,000", value: "5000-10000", min: 5000, max: 10000 },
-        { label: "Premium (Above ₹10,000)", value: "premium", min: 10000, max: Infinity }
-      ].map((budget) => (
-        <button
-          key={budget.value}
-          onClick={() => setSelectedBudget(budget.value)}
-          className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 ${
-            selectedBudget === budget.value
-              ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white shadow-lg'
-              : 'bg-white text-[#800020] border-2 border-[#800020] hover:bg-[#800020]/10'
-          }`}
-        >
-          {budget.label}
-        </button>
-      ))}
-    </div>
+    {/* Budget Filters */}
+<div className="flex flex-wrap justify-center gap-4 mb-12">
+  {[
+    { label: "Under ₹2,000", value: "under2000",},
+    { label: "₹2,000 - ₹5,000", value: "mid2000to5000", },
+    { label: "₹5,000 - ₹10,000", value: "mid5000to10000",  },
+    { label: "Premium (Above ₹10,000)", value: "premium", }
+  ].map((budget) => (
+    <button
+      key={budget.value}
+      onClick={() => setSelectedBudget(budget.value)}
+      className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2 ${
+        selectedBudget === budget.value
+          ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white shadow-lg'
+          : 'bg-white text-[#800020] border-2 border-[#800020] hover:bg-[#800020]/10'
+      }`}
+    >
+      <span>{budget.label}</span>
+    </button>
+  ))}
+</div>
 
-    {/* Budget Products Display */}
+    {/* Budget Products Display - 3 products per row */}
     {budgetLoading ? (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {Array(4).fill().map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl h-[400px] animate-pulse shadow-xl" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {Array(3).fill().map((_, i) => (
+          <div key={i} className="bg-white rounded-2xl h-[450px] animate-pulse shadow-xl" />
         ))}
       </div>
     ) : budgetProducts.length === 0 ? (
       <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
-        <svg className="w-20 h-20 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-        </svg>
+        <div className="text-6xl mb-4">📦</div>
         <h3 className="text-xl font-semibold text-gray-800 mb-2">No products found</h3>
         <p className="text-gray-600">No products available in this budget range</p>
       </div>
     ) : (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {budgetProducts.map((product) => {
           const inStock = product.stock > 0;
           const hasOffer = product.hasOffer === true && product.offerPrice && product.offerPrice > 0;
@@ -624,33 +628,54 @@ const [budgetLoading, setBudgetLoading] = useState(false);
           return (
             <div
               key={product.id || product._id}
-              className="group relative bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl transition-all duration-500 transform hover:-translate-y-1"
+              className="group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
             >
+              {/* Premium Border Gradient on Hover */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#800020] via-[#A0002A] to-[#800020] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl p-[2px] -z-10"></div>
+
               {/* Image Container */}
               <div className="relative overflow-hidden bg-gradient-to-br from-[#F8EDE3] to-[#F5E6D3]">
+                {/* Stock Badge */}
+                <div className="absolute top-4 left-4 z-20">
+                  <div className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg ${
+                    inStock 
+                      ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white' 
+                      : 'bg-gray-800 text-white'
+                  }`}>
+                    {inStock ? 'In Stock' : 'Sold Out'}
+                  </div>
+                </div>
+
+                {/* Offer Badge */}
+                {hasOffer && (
+                  <div className="absolute top-4 right-4 z-20">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-yellow-400 rounded-full blur-md opacity-50 animate-pulse"></div>
+                      <div className="relative bg-gradient-to-r from-yellow-400 to-yellow-500 text-red-900 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg">
+                        {product.offerName || 'Special Offer'}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Wishlist Button */}
                 <button
                   onClick={() => handleAddToWishlist(product)}
-                  className="absolute top-3 right-3 z-20 bg-white/90 backdrop-blur-sm p-2 rounded-full shadow-md hover:bg-[#800020] hover:text-white transition-all duration-300 transform hover:scale-110 opacity-0 group-hover:opacity-100"
+                  className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur-sm p-2.5 rounded-full shadow-lg hover:bg-[#800020] hover:text-white transition-all duration-300 transform hover:scale-110"
                   title="Add to Wishlist"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    />
                   </svg>
                 </button>
 
-                {/* Budget Badge */}
-                {/* <div className="absolute top-3 left-3 z-20">
-                  <span className="bg-[#800020] text-white text-xs font-bold px-2 py-1 rounded-full shadow-md">
-                    {displayPrice <= 2000 && "Budget Friendly"}
-                    {displayPrice > 2000 && displayPrice <= 5000 && "Value Pick"}
-                    {displayPrice > 5000 && displayPrice <= 10000 && "Premium"}
-                    {displayPrice > 10000 && "Luxury"}
-                  </span>
-                </div> */}
-
-                {/* Product Image */}
-                <div className="h-64 overflow-hidden">
+                {/* Product Image with Zoom Effect */}
+                <div className="h-80 overflow-hidden relative">
                   <img
                     src={product.images?.[0]}
                     alt={product.name}
@@ -659,69 +684,74 @@ const [budgetLoading, setBudgetLoading] = useState(false);
                     loading="lazy"
                     onError={handleImageError}
                   />
+                  
+                  {/* Overlay Gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 </div>
               </div>
 
-              {/* Content */}
-              <div className="p-4">
-                <h3 className="text-base font-semibold text-gray-800 mb-2 group-hover:text-[#800020] transition-colors line-clamp-2 min-h-[50px]">
+              {/* Content Section */}
+              <div className="p-6 relative bg-white">
+                {/* Product Name */}
+                <h3 className="text-xl font-cinzel font-bold text-gray-800 mb-3 group-hover:text-[#800020] transition-colors duration-300 line-clamp-2">
                   {product.name}
                 </h3>
 
-                {/* Price */}
-                <div className="flex items-baseline gap-2 mb-3">
-                  <span className="text-xl font-bold text-[#800020]">
+                {/* Product Description */}
+                <p className="text-gray-600 text-sm mb-4 line-clamp-2 font-light leading-relaxed">
+                  {product.description || 'Exquisitely crafted saree blending tradition with contemporary elegance'}
+                </p>
+
+                {/* Price Section */}
+                <div className="flex items-baseline gap-3 mb-5">
+                  <span className="text-2xl font-bold text-[#800020]">
                     {formatPrice(displayPrice)}
                   </span>
                   {hasOffer && product.price > displayPrice && (
                     <>
-                      <span className="text-gray-400 text-xs line-through">
+                      <span className="text-gray-400 text-sm line-through">
                         {formatPrice(product.price)}
                       </span>
-                      <span className="bg-green-100 text-green-700 text-xs font-bold px-1.5 py-0.5 rounded">
-                        {Math.round(((product.price - displayPrice) / product.price) * 100)}% OFF
+                      <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">
+                        SAVE {Math.round(((product.price - displayPrice) / product.price) * 100)}%
                       </span>
                     </>
                   )}
                 </div>
 
-                {/* Stock Status */}
-                <div className="mb-3">
-                  {inStock ? (
-                    <span className="text-green-600 text-xs font-medium">In Stock</span>
-                  ) : (
-                    <span className="text-red-600 text-xs font-medium">Out of Stock</span>
-                  )}
-                </div>
-
-                {/* View Button */}
+                {/* Action Button */}
                 <Link to={`/viewdetails/${product.id || product._id}`}>
                   <button
-                    className={`w-full py-2 rounded-lg font-medium transition-all duration-300 text-sm ${
+                    className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-300 transform ${
                       inStock
-                        ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:shadow-md'
+                        ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:shadow-lg hover:scale-105 active:scale-95'
                         : 'bg-gray-300 text-gray-600 cursor-not-allowed'
                     }`}
                     disabled={!inStock}
                   >
-                    {inStock ? 'View Details' : 'Out of Stock'}
+                    {inStock ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Quick View
+                      </span>
+                    ) : (
+                      'Out of Stock'
+                    )}
                   </button>
                 </Link>
+
+              </div>
+
+              {/* Hover Effect Border Animation */}
+              <div className="absolute inset-0 rounded-2xl pointer-events-none">
+                <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-[#800020]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               </div>
             </div>
           );
         })}
-      </div>
-    )}
-
-    {/* View More Button */}
-    {budgetProducts.length > 0 && (
-      <div className="text-center mt-12">
-        <Link to="/products">
-          <button className="bg-transparent border-2 border-[#800020] text-[#800020] px-8 py-3 rounded-xl font-semibold hover:bg-[#800020] hover:text-white transition-all duration-300">
-            View All Products
-          </button>
-        </Link>
       </div>
     )}
   </div>

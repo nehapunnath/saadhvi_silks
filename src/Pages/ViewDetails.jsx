@@ -5,6 +5,7 @@ import productApi from '../Services/proApi';
 import authApi from '../Services/authApi';
 import categoryApi from '../Services/CategoryApi';
 import badgeApi from '../Services/BadgeApi';
+import QuickLoginModal from '../Pages/QuickLogin'; 
 
 const ViewDetails = () => {
   const { id } = useParams();
@@ -22,6 +23,10 @@ const ViewDetails = () => {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
+  
+  // Add state for Quick Login Modal
+  const [showQuickLogin, setShowQuickLogin] = useState(false);
+  const [pendingAction, setPendingAction] = useState(null);
   
   const imageRef = useRef(null);
   const zoomRef = useRef(null);
@@ -261,15 +266,22 @@ const ViewDetails = () => {
   };
 
   /* ------------------------------------------------------------------ */
-  /*  WISHLIST TOGGLE                                                  */
+  /*  WISHLIST TOGGLE WITH QUICK LOGIN                                 */
   /* ------------------------------------------------------------------ */
   const handleWishlistToggle = async () => {
     if (!authApi.isLoggedIn()) {
-      toast.error('Please login first!');
-      navigate('/login');
+      // Store the action to perform after login
+      setPendingAction(() => async () => {
+        await performWishlistToggle();
+      });
+      setShowQuickLogin(true);
       return;
     }
 
+    await performWishlistToggle();
+  };
+
+  const performWishlistToggle = async () => {
     try {
       if (isInWishlist) {
         await productApi.removeFromWishlist(product.id);
@@ -292,15 +304,22 @@ const ViewDetails = () => {
   };
 
   /* ------------------------------------------------------------------ */
-  /*  ADD TO CART (STOCK-SAFE)                                         */
+  /*  ADD TO CART WITH QUICK LOGIN                                     */
   /* ------------------------------------------------------------------ */
   const handleAddToCart = async () => {
     if (!authApi.isLoggedIn()) {
-      toast.error('Please login first!');
-      navigate('/login');
+      // Store the action to perform after login
+      setPendingAction(() => async () => {
+        await performAddToCart();
+      });
+      setShowQuickLogin(true);
       return;
     }
 
+    await performAddToCart();
+  };
+
+  const performAddToCart = async () => {
     if (isOutOfStock) {
       toast.error('This product is out of stock');
       return;
@@ -323,6 +342,29 @@ const ViewDetails = () => {
       toast.success(`${quantity} × ${product.name} added to cart!`);
     } catch (err) {
       toast.error('Something Went Wrong !!!');
+    }
+  };
+
+  /* ------------------------------------------------------------------ */
+  /*  QUICK LOGIN SUCCESS HANDLER                                      */
+  /* ------------------------------------------------------------------ */
+  const handleQuickLoginSuccess = async () => {
+    // After successful login, refresh wishlist status
+    if (product && authApi.isLoggedIn()) {
+      try {
+        const wl = await productApi.getWishlist();
+        if (wl.success) {
+          setIsInWishlist(wl.items.some(i => i.id === product.id));
+        }
+      } catch (e) {
+        console.error('Wishlist check failed', e);
+      }
+    }
+    
+    // Execute the pending action if any
+    if (pendingAction) {
+      await pendingAction();
+      setPendingAction(null);
     }
   };
 
@@ -853,6 +895,16 @@ const ViewDetails = () => {
           </div>
         )}
       </div>
+
+      {/* Quick Login Modal */}
+      <QuickLoginModal
+        isOpen={showQuickLogin}
+        onClose={() => {
+          setShowQuickLogin(false);
+          setPendingAction(null);
+        }}
+        onSuccess={handleQuickLoginSuccess}
+      />
     </div>
   );
 };

@@ -248,18 +248,31 @@ addToCart: async (item) => {
   const token = authApi.getToken();
   const { id, name, price, image, quantity } = item;
 
-  const response = await fetch(`${BASE_URL}/cart`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ id, name, price, image, quantity })
-  });
+  console.log('📤 Adding to cart:', { id, name, price, image, quantity });
+  console.log('🔑 Token exists:', !!token);
+  console.log('🌐 API URL:', `${BASE_URL}/cart`);
 
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.error || 'Failed to add to cart');
-  return data;
+  try {
+    const response = await fetch(`${BASE_URL}/cart`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ id, name, price, image, quantity })
+    });
+
+    console.log('📥 Response status:', response.status);
+    
+    const data = await response.json();
+    console.log('📦 Response data:', data);
+    
+    if (!response.ok) throw new Error(data.error || 'Failed to add to cart');
+    return data;
+  } catch (error) {
+    console.error('❌ Add to cart error:', error);
+    throw error;
+  }
 },
 
   updateCartItem: async (id, quantity) => {

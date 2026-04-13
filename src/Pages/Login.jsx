@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import authApi from '../Services/authApi';
+import PhoneLogin from '../Pages/PhoneLogin'; // We'll create this component
 
 const Login = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [loginMethod, setLoginMethod] = useState('email'); // 'email' or 'phone'
   const [formData, setFormData] = useState({
     username: '',
     email: '',
@@ -123,133 +125,189 @@ const Login = () => {
 
         <div className="text-center">
           <h2 className="mt-6 text-3xl font-bold text-[#6B2D2D]">
-            {isLogin ? 'Sign in to your account' : 'Create your account'}
+            {loginMethod === 'email' 
+              ? (isLogin ? 'Sign in to your account' : 'Create your account')
+              : 'Login with Phone'}
           </h2>
           <p className="mt-2 text-sm text-[#8B5A5A]">
-            {isLogin ? 'Welcome back!' : 'Join us today'}
+            {loginMethod === 'email' 
+              ? (isLogin ? 'Welcome back!' : 'Join us today')
+              : 'Enter your phone number to receive OTP'}
           </p>
         </div>
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="bg-white rounded-2xl shadow-sm border border-[#D9A7A7] p-8 space-y-6">
-            {!isLogin && (
+        {/* Method Selection Tabs */}
+        <div className="flex gap-2 bg-white/50 p-1 rounded-lg border border-[#D9A7A7]">
+          <button
+            onClick={() => {
+              setLoginMethod('email');
+              setError('');
+              setSuccess('');
+            }}
+            className={`flex-1 py-2 text-center rounded-md transition-all duration-200 ${
+              loginMethod === 'email' 
+                ? 'bg-[#6B2D2D] text-white shadow-md' 
+                : 'text-[#6B2D2D] hover:bg-[#FFF8E1]'
+            }`}
+          >
+             Email
+          </button>
+          <button
+            onClick={() => {
+              setLoginMethod('phone');
+              setError('');
+              setSuccess('');
+            }}
+            className={`flex-1 py-2 text-center rounded-md transition-all duration-200 ${
+              loginMethod === 'phone' 
+                ? 'bg-[#6B2D2D] text-white shadow-md' 
+                : 'text-[#6B2D2D] hover:bg-[#FFF8E1]'
+            }`}
+          >
+             Phone
+          </button>
+        </div>
+
+        {loginMethod === 'email' ? (
+          /* Email Login Form */
+          <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+            <div className="bg-white rounded-2xl shadow-sm border border-[#D9A7A7] p-8 space-y-6">
+              {!isLogin && (
+                <div>
+                  <label htmlFor="username" className="block text-sm font-medium text-[#2E2E2E] mb-2">
+                    Username
+                  </label>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    required={!isLogin}
+                    value={formData.username}
+                    onChange={handleChange}
+                    className="appearance-none relative block w-full px-4 py-3 border border-[#D9A7A7] rounded-lg placeholder-gray-400 text-[#2E2E2E] focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent transition-all duration-200"
+                    placeholder="Enter your username"
+                  />
+                </div>
+              )}
+
               <div>
-                <label htmlFor="username" className="block text-sm font-medium text-[#2E2E2E] mb-2">
-                  Username
+                <label htmlFor="email" className="block text-sm font-medium text-[#2E2E2E] mb-2">
+                  Email Address
                 </label>
                 <input
-                  id="username"
-                  name="username"
-                  type="text"
-                  required={!isLogin}
-                  value={formData.username}
+                  id="email"
+                  name="email"
+                  type="email"
+                  required
+                  value={formData.email}
                   onChange={handleChange}
                   className="appearance-none relative block w-full px-4 py-3 border border-[#D9A7A7] rounded-lg placeholder-gray-400 text-[#2E2E2E] focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent transition-all duration-200"
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                 />
               </div>
-            )}
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-[#2E2E2E] mb-2">
-                Email Address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                value={formData.email}
-                onChange={handleChange}
-                className="appearance-none relative block w-full px-4 py-3 border border-[#D9A7A7] rounded-lg placeholder-gray-400 text-[#2E2E2E] focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent transition-all duration-200"
-                placeholder="Enter your email"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-[#2E2E2E] mb-2">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                required
-                value={formData.password}
-                onChange={handleChange}
-                className="appearance-none relative block w-full px-4 py-3 border border-[#D9A7A7] rounded-lg placeholder-gray-400 text-[#2E2E2E] focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent transition-all duration-200"
-                placeholder={isLogin ? "Enter your password" : "Create a password"}
-              />
-            </div>
-
-            {!isLogin && (
               <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#2E2E2E] mb-2">
-                  Confirm Password
+                <label htmlFor="password" className="block text-sm font-medium text-[#2E2E2E] mb-2">
+                  Password
                 </label>
                 <input
-                  id="confirmPassword"
-                  name="confirmPassword"
+                  id="password"
+                  name="password"
                   type="password"
-                  required={!isLogin}
-                  value={formData.confirmPassword}
+                  required
+                  value={formData.password}
                   onChange={handleChange}
                   className="appearance-none relative block w-full px-4 py-3 border border-[#D9A7A7] rounded-lg placeholder-gray-400 text-[#2E2E2E] focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent transition-all duration-200"
-                  placeholder="Confirm your password"
+                  placeholder={isLogin ? "Enter your password" : "Create a password"}
                 />
               </div>
-            )}
 
-            {error && (
-              <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border-l-4 border-red-500">
-                {error}
-              </div>
-            )}
+              {!isLogin && (
+                <div>
+                  <label htmlFor="confirmPassword" className="block text-sm font-medium text-[#2E2E2E] mb-2">
+                    Confirm Password
+                  </label>
+                  <input
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    type="password"
+                    required={!isLogin}
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    className="appearance-none relative block w-full px-4 py-3 border border-[#D9A7A7] rounded-lg placeholder-gray-400 text-[#2E2E2E] focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent transition-all duration-200"
+                    placeholder="Confirm your password"
+                  />
+                </div>
+              )}
 
-            {success && (
-              <div className="text-green-600 text-sm bg-green-50 p-3 rounded-lg border-l-4 border-green-500">
-                {success}
-              </div>
-            )}
+              {error && (
+                <div className="text-red-600 text-sm bg-red-50 p-3 rounded-lg border-l-4 border-red-500">
+                  {error}
+                </div>
+              )}
 
-            <div>
-              <button
-                type="submit"
-                disabled={loading}
-                className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white transition-all duration-200 transform ${
-                  loading
-                    ? 'bg-gray-400 cursor-not-allowed'
-                    : 'bg-[#6B2D2D] hover:bg-[#8B3A3A] hover:scale-[1.02]'
-                } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#6B2D2D]`}
-              >
-                {loading ? (
-                  <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    {isLogin ? 'Signing in...' : 'Creating account...'}
-                  </span>
-                ) : (
-                  isLogin ? 'Sign in' : 'Create Account'
-                )}
-              </button>
-            </div>
+              {success && (
+                <div className="text-green-600 text-sm bg-green-50 p-3 rounded-lg border-l-4 border-green-500">
+                  {success}
+                </div>
+              )}
 
-            <div className="text-center">
-              <p className="text-sm text-[#8B5A5A]">
-                {isLogin ? "Don't have an account? " : "Already have an account? "}
+              <div>
                 <button
-                  type="button"
-                  onClick={toggleMode}
-                  className="font-medium text-[#6B2D2D] hover:text-[#8B3A3A] underline focus:outline-none"
+                  type="submit"
+                  disabled={loading}
+                  className={`group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white transition-all duration-200 transform ${
+                    loading
+                      ? 'bg-gray-400 cursor-not-allowed'
+                      : 'bg-[#6B2D2D] hover:bg-[#8B3A3A] hover:scale-[1.02]'
+                  } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#6B2D2D]`}
                 >
-                  {isLogin ? 'Register' : 'Login'}
+                  {loading ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      {isLogin ? 'Signing in...' : 'Creating account...'}
+                    </span>
+                  ) : (
+                    isLogin ? 'Sign in' : 'Create Account'
+                  )}
                 </button>
-              </p>
+              </div>
+
+              <div className="text-center">
+                <p className="text-sm text-[#8B5A5A]">
+                  {isLogin ? "Don't have an account? " : "Already have an account? "}
+                  <button
+                    type="button"
+                    onClick={toggleMode}
+                    className="font-medium text-[#6B2D2D] hover:text-[#8B3A3A] underline focus:outline-none"
+                  >
+                    {isLogin ? 'Register' : 'Login'}
+                  </button>
+                </p>
+              </div>
             </div>
+          </form>
+        ) : (
+          /* Phone Login Component */
+          <div className="bg-white rounded-2xl shadow-sm border border-[#D9A7A7] p-8">
+            <PhoneLogin 
+              onSuccess={(userData) => {
+                // Handle successful phone login
+                localStorage.setItem('userToken', userData.token);
+                localStorage.setItem('userUid', userData.uid);
+                if (userData.name) localStorage.setItem('username', userData.name);
+                setSuccess('Login successful! Redirecting...');
+                setTimeout(() => {
+                  window.location.href = userData.isNewUser ? '/complete-profile' : '/';
+                }, 1500);
+              }}
+              onSwitchToEmail={() => setLoginMethod('email')}
+            />
           </div>
-        </form>
+        )}
       </div>
     </div>
   );

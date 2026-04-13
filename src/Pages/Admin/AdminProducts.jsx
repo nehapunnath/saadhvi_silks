@@ -18,6 +18,16 @@ const AdminProducts = () => {
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const [showHomepageCount, setShowHomepageCount] = useState(3);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Budget selection states
+  const [budgetSelections, setBudgetSelections] = useState({
+    under2000: new Set(),
+    mid2000to5000: new Set(),
+    mid5000to10000: new Set(),
+    premium: new Set()
+  });
+  const [isSavingBudget, setIsSavingBudget] = useState(false);
+  const [activeBudgetTab, setActiveBudgetTab] = useState('under2000');
 
   // Offer Modal States
   const [offerModalOpen, setOfferModalOpen] = useState(false);
@@ -28,6 +38,7 @@ const AdminProducts = () => {
   useEffect(() => {
     fetchData();
     loadHomepageSettings();
+    loadBudgetSettings();
   }, []);
 
   const loadHomepageSettings = async () => {
@@ -43,6 +54,74 @@ const AdminProducts = () => {
     }
   };
 
+  const loadBudgetSettings = async () => {
+    try {
+      const savedBudget = localStorage.getItem('budget_selections');
+      if (savedBudget) {
+        const budget = JSON.parse(savedBudget);
+        setBudgetSelections({
+          under2000: new Set(budget.under2000 || []),
+          mid2000to5000: new Set(budget.mid2000to5000 || []),
+          mid5000to10000: new Set(budget.mid5000to10000 || []),
+          premium: new Set(budget.premium || [])
+        });
+      }
+    } catch (error) {
+      console.error('Error loading budget settings:', error);
+    }
+  };
+
+  const saveBudgetSettings = async () => {
+    setIsSavingBudget(true);
+    try {
+      const settings = {
+        under2000: Array.from(budgetSelections.under2000),
+        mid2000to5000: Array.from(budgetSelections.mid2000to5000),
+        mid5000to10000: Array.from(budgetSelections.mid5000to10000),
+        premium: Array.from(budgetSelections.premium),
+        updatedAt: new Date().toISOString()
+      };
+      
+      localStorage.setItem('budget_selections', JSON.stringify(settings));
+      toast.success('Budget section products saved!');
+    } catch (error) {
+      toast.error('Failed to save budget settings');
+      console.error(error);
+    } finally {
+      setIsSavingBudget(false);
+    }
+  };
+
+  const handleBudgetCheckboxChange = (productId, budgetRange, isChecked) => {
+    setBudgetSelections(prev => {
+      const newSelections = { ...prev };
+      
+      if (isChecked) {
+        // Remove from all other budget ranges first
+        Object.keys(newSelections).forEach(range => {
+          if (newSelections[range].has(productId)) {
+            newSelections[range].delete(productId);
+          }
+        });
+        // Add to selected range
+        newSelections[budgetRange].add(productId);
+      } else {
+        // Remove from the range
+        newSelections[budgetRange].delete(productId);
+      }
+      
+      return newSelections;
+    });
+  };
+
+  const getProductBudgetRange = (productId) => {
+    if (budgetSelections.under2000.has(productId)) return 'under2000';
+    if (budgetSelections.mid2000to5000.has(productId)) return 'mid2000to5000';
+    if (budgetSelections.mid5000to10000.has(productId)) return 'mid5000to10000';
+    if (budgetSelections.premium.has(productId)) return 'premium';
+    return null;
+  };
+
   const saveHomepageSettings = async () => {
     setIsSaving(true);
     try {
@@ -53,10 +132,6 @@ const AdminProducts = () => {
       };
       
       localStorage.setItem('homepage_products', JSON.stringify(settings));
-      
-      // You can also save to backend if needed
-      // await productApi.updateHomepageProducts(settings);
-      
       toast.success(`Selected ${selectedProducts.size} products for homepage!`);
     } catch (error) {
       toast.error('Failed to save homepage settings');
@@ -422,6 +497,13 @@ const AdminProducts = () => {
     }).format(price);
   };
 
+  const budgetRanges = [
+    { id: 'under2000', label: 'Under ₹2,000', color: 'blue', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', textColor: 'text-blue-700', count: budgetSelections.under2000.size },
+    { id: 'mid2000to5000', label: '₹2,000 - ₹5,000', color: 'green', bgColor: 'bg-green-50', borderColor: 'border-green-200', textColor: 'text-green-700', count: budgetSelections.mid2000to5000.size },
+    { id: 'mid5000to10000', label: '₹5,000 - ₹10,000', color: 'orange', bgColor: 'bg-orange-50', borderColor: 'border-orange-200', textColor: 'text-orange-700', count: budgetSelections.mid5000to10000.size },
+    { id: 'premium', label: 'Premium (Above ₹10,000)',  color: 'purple', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', textColor: 'text-purple-700', count: budgetSelections.premium.size }
+  ];
+
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
@@ -464,11 +546,109 @@ const AdminProducts = () => {
                 </Link>
               </div>
 
+              {/* Budget Wise Collection Panel - Checkbox/Toggle Design */}
+              <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
+                <div className="bg-gradient-to-r from-[#1B5E20] to-[#2E7D32] px-6 py-4">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                      <h2 className="text-xl font-bold text-white">🎯 Budget Wise Collection</h2>
+                      <p className="text-white/80 text-sm mt-1">Select which budget section each product belongs to</p>
+                    </div>
+                    <button
+                      onClick={saveBudgetSettings}
+                      disabled={isSavingBudget}
+                      className="px-6 py-2 bg-white text-[#2E7D32] rounded-lg font-semibold hover:bg-gray-100 transition disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {isSavingBudget ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                          </svg>
+                          Save Budget Settings
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Budget Summary Cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-gray-50 border-b border-gray-200">
+                  {budgetRanges.map((range) => (
+                    <div
+                      key={range.id}
+                      onClick={() => setActiveBudgetTab(range.id)}
+                      className={`${range.bgColor} ${range.borderColor} border-2 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${activeBudgetTab === range.id ? 'ring-2 ring-offset-2 ring-' + range.color + '-500' : ''}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        {/* <div className="text-2xl">{range.icon}</div> */}
+                        <div className={`text-2xl font-bold ${range.textColor}`}>{range.count}</div>
+                      </div>
+                      <div className={`text-sm font-medium mt-2 ${range.textColor}`}>{range.label}</div>
+                      <div className="text-xs text-gray-500 mt-1">Products assigned</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Active Budget Section Products Table */}
+                <div className="p-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    {/* <span>{budgetRanges.find(r => r.id === activeBudgetTab)?.icon}</span> */}
+                    <span>{budgetRanges.find(r => r.id === activeBudgetTab)?.label}</span>
+                    <span className="text-sm font-normal text-gray-500 ml-2">
+                      ({budgetSelections[activeBudgetTab].size} products selected)
+                    </span>
+                  </h3>
+                  
+                  {budgetSelections[activeBudgetTab].size === 0 ? (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
+                      {/* <div className="text-5xl mb-3">📦</div> */}
+                      <p className="text-gray-500">No products assigned to this budget range yet</p>
+                      <p className="text-sm text-gray-400 mt-1">Use the checkboxes below to assign products</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-6">
+                      {products
+                        .filter(p => budgetSelections[activeBudgetTab].has(p.key) && p.isVisible !== false)
+                        .map((product) => (
+                          <div key={product.key} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                            <img
+                              src={product.images?.[0] || 'https://via.placeholder.com/100?text=No+Image'}
+                              alt={product.name}
+                              className="w-full h-32 object-cover"
+                            />
+                            <div className="p-3">
+                              <h4 className="text-sm font-semibold text-gray-800 line-clamp-2">{product.name}</h4>
+                              <p className="text-[#800020] font-bold mt-1">{formatPrice(product.price)}</p>
+                              <button
+                                onClick={() => handleBudgetCheckboxChange(product.key, activeBudgetTab, false)}
+                                className="mt-2 w-full px-3 py-1.5 text-xs bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+                              >
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Homepage Selection Panel */}
               <div className="bg-gradient-to-r from-[#6B2D2D] to-[#8B3A3A] rounded-xl shadow-lg p-6 text-white">
                 <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
-                    <h2 className="text-xl font-bold mb-1">Homepage Latest Collection</h2>
+                    <h2 className="text-xl font-bold mb-1">🏠 Homepage Latest Collection</h2>
                     <p className="text-white/80 text-sm">
                       Select products to showcase in the "Latest Collection" section on the homepage
                     </p>
@@ -584,13 +764,14 @@ const AdminProducts = () => {
                 </div>
               </div>
 
-              {/* Products Table with Checkboxes */}
+              {/* Products Table with Budget Checkboxes */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-max">
                     <thead className="bg-gray-50">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest <br/>selection</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Latest <br />Section</th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Budget Section</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
                         <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
@@ -607,6 +788,7 @@ const AdminProducts = () => {
                           .filter(p => p.isVisible !== false)
                           .findIndex(p => p.key === product.key);
                         const isSelected = selectedProducts.has(product.key);
+                        const currentBudgetRange = getProductBudgetRange(product.key);
                         
                         return (
                           <tr key={product.key} className={`hover:bg-gray-50 ${!isVisible ? 'bg-gray-50 opacity-75' : ''} ${isSelected ? 'bg-green-50' : ''}`}>
@@ -618,6 +800,24 @@ const AdminProducts = () => {
                                   onChange={() => handleSelectProduct(product.key)}
                                   className="w-5 h-5 text-[#6B2D2D] border-gray-300 rounded focus:ring-[#6B2D2D]"
                                 />
+                              )}
+                            </td>
+                            <td className="px-6 py-4">
+                              {isVisible && (
+                                <div className="flex flex-col gap-2 min-w-[140px]">
+                                  {budgetRanges.map((range) => (
+                                    <label key={range.id} className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 p-1 rounded">
+                                      <input
+                                        type="radio"
+                                        name={`budget_${product.key}`}
+                                        checked={currentBudgetRange === range.id}
+                                        onChange={() => handleBudgetCheckboxChange(product.key, range.id, true)}
+                                        className={`w-3.5 h-3.5 accent-${range.color}-600`}
+                                      />
+                                      <span className="text-gray-700"> {range.label}</span>
+                                    </label>
+                                  ))}
+                                </div>
                               )}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -668,6 +868,16 @@ const AdminProducts = () => {
                                     {isSelected && (
                                       <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
                                         Homepage
+                                      </span>
+                                    )}
+                                    {currentBudgetRange && (
+                                      <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                        currentBudgetRange === 'under2000' ? 'bg-blue-100 text-blue-800' :
+                                        currentBudgetRange === 'mid2000to5000' ? 'bg-green-100 text-green-800' :
+                                        currentBudgetRange === 'mid5000to10000' ? 'bg-orange-100 text-orange-800' :
+                                        'bg-purple-100 text-purple-800'
+                                      }`}>
+                                        {budgetRanges.find(r => r.id === currentBudgetRange)?.icon} {budgetRanges.find(r => r.id === currentBudgetRange)?.label}
                                       </span>
                                     )}
                                   </div>
