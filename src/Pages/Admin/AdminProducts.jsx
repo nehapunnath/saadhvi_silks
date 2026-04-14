@@ -19,6 +19,23 @@ const AdminProducts = () => {
   const [showHomepageCount, setShowHomepageCount] = useState(3);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Offer Management States
+  const [offers, setOffers] = useState([]);
+  const [selectedOfferId, setSelectedOfferId] = useState('');
+  const [customOfferPrice, setCustomOfferPrice] = useState('');
+  const [offerDescription, setOfferDescription] = useState('');
+  const [isCreatingOffer, setIsCreatingOffer] = useState(false);
+  const [isEditingOffer, setIsEditingOffer] = useState(false);
+  const [editingOffer, setEditingOffer] = useState(null);
+  const [showOfferManagement, setShowOfferManagement] = useState(false);
+  const [offerManagementTab, setOfferManagementTab] = useState('list');
+  const [newOfferData, setNewOfferData] = useState({
+    name: '',
+    description: '',
+    discountType: 'percentage',
+    discountValue: ''
+  });
+  
   // Budget selection states
   const [budgetSelections, setBudgetSelections] = useState({
     under2000: new Set(),
@@ -32,42 +49,171 @@ const AdminProducts = () => {
   // Offer Modal States
   const [offerModalOpen, setOfferModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
-  const [offerName, setOfferName] = useState('Buy 1 Get 1 Free');
-  const [offerPrice, setOfferPrice] = useState('');
 
   useEffect(() => {
     fetchData();
     loadHomepageSettings();
     loadBudgetSettings();
+    loadOffers();
   }, []);
+
+  const loadOffers = async () => {
+    try {
+      const result = await productApi.getOffers();
+      if (result.success) {
+        setOffers(result.offers || []);
+      }
+    } catch (error) {
+      console.error('Error loading offers:', error);
+    }
+  };
+
+  // Create new offer
+  const handleCreateOffer = async () => {
+    if (!newOfferData.name) {
+      toast.error('Offer name is required');
+      return;
+    }
+    
+    if (!newOfferData.discountValue || parseFloat(newOfferData.discountValue) <= 0) {
+      toast.error('Valid discount value is required');
+      return;
+    }
+    
+    try {
+      const result = await productApi.createOffer(newOfferData);
+      if (result.success) {
+        toast.success('Offer created successfully');
+        await loadOffers();
+        setNewOfferData({ name: '', description: '', discountType: 'percentage', discountValue: '' });
+        setIsCreatingOffer(false);
+        setOfferManagementTab('list');
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      toast.error('Failed to create offer');
+    }
+  };
+
+  // Update existing offer
+  const handleUpdateOffer = async () => {
+    if (!editingOffer) return;
+    
+    if (!editingOffer.name) {
+      toast.error('Offer name is required');
+      return;
+    }
+    
+    try {
+      const result = await productApi.updateOffer(editingOffer.id, {
+        name: editingOffer.name,
+        description: editingOffer.description,
+        discountType: editingOffer.discountType,
+        discountValue: parseFloat(editingOffer.discountValue)
+      });
+      
+      if (result.success) {
+        toast.success('Offer updated successfully');
+        await loadOffers();
+        setIsEditingOffer(false);
+        setEditingOffer(null);
+        setOfferManagementTab('list');
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      toast.error('Failed to update offer');
+    }
+  };
+
+  // Delete offer
+  const handleDeleteOffer = async (offerId, offerName) => {
+    if (!window.confirm(`Are you sure you want to delete the offer "${offerName}"? This will remove the offer from all products.`)) {
+      return;
+    }
+    
+    try {
+      const result = await productApi.deleteOffer(offerId);
+      if (result.success) {
+        toast.success('Offer deleted successfully');
+        await loadOffers();
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      toast.error('Failed to delete offer');
+    }
+  };
+
+  // Apply selected offer to product
+  const handleApplyOffer = async () => {
+    if (!selectedOfferId) {
+      toast.error('Please select an offer');
+      return;
+    }
+    
+    try {
+      await productApi.applyOfferToProduct(selectedProductId, selectedOfferId, customOfferPrice || null);
+      
+      const selectedOffer = offers.find(o => o.id === selectedOfferId);
+      setProducts(prev =>
+        prev.map(p =>
+          p.key === selectedProductId ? {
+            ...p,
+            hasOffer: true,
+            offerId: selectedOfferId,
+            offerName: selectedOffer.name,
+            offerDescription: selectedOffer.description,
+            offerPrice: customOfferPrice || calculateOfferPrice(p.price, selectedOffer)
+          } : p
+        )
+      );
+      
+      toast.success('Offer applied successfully!');
+      closeOfferModal();
+    } catch (error) {
+      toast.error('Failed to apply offer: ' + error.message);
+    }
+  };
+
+  // Calculate offer price based on offer type
+  const calculateOfferPrice = (originalPrice, offer) => {
+    if (offer.discountType === 'percentage') {
+      return Math.round(originalPrice * (1 - offer.discountValue / 100));
+    } else if (offer.discountType === 'fixed') {
+      return Math.max(0, originalPrice - offer.discountValue);
+    }
+    return originalPrice;
+  };
 
   const loadHomepageSettings = async () => {
     try {
-      const savedSettings = localStorage.getItem('homepage_products');
-      if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        setSelectedProducts(new Set(settings.selectedProductIds || []));
-        setShowHomepageCount(settings.count || 3);
+      const result = await productApi.getHomepageSettings();
+      if (result.success && result.settings) {
+        setSelectedProducts(new Set(result.settings.selectedProductIds || []));
+        setShowHomepageCount(result.settings.count || 3);
       }
     } catch (error) {
       console.error('Error loading homepage settings:', error);
+      toast.error('Failed to load homepage settings');
     }
   };
 
   const loadBudgetSettings = async () => {
     try {
-      const savedBudget = localStorage.getItem('budget_selections');
-      if (savedBudget) {
-        const budget = JSON.parse(savedBudget);
+      const result = await productApi.getBudgetSelections();
+      if (result.success && result.selections) {
         setBudgetSelections({
-          under2000: new Set(budget.under2000 || []),
-          mid2000to5000: new Set(budget.mid2000to5000 || []),
-          mid5000to10000: new Set(budget.mid5000to10000 || []),
-          premium: new Set(budget.premium || [])
+          under2000: new Set(result.selections.under2000 || []),
+          mid2000to5000: new Set(result.selections.mid2000to5000 || []),
+          mid5000to10000: new Set(result.selections.mid5000to10000 || []),
+          premium: new Set(result.selections.premium || [])
         });
       }
     } catch (error) {
       console.error('Error loading budget settings:', error);
+      toast.error('Failed to load budget settings');
     }
   };
 
@@ -75,14 +221,13 @@ const AdminProducts = () => {
     setIsSavingBudget(true);
     try {
       const settings = {
-        under2000: Array.from(budgetSelections.under2000),
-        mid2000to5000: Array.from(budgetSelections.mid2000to5000),
-        mid5000to10000: Array.from(budgetSelections.mid5000to10000),
-        premium: Array.from(budgetSelections.premium),
-        updatedAt: new Date().toISOString()
+        under2000: Array.from(budgetSelections.under2000).map(id => String(id)),
+        mid2000to5000: Array.from(budgetSelections.mid2000to5000).map(id => String(id)),
+        mid5000to10000: Array.from(budgetSelections.mid5000to10000).map(id => String(id)),
+        premium: Array.from(budgetSelections.premium).map(id => String(id))
       };
       
-      localStorage.setItem('budget_selections', JSON.stringify(settings));
+      await productApi.updateBudgetSelections(settings);
       toast.success('Budget section products saved!');
     } catch (error) {
       toast.error('Failed to save budget settings');
@@ -97,16 +242,13 @@ const AdminProducts = () => {
       const newSelections = { ...prev };
       
       if (isChecked) {
-        // Remove from all other budget ranges first
         Object.keys(newSelections).forEach(range => {
           if (newSelections[range].has(productId)) {
             newSelections[range].delete(productId);
           }
         });
-        // Add to selected range
         newSelections[budgetRange].add(productId);
       } else {
-        // Remove from the range
         newSelections[budgetRange].delete(productId);
       }
       
@@ -125,13 +267,8 @@ const AdminProducts = () => {
   const saveHomepageSettings = async () => {
     setIsSaving(true);
     try {
-      const settings = {
-        selectedProductIds: Array.from(selectedProducts),
-        count: showHomepageCount,
-        updatedAt: new Date().toISOString()
-      };
-      
-      localStorage.setItem('homepage_products', JSON.stringify(settings));
+      const selectedIds = Array.from(selectedProducts).map(id => String(id));
+      await productApi.updateHomepageSettings(selectedIds, showHomepageCount);
       toast.success(`Selected ${selectedProducts.size} products for homepage!`);
     } catch (error) {
       toast.error('Failed to save homepage settings');
@@ -141,7 +278,6 @@ const AdminProducts = () => {
     }
   };
 
-  // Helper function to normalize categories (convert string to array)
   const normalizeCategories = (categoriesInput) => {
     if (!categoriesInput) return [];
     
@@ -381,67 +517,54 @@ const AdminProducts = () => {
 
   const openOfferModal = (productId, currentOffer = null) => {
     setSelectedProductId(productId);
-    setOfferName(currentOffer?.offerName || 'Buy 1 Get 1 Free');
-    setOfferPrice(currentOffer?.offerPrice ? currentOffer.offerPrice.toString() : '');
+    if (currentOffer && currentOffer.offerId) {
+      setSelectedOfferId(currentOffer.offerId);
+      setCustomOfferPrice(currentOffer.offerPrice?.toString() || '');
+      setOfferDescription(currentOffer.offerDescription || '');
+    } else {
+      setSelectedOfferId('');
+      setCustomOfferPrice('');
+      setOfferDescription('');
+    }
     setOfferModalOpen(true);
   };
 
   const closeOfferModal = () => {
     setOfferModalOpen(false);
     setSelectedProductId(null);
-    setOfferName('Buy 1 Get 1 Free');
-    setOfferPrice('');
-  };
-
-  const handleSaveOffer = async () => {
-    if (!offerPrice || isNaN(offerPrice) || Number(offerPrice) <= 0) {
-      toast.error('Please enter a valid offer price');
-      return;
-    }
-
-    try {
-      const offerData = {
-        hasOffer: true,
-        offerName: offerName.trim() || 'Buy 1 Get 1 Free',
-        offerPrice: Number(offerPrice)
-      };
-
-      await productApi.updateProductOffer(selectedProductId, offerData);
-
-      setProducts(prev =>
-        prev.map(p =>
-          p.key === selectedProductId ? { ...p, ...offerData } : p
-        )
-      );
-
-      toast.success('Offer applied successfully!');
-      closeOfferModal();
-    } catch (error) {
-      toast.error('Failed to apply offer: ' + error.message);
-    }
+    setSelectedOfferId('');
+    setCustomOfferPrice('');
+    setOfferDescription('');
+    setIsCreatingOffer(false);
   };
 
   const handleRemoveOffer = async (productId) => {
-    if (!window.confirm('Remove offer from this product?')) return;
+  if (!window.confirm('Remove offer from this product?')) return;
 
-    try {
-      await productApi.updateProductOffer(productId, {
-        hasOffer: false,
-        offerName: null,
-        offerPrice: null
-      });
+  try {
+    // Call the API to remove offer from product
+    await productApi.removeOfferFromProduct(productId);
 
-      setProducts(prev =>
-        prev.map(p =>
-          p.key === productId ? { ...p, hasOffer: false, offerName: null, offerPrice: null } : p
-        )
-      );
+    // Update local state - remove ALL offer-related fields
+    setProducts(prev =>
+      prev.map(p =>
+        p.key === productId ? { 
+          ...p, 
+          hasOffer: false, 
+          offerId: null, 
+          offerName: null, 
+          offerPrice: null, 
+          offerDescription: null 
+        } : p
+      )
+    );
 
-      toast.success('Offer removed');
-    } catch (error) {
-      toast.error('Failed to remove offer');
-    }
-  };
+    toast.success('Offer removed successfully');
+  } catch (error) {
+    console.error('Remove offer error:', error);
+    toast.error('Failed to remove offer: ' + error.message);
+  }
+};
 
   const handleVisibilityToggle = async (product) => {
     const current = product.isVisible !== false;
@@ -535,18 +658,29 @@ const AdminProducts = () => {
                   <h1 className="text-3xl font-bold text-gray-800">Products Management</h1>
                   <p className="text-gray-600 mt-1">Manage your product inventory and listings</p>
                 </div>
-                <Link
-                  to="/admin/addproducts"
-                  className="bg-[#6B2D2D] text-white px-6 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 flex items-center space-x-2"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  <span>Add Product</span>
-                </Link>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowOfferManagement(true)}
+                    className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>Manage Offers</span>
+                  </button>
+                  <Link
+                    to="/admin/addproducts"
+                    className="bg-[#6B2D2D] text-white px-6 py-3 rounded-lg hover:bg-[#8B3A3A] transition-colors duration-200 flex items-center space-x-2"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    <span>Add Product</span>
+                  </Link>
+                </div>
               </div>
 
-              {/* Budget Wise Collection Panel - Checkbox/Toggle Design */}
+              {/* Budget Wise Collection Panel */}
               <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-200">
                 <div className="bg-gradient-to-r from-[#1B5E20] to-[#2E7D32] px-6 py-4">
                   <div className="flex items-center justify-between flex-wrap gap-4">
@@ -579,7 +713,6 @@ const AdminProducts = () => {
                   </div>
                 </div>
 
-                {/* Budget Summary Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-6 bg-gray-50 border-b border-gray-200">
                   {budgetRanges.map((range) => (
                     <div
@@ -588,7 +721,6 @@ const AdminProducts = () => {
                       className={`${range.bgColor} ${range.borderColor} border-2 rounded-xl p-4 cursor-pointer transition-all hover:shadow-md ${activeBudgetTab === range.id ? 'ring-2 ring-offset-2 ring-' + range.color + '-500' : ''}`}
                     >
                       <div className="flex items-center justify-between">
-                        {/* <div className="text-2xl">{range.icon}</div> */}
                         <div className={`text-2xl font-bold ${range.textColor}`}>{range.count}</div>
                       </div>
                       <div className={`text-sm font-medium mt-2 ${range.textColor}`}>{range.label}</div>
@@ -597,10 +729,8 @@ const AdminProducts = () => {
                   ))}
                 </div>
 
-                {/* Active Budget Section Products Table */}
                 <div className="p-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                    {/* <span>{budgetRanges.find(r => r.id === activeBudgetTab)?.icon}</span> */}
                     <span>{budgetRanges.find(r => r.id === activeBudgetTab)?.label}</span>
                     <span className="text-sm font-normal text-gray-500 ml-2">
                       ({budgetSelections[activeBudgetTab].size} products selected)
@@ -609,7 +739,6 @@ const AdminProducts = () => {
                   
                   {budgetSelections[activeBudgetTab].size === 0 ? (
                     <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
-                      {/* <div className="text-5xl mb-3">📦</div> */}
                       <p className="text-gray-500">No products assigned to this budget range yet</p>
                       <p className="text-sm text-gray-400 mt-1">Use the checkboxes below to assign products</p>
                     </div>
@@ -674,7 +803,6 @@ const AdminProducts = () => {
                   </div>
                 </div>
                 
-                {/* Display count selector */}
                 <div className="mt-4 flex items-center gap-4">
                   <label className="text-sm">Show on homepage:</label>
                   <select
@@ -764,7 +892,7 @@ const AdminProducts = () => {
                 </div>
               </div>
 
-              {/* Products Table with Budget Checkboxes */}
+              {/* Products Table */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="overflow-x-auto">
                   <table className="w-full min-w-max">
@@ -812,7 +940,7 @@ const AdminProducts = () => {
                                         name={`budget_${product.key}`}
                                         checked={currentBudgetRange === range.id}
                                         onChange={() => handleBudgetCheckboxChange(product.key, range.id, true)}
-                                        className={`w-3.5 h-3.5 accent-${range.color}-600`}
+                                        className="w-3.5 h-3.5"
                                       />
                                       <span className="text-gray-700"> {range.label}</span>
                                     </label>
@@ -877,7 +1005,7 @@ const AdminProducts = () => {
                                         currentBudgetRange === 'mid5000to10000' ? 'bg-orange-100 text-orange-800' :
                                         'bg-purple-100 text-purple-800'
                                       }`}>
-                                        {budgetRanges.find(r => r.id === currentBudgetRange)?.icon} {budgetRanges.find(r => r.id === currentBudgetRange)?.label}
+                                        {budgetRanges.find(r => r.id === currentBudgetRange)?.label}
                                       </span>
                                     )}
                                   </div>
@@ -941,8 +1069,10 @@ const AdminProducts = () => {
                                       handleRemoveOffer(product.key);
                                     } else {
                                       openOfferModal(product.key, {
+                                        offerId: product.offerId,
                                         offerName: product.offerName,
-                                        offerPrice: product.offerPrice
+                                        offerPrice: product.offerPrice,
+                                        offerDescription: product.offerDescription
                                       });
                                     }
                                   }}
@@ -1063,32 +1193,148 @@ const AdminProducts = () => {
         {/* Offer Modal */}
         {offerModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
-            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Set Product Offer</h2>
+            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">Apply Offer to Product</h2>
 
               <div className="space-y-5">
+                {/* Select Existing Offer */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Offer Name</label>
-                  <input
-                    type="text"
-                    value={offerName}
-                    onChange={(e) => setOfferName(e.target.value)}
-                    placeholder="e.g. Buy 1 Get 1 Free"
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Select Offer
+                    </label>
+                    <button
+                      onClick={() => {
+                        setOfferModalOpen(false);
+                        setShowOfferManagement(true);
+                      }}
+                      className="text-xs text-purple-600 hover:text-purple-700 font-medium"
+                    >
+                      + Manage Offers
+                    </button>
+                  </div>
+                  <select
+                    value={selectedOfferId}
+                    onChange={(e) => {
+                      setSelectedOfferId(e.target.value);
+                      const offer = offers.find(o => o.id === e.target.value);
+                      if (offer) {
+                        setOfferDescription(offer.description || '');
+                      }
+                    }}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
-                  />
+                  >
+                    <option value="">-- Select an offer --</option>
+                    {offers.map((offer) => (
+                      <option key={offer.id} value={offer.id}>
+                        {offer.name} ({offer.discountType === 'percentage' ? `${offer.discountValue}% off` : `₹${offer.discountValue} off`})
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Offer Price (₹)</label>
-                  <input
-                    type="number"
-                    value={offerPrice}
-                    onChange={(e) => setOfferPrice(e.target.value)}
-                    placeholder="Enter discounted price"
-                    min="1"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
-                  />
+                {/* Or Create New Offer Button */}
+                <div className="text-center">
+                  <button
+                    onClick={() => {
+                      setIsCreatingOffer(!isCreatingOffer);
+                      if (!isCreatingOffer) {
+                        setOfferManagementTab('create');
+                      }
+                    }}
+                    className="text-[#6B2D2D] hover:text-[#8B3A3A] text-sm font-medium"
+                  >
+                    {isCreatingOffer ? 'Cancel' : '+ Create New Offer'}
+                  </button>
                 </div>
+
+                {/* Create New Offer Form */}
+                {isCreatingOffer && (
+                  <div className="border-t pt-4 mt-2 space-y-4">
+                    <h3 className="font-semibold text-gray-800">Create New Offer</h3>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Offer Name *</label>
+                      <input
+                        type="text"
+                        value={newOfferData.name}
+                        onChange={(e) => setNewOfferData({...newOfferData, name: e.target.value})}
+                        placeholder="e.g., Summer Sale 2024"
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                      <textarea
+                        value={newOfferData.description}
+                        onChange={(e) => setNewOfferData({...newOfferData, description: e.target.value})}
+                        placeholder="Offer description"
+                        rows="2"
+                        className="w-full px-3 py-2 border rounded-lg"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
+                        <select
+                          value={newOfferData.discountType}
+                          onChange={(e) => setNewOfferData({...newOfferData, discountType: e.target.value})}
+                          className="w-full px-3 py-2 border rounded-lg"
+                        >
+                          <option value="percentage">Percentage (%)</option>
+                          <option value="fixed">Fixed Amount (₹)</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Discount Value</label>
+                        <input
+                          type="number"
+                          value={newOfferData.discountValue}
+                          onChange={(e) => setNewOfferData({...newOfferData, discountValue: e.target.value})}
+                          placeholder={newOfferData.discountType === 'percentage' ? 'e.g., 20' : 'e.g., 500'}
+                          className="w-full px-3 py-2 border rounded-lg"
+                        />
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={handleCreateOffer}
+                      className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
+                    >
+                      Create Offer
+                    </button>
+                  </div>
+                )}
+
+                {/* Custom Price Override */}
+                {selectedOfferId && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Custom Offer Price (Optional)
+                    </label>
+                    <input
+                      type="number"
+                      value={customOfferPrice}
+                      onChange={(e) => setCustomOfferPrice(e.target.value)}
+                      placeholder="Leave empty to auto-calculate"
+                      min="1"
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Leave empty to calculate automatically based on offer discount
+                    </p>
+                  </div>
+                )}
+
+                {/* Offer Description Display */}
+                {offerDescription && (
+                  <div className="bg-gray-50 p-3 rounded-lg">
+                    <p className="text-sm text-gray-600">{offerDescription}</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3 mt-8">
@@ -1099,11 +1345,275 @@ const AdminProducts = () => {
                   Cancel
                 </button>
                 <button
-                  onClick={handleSaveOffer}
-                  className="px-6 py-2 bg-[#6B2D2D] text-white rounded-lg hover:bg-[#8B3A3A] transition"
+                  onClick={handleApplyOffer}
+                  disabled={!selectedOfferId}
+                  className="px-6 py-2 bg-[#6B2D2D] text-white rounded-lg hover:bg-[#8B3A3A] transition disabled:opacity-50"
                 >
                   Apply Offer
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Offer Management Modal */}
+        {showOfferManagement && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b p-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-gray-800">Manage Offers</h2>
+                <button
+                  onClick={() => {
+                    setShowOfferManagement(false);
+                    setOfferManagementTab('list');
+                    setIsCreatingOffer(false);
+                    setIsEditingOffer(false);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ×
+                </button>
+              </div>
+              
+              <div className="p-6">
+                {/* Tabs */}
+                <div className="flex gap-2 mb-6 border-b">
+                  <button
+                    onClick={() => {
+                      setOfferManagementTab('list');
+                      setIsCreatingOffer(false);
+                      setIsEditingOffer(false);
+                    }}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      offerManagementTab === 'list' 
+                        ? 'text-[#6B2D2D] border-b-2 border-[#6B2D2D]' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    All Offers
+                  </button>
+                  <button
+                    onClick={() => {
+                      setOfferManagementTab('create');
+                      setIsCreatingOffer(true);
+                      setIsEditingOffer(false);
+                      setNewOfferData({ name: '', description: '', discountType: 'percentage', discountValue: '' });
+                    }}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      offerManagementTab === 'create' 
+                        ? 'text-[#6B2D2D] border-b-2 border-[#6B2D2D]' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Create New Offer
+                  </button>
+                </div>
+                
+                {/* List Offers Tab */}
+                {offerManagementTab === 'list' && (
+                  <div className="space-y-4">
+                    {offers.length === 0 ? (
+                      <div className="text-center py-12 text-gray-500">
+                        No offers created yet. Click "Create New Offer" to get started.
+                      </div>
+                    ) : (
+                      offers.map((offer) => (
+                        <div key={offer.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <div className="flex justify-between items-start">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-lg font-semibold text-gray-800">{offer.name}</h3>
+                              </div>
+                              <p className="text-gray-600 text-sm mb-2">{offer.description || 'No description'}</p>
+                              <div className="flex items-center gap-4 text-sm">
+                                <span className="text-[#6B2D2D] font-medium">
+                                  {offer.discountType === 'percentage' 
+                                    ? `${offer.discountValue}% OFF` 
+                                    : `₹${offer.discountValue} OFF`}
+                                </span>
+                                <span className="text-gray-500">
+                                  Used on {offer.productIds?.length || 0} products
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setEditingOffer(offer);
+                                  setIsEditingOffer(true);
+                                  setOfferManagementTab('edit');
+                                }}
+                                className="px-3 py-1 rounded-lg text-sm font-medium bg-blue-100 text-blue-700 hover:bg-blue-200 transition"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteOffer(offer.id, offer.name)}
+                                className="px-3 py-1 rounded-lg text-sm font-medium bg-red-100 text-red-700 hover:bg-red-200 transition"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+                
+                {/* Create Offer Tab */}
+                {offerManagementTab === 'create' && (
+                  <div className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Offer Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={newOfferData.name}
+                        onChange={(e) => setNewOfferData({...newOfferData, name: e.target.value})}
+                        placeholder="e.g., Summer Sale 2024"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                      </label>
+                      <textarea
+                        value={newOfferData.description}
+                        onChange={(e) => setNewOfferData({...newOfferData, description: e.target.value})}
+                        placeholder="Describe the offer..."
+                        rows="3"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Discount Type
+                        </label>
+                        <select
+                          value={newOfferData.discountType}
+                          onChange={(e) => setNewOfferData({...newOfferData, discountType: e.target.value})}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        >
+                          <option value="percentage">Percentage (%)</option>
+                          <option value="fixed">Fixed Amount (₹)</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Discount Value *
+                        </label>
+                        <input
+                          type="number"
+                          value={newOfferData.discountValue}
+                          onChange={(e) => setNewOfferData({...newOfferData, discountValue: e.target.value})}
+                          placeholder={newOfferData.discountType === 'percentage' ? 'e.g., 20' : 'e.g., 500'}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end gap-3 pt-4">
+                      <button
+                        onClick={() => {
+                          setOfferManagementTab('list');
+                          setIsCreatingOffer(false);
+                        }}
+                        className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleCreateOffer}
+                        className="px-6 py-2 bg-[#6B2D2D] text-white rounded-lg hover:bg-[#8B3A3A] transition"
+                      >
+                        Create Offer
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Edit Offer Tab */}
+                {offerManagementTab === 'edit' && editingOffer && (
+                  <div className="space-y-5">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Offer Name *
+                      </label>
+                      <input
+                        type="text"
+                        value={editingOffer.name}
+                        onChange={(e) => setEditingOffer({...editingOffer, name: e.target.value})}
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Description
+                      </label>
+                      <textarea
+                        value={editingOffer.description || ''}
+                        onChange={(e) => setEditingOffer({...editingOffer, description: e.target.value})}
+                        rows="3"
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Discount Type
+                        </label>
+                        <select
+                          value={editingOffer.discountType}
+                          onChange={(e) => setEditingOffer({...editingOffer, discountType: e.target.value})}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        >
+                          <option value="percentage">Percentage (%)</option>
+                          <option value="fixed">Fixed Amount (₹)</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Discount Value *
+                        </label>
+                        <input
+                          type="number"
+                          value={editingOffer.discountValue}
+                          onChange={(e) => setEditingOffer({...editingOffer, discountValue: e.target.value})}
+                          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="flex justify-end gap-3 pt-4">
+                      <button
+                        onClick={() => {
+                          setOfferManagementTab('list');
+                          setIsEditingOffer(false);
+                          setEditingOffer(null);
+                        }}
+                        className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleUpdateOffer}
+                        className="px-6 py-2 bg-[#6B2D2D] text-white rounded-lg hover:bg-[#8B3A3A] transition"
+                      >
+                        Update Offer
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -235,9 +235,9 @@ const Header = () => {
                         />
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-gray-800 truncate">{product.name}</h4>
-                          <p className="text-sm text-gray-500 truncate">
+                          {/* <p className="text-sm text-gray-500 truncate">
                             {getCategoryName(product.category)}
-                          </p>
+                          </p> */}
                         </div>
                         <span className="font-bold text-[#800020] text-lg whitespace-nowrap ml-2">
                           {formatPrice(product.price)}

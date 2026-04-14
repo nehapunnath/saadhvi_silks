@@ -418,27 +418,7 @@ searchProducts: async (query) => {
     return { results: [], error: 'Network error during search' };
   }
 },
-  // Add this inside the productApi object (anywhere with the other methods)
-  updateProductOffer: async (productId, offerData) => {
-    const token = authApi.getToken();
 
-    const response = await fetch(`${BASE_URL}/admin/products/${productId}/offer`, {
-      method: 'PATCH',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(offerData)
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || 'Failed to update offer');
-
-    return data;
-    }
-  },
 toggleProductVisibility: async (productId, isVisible) => {
     const token = authApi.getToken();
 
@@ -459,6 +439,7 @@ toggleProductVisibility: async (productId, isVisible) => {
 
     return data;
   },
+
 reorderProducts: async (orderMap) => {
     const token = authApi.getToken();
 
@@ -507,7 +488,189 @@ reorderProducts: async (orderMap) => {
     if (!response.ok) throw new Error(data.error || 'Failed to fetch visible order');
     return data;
   },
+  // Add to your productApi object
+getHomepageSettings: async () => {
+  const response = await fetch(`${BASE_URL}/settings/homepage`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error);
+  return data;
+},
+
+updateHomepageSettings: async (selectedProductIds, count) => {
+  const token = authApi.getToken();
+  const response = await fetch(`${BASE_URL}/settings/homepage`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ selectedProductIds, count })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error);
+  return data;
+},
+
+getBudgetSelections: async () => {
+  const response = await fetch(`${BASE_URL}/settings/budget-selections`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error);
+  return data;
+},
+
+updateBudgetSelections: async (selections) => {
+  const token = authApi.getToken();
+  const response = await fetch(`${BASE_URL}/settings/budget-selections`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(selections)
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error);
+  return data;
+},
   
+// Get all offers (admin)
+  getOffers: async () => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/admin/offers`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+
+  // Create a new offer (admin)
+  createOffer: async (offerData) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/admin/offers`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(offerData)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+
+  // Update an offer (admin)
+  updateOffer: async (offerId, offerData) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/admin/offers/${offerId}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(offerData)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+
+  // Delete an offer (admin)
+  deleteOffer: async (offerId) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/admin/offers/${offerId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+
+  // Apply offer to a product (admin)
+  applyOfferToProduct: async (productId, offerId, customPrice = null) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/admin/products/${productId}/apply-offer`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ offerId, customPrice })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+
+  // Remove offer from a product (admin)
+  removeOfferFromProduct: async (productId) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/admin/products/${productId}/remove-offer`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+
+  // Get active offers with their products (public - for homepage)
+  getActiveOffersWithProducts: async () => {
+    const response = await fetch(`${BASE_URL}/offers/active`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+
+  // Get all products under a specific offer (public)
+  getProductsByOffer: async (offerId) => {
+    const response = await fetch(`${BASE_URL}/offers/${offerId}/products`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error);
+    return data;
+  },
+
+  // Legacy updateProductOffer method (keeping for backward compatibility)
+  updateProductOffer: async (productId, offerData) => {
+    const token = authApi.getToken();
+    const response = await fetch(`${BASE_URL}/admin/products/${productId}/offer`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(offerData)
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || 'Failed to update offer');
+    return data;
+  }
+
+
 };
 
 export default productApi;
