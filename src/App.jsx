@@ -25,6 +25,7 @@ import { Toaster } from 'react-hot-toast'
 import AdminAbout from './Pages/Admin/AdminAbout'
 import AdminContact from './Pages/Admin/AdminContact'
 import CategoryProducts from './Pages/CategoryProducts'
+import BudgetProducts from './Pages/BudgetProducts'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -47,6 +48,7 @@ function App() {
         <Route path='/contact' element={<ContactUs />} />
         <Route path='/products' element={<Products />} />
         <Route path='/category/:categoryName' element={<CategoryProducts/>} />
+        <Route path="/products-by-budget" element={<BudgetProducts/>} />
         <Route path='/viewdetails/:id' element={<ViewDetails />} />
         <Route path='/cart' element={<Cart />} />
         <Route path='/wishlist' element={<Wishlist />} />

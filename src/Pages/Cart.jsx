@@ -1,7 +1,7 @@
-// src/pages/Cart.jsx
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
+import { ShoppingBag, Trash2, ArrowLeft, ArrowRight, CreditCard, Truck, ShieldCheck, QrCode, Wallet, MapPin, Phone, Mail, User, Home, Building, Map, CreditCard as PinCode } from 'lucide-react';
 import productApi from '../Services/proApi';
 import authApi from '../Services/authApi';
 import qr from '../assets/qr.jpg';
@@ -77,12 +77,11 @@ const Cart = () => {
     try {
       await productApi.removeFromCart(id);
       setCartItems((prev) => prev.filter((i) => i.id !== id));
-      toast.success('Item removed');
+      toast.success('Item removed from cart');
     } catch (err) {
       toast.error('Something Went Wrong !!!');
     }
   };
-
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -90,46 +89,47 @@ const Cart = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setSubmitting(true);
+    e.preventDefault();
+    setSubmitting(true);
 
-  try {
-    const payload = {
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      shipping: {
-        address: formData.address,
-        city: formData.city,
-        state: formData.state,
-        postalCode: formData.postalCode,
-      },
-      paymentMethod: formData.paymentMethod,   // ← NEW
-    };
+    try {
+      const payload = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        shipping: {
+          address: formData.address,
+          city: formData.city,
+          state: formData.state,
+          postalCode: formData.postalCode,
+        },
+        paymentMethod: formData.paymentMethod,
+      };
 
-    const response = await productApi.checkout(payload);
-    console.log('Checkout response:', response);
+      const response = await productApi.checkout(payload);
+      console.log('Checkout response:', response);
 
-    setOrderConfirmed(true);
-    setCartItems([]);
-    toast.success('Order placed successfully!');
-  } catch (err) {
-    toast.error('Order placement failed');
-  } finally {
-    setSubmitting(false);
-  }
-};
+      setOrderConfirmed(true);
+      setCartItems([]);
+      toast.success('Order placed successfully!');
+    } catch (err) {
+      toast.error('Order placement failed');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const toggleCheckout = () => setShowCheckout((p) => !p);
 
-
-
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] flex items-center justify-center py-12">
+      <div className="min-h-screen bg-gradient-to-br from-[#F9F3F3] via-[#F7F0E8] to-[#F5EDE3] flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#6B2D2D] border-t-transparent mx-auto" />
-          <p className="mt-4 text-[#2E2E2E] text-lg">Loading your cart...</p>
+          <div className="relative">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-[#800020] mx-auto"></div>
+            <ShoppingBag className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-[#800020] w-6 h-6" />
+          </div>
+          <p className="mt-6 text-[#2E2E2E] font-medium">Loading your precious items...</p>
         </div>
       </div>
     );
@@ -137,17 +137,22 @@ const Cart = () => {
 
   if (error === 'Please login to view your cart') {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12">
+      <div className="min-h-screen bg-gradient-to-br from-[#F9F3F3] via-[#F7F0E8] to-[#F5EDE3] py-20">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-xl font-medium text-[#2E2E2E] mb-4">
-            Please login to view your cart
-          </h2>
-          <Link
-            to="/login"
-            className="inline-block bg-[#6B2D2D] text-white px-8 py-3 rounded-full font-medium hover:bg-[#8B3A3A] transition shadow-lg"
-          >
-            Login Now
-          </Link>
+          <div className="max-w-md mx-auto bg-white/80 backdrop-blur-sm rounded-3xl p-10 shadow-xl">
+            <div className="w-20 h-20 bg-[#800020]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ShoppingBag className="w-10 h-10 text-[#800020]" />
+            </div>
+            <h2 className="text-2xl font-serif text-[#2E2E2E] mb-3">Login Required</h2>
+            <p className="text-[#666] mb-8">Please login to view and manage your cart</p>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2 bg-gradient-to-r from-[#800020] to-[#6B001A] text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transition-all duration-300"
+            >
+              Login Now
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -155,11 +160,20 @@ const Cart = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12 text-center">
-        <h2 className="text-xl font-medium text-[#2E2E2E] mb-4">{error}</h2>
-        <Link to="/products" className="bg-[#6B2D2D] text-white px-6 py-3 rounded-full hover:bg-[#8B3A3A]">
-          Continue Shopping
-        </Link>
+      <div className="min-h-screen bg-gradient-to-br from-[#F9F3F3] via-[#F7F0E8] to-[#F5EDE3] py-20 text-center">
+        <div className="container mx-auto px-4">
+          <div className="max-w-md mx-auto bg-white/80 backdrop-blur-sm rounded-3xl p-10 shadow-xl">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <ShoppingBag className="w-10 h-10 text-red-500" />
+            </div>
+            <h2 className="text-2xl font-serif text-[#2E2E2E] mb-3">Error</h2>
+            <p className="text-[#666] mb-8">{error}</p>
+            <Link to="/products" className="inline-flex items-center gap-2 bg-[#800020] text-white px-8 py-3 rounded-full font-medium hover:bg-[#6B001A] transition">
+              Continue Shopping
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }
@@ -167,52 +181,55 @@ const Cart = () => {
   // ORDER CONFIRMED SUCCESS PAGE
   if (orderConfirmed) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12 px-4">
-        <div className="max-w-2xl mx-auto text-center py-20">
-
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-8 animate-pulse">
-            <svg className="w-14 h-14 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-            </svg>
-          </div>
-
-          <h2 className="text-4xl md:text-5xl font-bold text-[#2E2E2E] mb-6">
-            Order Confirmed!
-          </h2>
-
-          <p className="text-lg text-[#555] mb-10 max-w-lg mx-auto">
-            Thank you for your order. Your order has been received successfully.
-          </p>
-
-          <div className="bg-white rounded-3xl shadow-2xl p-10 max-w-md mx-auto border border-[#f0e0e0]">
-            <p className="text-xl font-semibold text-[#2E2E2E] mb-6">
-              Share Payment Screenshot on WhatsApp
-            </p>
-
-            <div className="mb-8">
-              <img src={qr} alt="Payment QR" className="w-56 h-56 mx-auto rounded-2xl shadow-lg" />
+      <div className="min-h-screen bg-gradient-to-br from-[#F9F3F3] via-[#F7F0E8] to-[#F5EDE3] py-12 px-4">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-3xl shadow-2xl overflow-hidden">
+            <div className="bg-gradient-to-r from-[#800020] to-[#6B001A] p-8 text-center">
+              <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg">
+                <svg className="w-14 h-14 text-[#800020]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h2 className="text-3xl font-serif font-bold text-white mb-2">Order Confirmed!</h2>
+              <p className="text-[#F5E6D3]">Thank you for your purchase</p>
             </div>
 
-            <a
-              href="https://wa.me/918861315710"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-4 w-full bg-green-600 hover:bg-green-700 text-white text-xl font-bold py-6 rounded-2xl transition shadow-xl transform hover:scale-105"
-            >
-              <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335 .157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.864 3.488" />
-              </svg>
-              Send Screenshot on WhatsApp
-            </a>
+            <div className="p-8">
+              <div className="text-center mb-8">
+                <p className="text-[#2E2E2E] mb-2">Your order has been received successfully.</p>
+                {/* <p className="text-sm text-[#666]">Order details have been sent to your email</p> */}
+              </div>
 
-            <p className="text-sm text-[#666] mt-6">
-              We’ll confirm your order as soon as we receive the screenshot.
-            </p>
+              <div className="bg-[#F9F3F3] rounded-2xl p-6 mb-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <QrCode className="w-6 h-6 text-[#800020]" />
+                  <h3 className="font-semibold text-[#2E2E2E]">Payment Instructions</h3>
+                </div>
+                
+                <div className="flex flex-col items-center">
+                  {/* <img src={qr} alt="Payment QR" className="w-48 h-48 rounded-2xl shadow-md mb-4" /> */}
+                  <p className="text-sm text-[#666] text-center mb-4">
+                    Share screenshot on WhatsApp
+                  </p>
+                  <a
+                    href="https://wa.me/918861315710"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-3 bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-full font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335 .157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.864 3.488" />
+                    </svg>
+                    Send Screenshot on WhatsApp
+                  </a>
+                </div>
+              </div>
+
+              <Link to="/products" className="block text-center text-[#800020] hover:text-[#6B001A] font-medium transition">
+                ← Continue Shopping
+              </Link>
+            </div>
           </div>
-
-          <Link to="/products" className="block mt-10 text-[#6B2D2D] text-lg font-medium hover:underline">
-            ← Continue Shopping
-          </Link>
         </div>
       </div>
     );
@@ -220,62 +237,189 @@ const Cart = () => {
 
   if (cartItems.length === 0) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12 text-center">
-        <div className="py-20 bg-white rounded-3xl shadow-lg max-w-2xl mx-auto p-10">
-          <h2 className="text-2xl font-bold text-[#2E2E2E] mb-4">Your cart is empty</h2>
-          <p className="text-[#555] mb-8">Discover our handcrafted sarees and add your favorites.</p>
-          <Link to="/products" className="bg-[#6B2D2D] text-white px-8 py-3 rounded-full font-medium hover:bg-[#8B3A3A]">
-            Explore Collection
-          </Link>
+      <div className="min-h-screen bg-gradient-to-br from-[#F9F3F3] via-[#F7F0E8] to-[#F5EDE3] py-20">
+        <div className="container mx-auto px-4">
+          <div className="max-w-lg mx-auto">
+            <div className="bg-white rounded-3xl shadow-xl p-12 text-center">
+              <div className="w-24 h-24 bg-[#800020]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                <ShoppingBag className="w-12 h-12 text-[#800020]" />
+              </div>
+              <h2 className="text-2xl font-serif text-[#2E2E2E] mb-3">Your cart is empty</h2>
+              <p className="text-[#666] mb-8">Discover our exquisite collection of handcrafted sarees</p>
+              <Link
+                to="/products"
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-[#800020] to-[#6B001A] text-white px-8 py-3 rounded-full font-medium hover:shadow-lg transition-all duration-300"
+              >
+                <ShoppingBag className="w-4 h-4" />
+                Explore Collection
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] py-12 px-4">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl md:text-5xl font-serif font-bold text-center text-[#800020] mb-12">
-          {showCheckout ? 'Complete Your Order' : 'Your Shopping Cart'}
-        </h1>
+    <div className="min-h-screen bg-gradient-to-br from-[#F9F3F3] via-[#F7F0E8] to-[#F5EDE3] py-12 px-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="text-center mb-10">
+          <h1 className="text-4xl md:text-5xl font-serif font-bold text-[#800020] mb-3">
+            {showCheckout ? 'Checkout' : 'Shopping Cart'}
+          </h1>
+          <div className="w-24 h-0.5 bg-gradient-to-r from-[#800020] to-[#D9A7A7] mx-auto"></div>
+          <p className="text-[#666] mt-4">
+            {showCheckout ? 'Complete your order details' : `${cartItems.length} item${cartItems.length > 1 ? 's' : ''} in your cart`}
+          </p>
+        </div>
 
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 justify-center items-start">
-          <div className="w-full lg:w-auto flex-1 max-w-2xl">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Main Content */}
+          <div className="flex-1">
             {showCheckout ? (
               /* ------------------- CHECKOUT FORM ------------------- */
-              <div className="bg-white rounded-3xl shadow-xl p-8 border border-[#f0e0e0]">
-                <h2 className="text-2xl font-bold text-[#2E2E2E] mb-8 flex items-center gap-3">
-                  <span className="w-8 h-8 bg-[#6B2D2D] text-white rounded-full flex items-center justify-center text-sm">2</span>
-                  Shipping & Payment
-                </h2>
-
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="grid md:grid-cols-2 gap-5">
-                    {['name', 'email', 'phone', 'address', 'city', 'state', 'postalCode'].map((field) => (
-                      <div key={field} className={field === 'address' ? 'md:col-span-2' : ''}>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">
-                          {field === 'postalCode' ? 'PIN Code' : field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1')}
-                        </label>
-                        <input
-                          type={field === 'email' ? 'email' : 'text'}
-                          name={field}
-                          value={formData[field]}
-                          onChange={handleInputChange}
-                          required
-                          className="w-full px-4 py-3 border border-[#D9A7A7] rounded-xl focus:ring-2 focus:ring-[#6B2D2D] focus:border-[#6B2D2D] transition"
-                          placeholder={field === 'postalCode' ? '400001' : ''}
-                        />
-                      </div>
-                    ))}
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+                <div className="bg-gradient-to-r from-[#800020] to-[#6B001A] px-8 py-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                      <span className="text-[#800020] font-bold">2</span>
+                    </div>
+                    <h2 className="text-2xl font-serif text-white">Shipping & Payment</h2>
                   </div>
-                  <div className="mt-8">
-                    <h3 className="text-lg font-semibold text-[#2E2E2E] mb-4">Payment Method</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {/* Cash on Delivery */}
-                      <label className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'cod'
-                          ? 'border-[#6B2D2D] bg-[#fdf4f4] shadow-sm'
-                          : 'border-gray-300 hover:border-[#D9A7A7]'
+                </div>
+
+                <form onSubmit={handleSubmit} className="p-8 space-y-6">
+                  {/* Personal Information */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#2E2E2E] mb-4 flex items-center gap-2">
+                      <User className="w-5 h-5 text-[#800020]" />
+                      Personal Information
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Full Name *</label>
+                        <div className="relative">
+                          <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            name="name"
+                            value={formData.name}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#800020] focus:ring-2 focus:ring-[#800020]/20 transition"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Email *</label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#800020] focus:ring-2 focus:ring-[#800020]/20 transition"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Phone *</label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="tel"
+                            name="phone"
+                            value={formData.phone}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#800020] focus:ring-2 focus:ring-[#800020]/20 transition"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Shipping Address */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#2E2E2E] mb-4 flex items-center gap-2">
+                      <MapPin className="w-5 h-5 text-[#800020]" />
+                      Shipping Address
+                    </h3>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Address *</label>
+                        <div className="relative">
+                          <Home className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type="text"
+                            name="address"
+                            value={formData.address}
+                            onChange={handleInputChange}
+                            required
+                            className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#800020] focus:ring-2 focus:ring-[#800020]/20 transition"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid md:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-[#2E2E2E] mb-2">City *</label>
+                          <div className="relative">
+                            <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              name="city"
+                              value={formData.city}
+                              onChange={handleInputChange}
+                              required
+                              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#800020] focus:ring-2 focus:ring-[#800020]/20 transition"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[#2E2E2E] mb-2">State *</label>
+                          <div className="relative">
+                            <Map className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              name="state"
+                              value={formData.state}
+                              onChange={handleInputChange}
+                              required
+                              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#800020] focus:ring-2 focus:ring-[#800020]/20 transition"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-[#2E2E2E] mb-2">PIN Code *</label>
+                          <div className="relative">
+                            <PinCode className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                            <input
+                              type="text"
+                              name="postalCode"
+                              value={formData.postalCode}
+                              onChange={handleInputChange}
+                              required
+                              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl focus:border-[#800020] focus:ring-2 focus:ring-[#800020]/20 transition"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Payment Method */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#2E2E2E] mb-4 flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-[#800020]" />
+                      Payment Method
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'cod'
+                          ? 'border-[#800020] bg-[#F9F3F3]'
+                          : 'border-gray-200 hover:border-[#D9A7A7]'
                         }`}>
                         <input
                           type="radio"
@@ -283,19 +427,20 @@ const Cart = () => {
                           value="cod"
                           checked={formData.paymentMethod === 'cod'}
                           onChange={handleInputChange}
-                          className="h-5 w-5 text-[#6B2D2D] focus:ring-[#6B2D2D]"
-                          required
+                          className="h-5 w-5 text-[#800020] focus:ring-[#800020]"
                         />
                         <div className="ml-4">
-                          <p className="font-medium text-[#2E2E2E]">Cash on Delivery</p>
-                          <p className="text-sm text-gray-600">Pay when you receive your order</p>
+                          <div className="flex items-center gap-2">
+                            <Truck className="w-5 h-5 text-[#800020]" />
+                            <p className="font-medium text-[#2E2E2E]">Cash on Delivery</p>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">Pay when you receive your order</p>
                         </div>
                       </label>
 
-                      {/* UPI / QR Code (existing method) */}
-                      <label className={`flex items-center p-4 border rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'upi'
-                          ? 'border-[#6B2D2D] bg-[#fdf4f4] shadow-sm'
-                          : 'border-gray-300 hover:border-[#D9A7A7]'
+                      <label className={`flex items-center p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.paymentMethod === 'upi'
+                          ? 'border-[#800020] bg-[#F9F3F3]'
+                          : 'border-gray-200 hover:border-[#D9A7A7]'
                         }`}>
                         <input
                           type="radio"
@@ -303,108 +448,180 @@ const Cart = () => {
                           value="upi"
                           checked={formData.paymentMethod === 'upi'}
                           onChange={handleInputChange}
-                          className="h-5 w-5 text-[#6B2D2D] focus:ring-[#6B2D2D]"
-                          required
+                          className="h-5 w-5 text-[#800020] focus:ring-[#800020]"
                         />
                         <div className="ml-4">
-                          <p className="font-medium text-[#2E2E2E]">UPI</p>
-                          <p className="text-sm text-gray-600">Scan QR & share screenshot on WhatsApp</p>
+                          <div className="flex items-center gap-2">
+                            <Wallet className="w-5 h-5 text-[#800020]" />
+                            <p className="font-medium text-[#2E2E2E]">UPI / QR Code</p>
+                          </div>
+                          <p className="text-sm text-gray-500 mt-1">Scan QR & share screenshot</p>
                         </div>
                       </label>
                     </div>
                   </div>
 
-                  <div className="mt-10 p-6 bg-[#fdf4f4] rounded-2xl border-2 border-dashed border-[#D9A7A7] text-center">
-                    <p className="text-[#2E2E2E] font-medium mb-4">Scan to Pay</p>
-                    <div className="inline-block p-3 bg-white rounded-2xl shadow-md">
-                      <img src={qr} alt="QR Code" className="w-56 h-56 object-contain" />
+                  {/* UPI QR Section */}
+                  {formData.paymentMethod === 'upi' && (
+                    <div className="bg-[#F9F3F3] rounded-2xl p-6 text-center border-2 border-dashed border-[#D9A7A7]">
+                      <QrCode className="w-12 h-12 text-[#800020] mx-auto mb-4" />
+                      <p className="text-[#2E2E2E] font-medium mb-3">Scan to Pay</p>
+                      <div className="inline-block p-3 bg-white rounded-2xl shadow-md mb-3">
+                         <img src={qr} alt="QR Code" className="w-72 h-72 object-contain" />
+                      </div>
+                      <p className="text-sm text-[#666]">Share payment screenshot on WhatsApp for order confirmation</p>
+                      <a href="https://wa.me/918861315710" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 text-green-600 font-medium hover:underline">
+                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335 .157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.864 3.488" />
+                        </svg>
+                        WhatsApp Support
+                      </a>
                     </div>
-                    <p className="text-sm text-[#555] mt-4">Share payment screenshot on WhatsApp</p>
-                    <a href="https://wa.me/918861315710" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 mt-3 text-green-600 font-medium hover:underline">
-                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335 .157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.864 3.488" /></svg>
-                      WhatsApp
-                    </a>
+                  )}
+
+                  <div className="flex gap-4 pt-4">
+                    <button
+                      type="button"
+                      onClick={toggleCheckout}
+                      className="flex-1 px-6 py-3 border-2 border-[#800020] text-[#800020] rounded-full font-medium hover:bg-[#800020] hover:text-white transition-all duration-300"
+                    >
+                      ← Back to Cart
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="flex-1 bg-gradient-to-r from-[#800020] to-[#6B001A] text-white px-6 py-3 rounded-full font-medium hover:shadow-lg transition-all duration-300 disabled:opacity-70"
+                    >
+                      {submitting ? 'Placing Order...' : 'Place Order'}
+                    </button>
                   </div>
-
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full bg-gradient-to-r from-[#6B2D2D] to-[#800020] text-white py-4 rounded-full font-bold text-lg hover:from-[#3A1A1A] hover:to-[#6B2D2D] transition shadow-lg disabled:opacity-70"
-                  >
-                    {submitting ? 'Placing Order...' : 'Place Order'}
-                  </button>
-
-                  <button type="button" onClick={toggleCheckout} className="w-full text-center text-[#6B2D2D] font-medium hover:underline mt-3">
-                    ← Back to Cart
-                  </button>
                 </form>
               </div>
             ) : (
               /* ------------------- CART SUMMARY ------------------- */
-              <div className="bg-gradient-to-br from-white to-[#fdf8f5] rounded-3xl shadow-2xl p-8 md:p-10 border border-[#f0e0e0]">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-2xl md:text-3xl font-bold text-[#4a1c1c] flex items-center gap-3">
-                    <span className="w-9 h-9 bg-[#6B2D2D] text-white rounded-full flex items-center justify-center text-sm">1</span>
-                    Order Summary
-                  </h2>
-                  <span className="text-sm text-[#666]">{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}</span>
+              <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
+                <div className="bg-gradient-to-r from-[#800020] to-[#6B001A] px-8 py-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
+                        <span className="text-[#800020] font-bold">1</span>
+                      </div>
+                      <h2 className="text-2xl font-serif text-white">Order Summary</h2>
+                    </div>
+                    <span className="text-white/80 text-sm">{cartItems.length} {cartItems.length === 1 ? 'item' : 'items'}</span>
+                  </div>
                 </div>
 
-                <div className="space-y-6">
+                <div className="divide-y divide-gray-100">
                   {cartItems.map((item) => (
-                    <div key={item.id} className="flex gap-5 p-5 bg-white rounded-2xl shadow-sm hover:shadow-md transition">
-                      <img src={item.image} alt={item.name} loading="lazy" decoding="async" className="w-24 h-24 object-cover rounded-xl shadow-sm" />
-                      <div className="flex-1">
-                        <h3 className="font-semibold text-[#2E2E2E] text-lg line-clamp-2">{item.name}</h3>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-sm text-[#666]">Qty:</span>
-                          <span className="font-medium text-[#2E2E2E]">{item.quantity}</span>
+                    <div key={item.id} className="p-6 hover:bg-[#F9F3F3]/30 transition">
+                      <div className="flex gap-5">
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          loading="lazy" 
+                          decoding="async" 
+                          className="w-24 h-24 object-cover rounded-xl shadow-md" 
+                        />
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-[#2E2E2E] text-lg line-clamp-2">{item.name}</h3>
+                          <div className="flex items-center gap-3 mt-2">
+                            <span className="text-sm text-[#666]">Quantity:</span>
+                            <span className="font-medium text-[#800020]">{item.quantity}</span>
+                          </div>
+                          {item.extraCharges > 0 && (
+                            <p className="text-xs text-[#666] mt-1">Shipping: {formatPrice(item.extraCharges)}</p>
+                          )}
                         </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-[#6B2D2D] text-xl">
-                          {formatPrice(item.price * item.quantity)}
-                        </p>
-                        <button onClick={() => handleRemoveItem(item.id)} className="mt-3 text-[#999] hover:text-red-600 transition">
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
+                        <div className="text-right">
+                          <p className="font-bold text-[#800020] text-xl">
+                            {formatPrice(item.price * item.quantity)}
+                          </p>
+                          <button 
+                            onClick={() => handleRemoveItem(item.id)} 
+                            className="mt-3 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-5 h-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-8 p-6 bg-[#f9f3f3] rounded-2xl space-y-4">
-                  <div className="flex justify-between text-lg">
-                    <span className="text-[#2E2E2E]">Subtotal</span>
-                    <span className="font-medium">{formatPrice(calculateProductSubtotal())}</span>
+                <div className="p-6 bg-[#F9F3F3]">
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-[#2E2E2E]">
+                      <span>Subtotal</span>
+                      <span className="font-medium">{formatPrice(calculateProductSubtotal())}</span>
+                    </div>
+                    <div className="flex justify-between text-[#2E2E2E]">
+                      <span>Shipping</span>
+                      <span className="font-medium">{formatPrice(calculateShipping())}</span>
+                    </div>
+                    <div className="pt-3 border-t border-[#D9A7A7] flex justify-between text-xl font-bold text-[#800020]">
+                      <span>Total</span>
+                      <span>{formatPrice(calculateTotal())}</span>
+                    </div>
                   </div>
 
-                  <div className="flex justify-between text-lg">
-                    <span className="text-[#2E2E2E]">Shipping</span>
-                    <span className="font-medium">{formatPrice(calculateShipping())}</span>
-                  </div>
+                  <button
+                    onClick={toggleCheckout}
+                    className="mt-6 w-full bg-gradient-to-r from-[#800020] to-[#6B001A] text-white py-3 rounded-full font-medium hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    Proceed to Checkout
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
 
-                  <div className="pt-4 border-t border-[#e8c6c6] flex justify-between text-xl font-bold text-[#4a1c1c]">
-                    <span>Total</span>
-                    <span>{formatPrice(calculateTotal())}</span>
-                  </div>
+                  <Link to="/products" className="block text-center mt-4 text-[#800020] hover:text-[#6B001A] text-sm transition">
+                    ← Continue Shopping
+                  </Link>
                 </div>
-
-                <button
-                  onClick={toggleCheckout}
-                  className="mt-8 w-full bg-gradient-to-r from-[#6B2D2D] to-[#800020] text-white py-4 rounded-full font-bold text-lg hover:from-[#3A1A1A] hover:to-[#6B2D2D] transition shadow-xl"
-                >
-                  Proceed to Checkout
-                </button>
-
-                <Link to="/products" className="block text-center mt-4 text-[#6B2D2D] font-medium hover:underline">
-                  Continue Shopping
-                </Link>
               </div>
             )}
           </div>
+
+          {/* Sidebar - Order Summary (only in checkout mode) */}
+          {showCheckout && (
+            <div className="lg:w-96">
+              <div className="bg-white rounded-3xl shadow-xl p-6 sticky top-24">
+                <h3 className="text-xl font-serif text-[#800020] mb-4">Order Summary</h3>
+                <div className="space-y-3 pb-4 border-b border-gray-200">
+                  {cartItems.slice(0, 3).map((item) => (
+                    <div key={item.id} className="flex justify-between text-sm">
+                      <span className="text-[#2E2E2E] truncate flex-1">{item.name}</span>
+                      <span className="text-[#800020] font-medium ml-2">x{item.quantity}</span>
+                    </div>
+                  ))}
+                  {cartItems.length > 3 && (
+                    <p className="text-xs text-[#666]">+{cartItems.length - 3} more items</p>
+                  )}
+                </div>
+                <div className="space-y-2 pt-4">
+                  <div className="flex justify-between">
+                    <span className="text-[#666]">Subtotal</span>
+                    <span className="text-[#2E2E2E]">{formatPrice(calculateProductSubtotal())}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-[#666]">Shipping</span>
+                    <span className="text-[#2E2E2E]">{formatPrice(calculateShipping())}</span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-gray-200">
+                    <span className="font-bold text-[#2E2E2E]">Total</span>
+                    <span className="font-bold text-[#800020] text-lg">{formatPrice(calculateTotal())}</span>
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <div className="flex items-center gap-2 text-sm text-[#666]">
+                    <ShieldCheck className="w-4 h-4 text-green-600" />
+                    <span>Secure Checkout</span>
+                  </div>
+                  
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

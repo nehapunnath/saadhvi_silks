@@ -317,7 +317,7 @@ const Orders = () => {
                             onChange={(e) => updatePaymentStatus(order.id, e.target.value)}
                             className={`text-xs font-medium px-3 py-1 rounded-full border-0 focus:ring-2 focus:ring-[#6B2D2D] ${getPaymentStatusColor(order.paymentStatus)}`}
                           >
-                            {['Pending','Paid', 'Pending', 'Refunded', 'Failed', 'Cancelled'].map(s => (
+                            {['Pending','Paid', 'Refunded', 'Failed', 'Cancelled'].map(s => (
                               <option key={s} value={s}>{s}</option>
                             ))}
                           </select>

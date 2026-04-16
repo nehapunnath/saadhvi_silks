@@ -1259,7 +1259,7 @@ const AdminProducts = () => {
                         type="text"
                         value={newOfferData.name}
                         onChange={(e) => setNewOfferData({...newOfferData, name: e.target.value})}
-                        placeholder="e.g., Summer Sale 2024"
+                        // placeholder="e.g., Summer Sale 2024"
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
@@ -1472,7 +1472,7 @@ const AdminProducts = () => {
                         type="text"
                         value={newOfferData.name}
                         onChange={(e) => setNewOfferData({...newOfferData, name: e.target.value})}
-                        placeholder="e.g., Summer Sale 2024"
+                        // placeholder="e.g., Summer Sale 2024"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                       />
                     </div>

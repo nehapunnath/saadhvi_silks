@@ -61,6 +61,19 @@ const Home = () => {
   const brandName = "Saadhvi Silks";
   const brandTagline = "Timeless Elegance in Every Thread";
 
+  const getProductOfferInfo = (product) => {
+  const inStock = product?.stock > 0;
+  // Check for offer using originalPrice field (your database pattern)
+  const hasOffer = product?.originalPrice && product?.originalPrice > product?.price;
+  const displayPrice = product?.price;
+  const originalPrice = hasOffer ? product?.originalPrice : null;
+  const discountPercentage = hasOffer && originalPrice && originalPrice > displayPrice 
+    ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
+    : 0;
+  
+  return { inStock, hasOffer, displayPrice, originalPrice, discountPercentage };
+};
+
   // Load special offers from backend
   useEffect(() => {
     const loadSpecialOffers = async () => {
@@ -346,6 +359,7 @@ const Home = () => {
     document.body.appendChild(script);
   }, []);
 
+  
 
   const handleCollectionExplore = (collection) => {
     console.log('Exploring collection:', collection.name, 'Category ID:', collection.categoryId);
@@ -713,34 +727,24 @@ const Home = () => {
       </section>
 
       {/* Budget Wise Collection Section */}
-      <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] ">
+      <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
               Shop by Budget
               <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
             </h2>
-            <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg">
-              Find the perfect saree that fits your budget
-            </p>
+            <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg">Find the perfect saree that fits your budget</p>
           </div>
-
 
           <div className="flex flex-wrap justify-center gap-4 mb-12">
             {[
-              { label: "Under ₹2,000", value: "under2000", },
-              { label: "₹2,000 - ₹5,000", value: "mid2000to5000", },
-              { label: "₹5,000 - ₹10,000", value: "mid5000to10000", },
-              { label: "Premium Collection", value: "premium", }
+              { label: "Under ₹2,000", value: "under2000" },
+              { label: "₹2,000 - ₹5,000", value: "mid2000to5000" },
+              { label: "₹5,000 - ₹10,000", value: "mid5000to10000" },
+              { label: "Premium Collection", value: "premium" }
             ].map((budget) => (
-              <button
-                key={budget.value}
-                onClick={() => setSelectedBudget(budget.value)}
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2 ${selectedBudget === budget.value
-                  ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white shadow-lg'
-                  : 'bg-white text-[#800020] border-2 border-[#800020] hover:bg-[#800020]/10'
-                  }`}
-              >
+              <button key={budget.value} onClick={() => setSelectedBudget(budget.value)} className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2 ${selectedBudget === budget.value ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white shadow-lg' : 'bg-white text-[#800020] border-2 border-[#800020] hover:bg-[#800020]/10'}`}>
                 <span>{budget.label}</span>
               </button>
             ))}
@@ -748,9 +752,7 @@ const Home = () => {
 
           {budgetLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {Array(3).fill().map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl h-[450px] animate-pulse shadow-xl" />
-              ))}
+              {Array(3).fill().map((_, i) => <div key={i} className="bg-white rounded-2xl h-[450px] animate-pulse shadow-xl" />)}
             </div>
           ) : budgetProducts.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
@@ -760,100 +762,53 @@ const Home = () => {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {budgetProducts.map((product) => {
-                const inStock = product.stock > 0;
-                const hasOffer = product.hasOffer === true && product.offerPrice && product.offerPrice > 0;
-                const displayPrice = hasOffer ? product.offerPrice : product.price;
+                const { inStock, hasOffer, displayPrice, originalPrice, discountPercentage } = getProductOfferInfo(product);
 
                 return (
-                  <div
-                    key={product.id || product._id}
-                    className="group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
-                  >
+                  <div key={product.id || product._id} className="group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
                     <div className="absolute inset-0 bg-gradient-to-r from-[#800020] via-[#A0002A] to-[#800020] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl p-[2px] -z-10"></div>
-
                     <div className="relative overflow-hidden bg-gradient-to-br from-[#F8EDE3] to-[#F5E6D3]">
-                      <div className="absolute top-4 left-4 z-20">
-                        <div className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg ${inStock
-                          ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white'
-                          : 'bg-gray-800 text-white'
-                          }`}>
+                      {/* <div className="absolute top-4 left-4 z-20"> */}
+                        {/* <div className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white' : 'bg-gray-800 text-white'}`}>
                           {inStock ? 'In Stock' : 'Sold Out'}
-                        </div>
-                      </div>
-
+                          
+                        </div> */}
+                  
+                      {/* </div> */}
+                      
                       {hasOffer && (
                         <div className="absolute top-4 right-4 z-20">
                           <div className="relative">
                             <div className="absolute inset-0 bg-yellow-400 rounded-full blur-md opacity-50 animate-pulse"></div>
                             <div className="relative bg-gradient-to-r from-yellow-400 to-yellow-500 text-red-900 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg">
-                              {product.offerName || 'Special Offer'}
+                              {discountPercentage}% OFF
                             </div>
                           </div>
                         </div>
                       )}
-
-                      <button
-                        onClick={() => handleAddToWishlist(product)}
-                        className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur-sm p-2.5 rounded-full shadow-lg hover:bg-[#800020] hover:text-white transition-all duration-300 transform hover:scale-110"
-                        title="Add to Wishlist"
-                      >
+                      <button onClick={() => handleAddToWishlist(product)} className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur-sm p-2.5 rounded-full shadow-lg hover:bg-[#800020] hover:text-white transition-all duration-300 transform hover:scale-110" title="Add to Wishlist">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                          />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
                       </button>
-
                       <div className="h-80 overflow-hidden relative">
-                        <img
-                          src={product.images?.[0]}
-                          alt={product.name}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                          decoding="async"
-                          loading="lazy"
-                          onError={handleImageError}
-                        />
-
+                        <img src={product.images?.[0]} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" decoding="async" loading="lazy" onError={handleImageError} />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       </div>
                     </div>
-
                     <div className="p-6 relative bg-white">
-                      <h3 className="text-xl font-cinzel font-bold text-gray-800 mb-3 group-hover:text-[#800020] transition-colors duration-300 line-clamp-2">
-                        {product.name}
-                      </h3>
-
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-2 font-light leading-relaxed">
-                        {product.description || 'Exquisitely crafted saree blending tradition with contemporary elegance'}
-                      </p>
-
+                      <h3 className="text-xl font-cinzel font-bold text-gray-800 mb-3 group-hover:text-[#800020] transition-colors duration-300 line-clamp-2">{product.name}</h3>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2 font-light leading-relaxed">{product.description || 'Exquisitely crafted saree blending tradition with contemporary elegance'}</p>
                       <div className="flex items-baseline gap-3 mb-5">
-                        <span className="text-2xl font-bold text-[#800020]">
-                          {formatPrice(displayPrice)}
-                        </span>
-                        {hasOffer && product.price > displayPrice && (
+                        <span className="text-2xl font-bold text-[#800020]">{formatPrice(displayPrice)}</span>
+                        {hasOffer && originalPrice && originalPrice > displayPrice && (
                           <>
-                            <span className="text-gray-400 text-sm line-through">
-                              {formatPrice(product.price)}
-                            </span>
-                            <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">
-                              SAVE {Math.round(((product.price - displayPrice) / product.price) * 100)}%
-                            </span>
+                            <span className="text-gray-400 text-sm line-through">{formatPrice(originalPrice)}</span>
                           </>
                         )}
                       </div>
-
                       <Link to={`/viewdetails/${product.id || product._id}`}>
-                        <button
-                          className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-300 transform ${inStock
-                            ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:shadow-lg hover:scale-105 active:scale-95'
-                            : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                            }`}
-                          disabled={!inStock}
-                        >
+                        <button className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-300 transform ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:shadow-lg hover:scale-105 active:scale-95' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`} disabled={!inStock}>
                           {inStock ? (
                             <span className="flex items-center justify-center gap-2">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -862,14 +817,10 @@ const Home = () => {
                               </svg>
                               Quick View
                             </span>
-                          ) : (
-                            'Out of Stock'
-                          )}
+                          ) : 'Out of Stock'}
                         </button>
                       </Link>
-
                     </div>
-
                     <div className="absolute inset-0 rounded-2xl pointer-events-none">
                       <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-[#800020]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     </div>
@@ -878,6 +829,19 @@ const Home = () => {
               })}
             </div>
           )}
+          <div className="text-center mt-12">
+            <button onClick={() => navigate(`/products-by-budget?budget=${selectedBudget}`)} className="group relative overflow-hidden bg-gradient-to-r from-[#800020] to-[#A0002A] text-white px-8 py-3 rounded-xl text-base font-medium transition-all duration-300 hover:shadow-lg transform hover:scale-105">
+              <span className="relative z-10 flex items-center justify-center gap-2">
+                Explore {selectedBudget === 'under2000' && 'Under ₹2,000'}
+                {selectedBudget === 'mid2000to5000' && '₹2,000 - ₹5,000'}
+                {selectedBudget === 'mid5000to10000' && '₹5,000 - ₹10,000'}
+                {selectedBudget === 'premium' && 'Premium'} Collection
+                <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -889,104 +853,55 @@ const Home = () => {
               Latest Collection
               <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
             </h2>
-            <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg font-light">
-              Discover our newest arrivals, crafted with passion and precision
-            </p>
+            <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg font-light">Discover our newest arrivals, crafted with passion and precision</p>
           </div>
 
           {homepageProducts.length === 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {Array(3).fill().map((_, i) => (
-                <div key={i} className="bg-white rounded-2xl h-[500px] animate-pulse shadow-xl" />
-              ))}
+              {Array(3).fill().map((_, i) => <div key={i} className="bg-white rounded-2xl h-[500px] animate-pulse shadow-xl" />)}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {homepageProducts.map((product, index) => {
-                const inStock = product.stock > 0;
-                const hasOffer = product.hasOffer === true && product.offerPrice && product.offerPrice > 0;
-                const displayPrice = hasOffer ? product.offerPrice : product.price;
+              {homepageProducts.map((product) => {
+                const { inStock, hasOffer, displayPrice, originalPrice, discountPercentage } = getProductOfferInfo(product);
 
                 return (
-                  <div
-                    key={product._id || product.id}
-                    className="group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2"
-                  >
-                    {/* Premium Border Gradient on Hover */}
+                  <div key={product._id || product.id} className="group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2">
                     <div className="absolute inset-0 bg-gradient-to-r from-[#800020] via-[#A0002A] to-[#800020] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl p-[2px] -z-10"></div>
-
-                    {/* Image Container */}
                     <div className="relative overflow-hidden bg-gradient-to-br from-[#F8EDE3] to-[#F5E6D3]">
-                      {/* Wishlist Button */}
-                      <button
-                        onClick={() => handleAddToWishlist(product)}
-                        className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-lg hover:bg-[#800020] hover:text-white transition-all duration-300 transform hover:scale-110"
-                        title="Add to Wishlist"
-                      >
+                      {hasOffer && (
+                        <div className="absolute top-4 right-4 z-20">
+                          <div className="relative">
+                            <div className="absolute inset-0 bg-yellow-400 rounded-full blur-md opacity-50 animate-pulse"></div>
+                            <div className="relative bg-gradient-to-r from-yellow-400 to-yellow-500 text-red-900 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg">
+                              {discountPercentage}% OFF
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      <button onClick={() => handleAddToWishlist(product)} className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-lg hover:bg-[#800020] hover:text-white transition-all duration-300 transform hover:scale-110" title="Add to Wishlist">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
-                          />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                         </svg>
                       </button>
-
-                      {/* Product Image with Zoom Effect */}
                       <div className="h-96 overflow-hidden relative">
-                        <img
-                          src={product.images?.[0]}
-                          alt={product.name}
-                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                          decoding="async"
-                          loading="lazy"
-                          onError={handleImageError}
-                        />
-
-                        {/* Overlay Gradient on Hover */}
+                        <img src={product.images?.[0]} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" decoding="async" loading="lazy" onError={handleImageError} />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       </div>
                     </div>
-
-                    {/* Content Section */}
                     <div className="p-6 relative bg-white">
-                      {/* Product Name */}
-                      <h3 className="text-xl font-cinzel font-bold text-gray-800 mb-3 group-hover:text-[#800020] transition-colors duration-300 line-clamp-2">
-                        {product.name}
-                      </h3>
-
-                      {/* Product Description */}
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-2 font-light leading-relaxed">
-                        {product.description || 'Exquisitely crafted saree blending tradition with contemporary elegance'}
-                      </p>
-
-                      {/* Price Section */}
+                      <h3 className="text-xl font-cinzel font-bold text-gray-800 mb-3 group-hover:text-[#800020] transition-colors duration-300 line-clamp-2">{product.name}</h3>
+                      <p className="text-gray-600 text-sm mb-4 line-clamp-2 font-light leading-relaxed">{product.description || 'Exquisitely crafted saree blending tradition with contemporary elegance'}</p>
                       <div className="flex items-baseline gap-3 mb-5">
-                        <span className="text-2xl font-bold text-[#800020]">
-                          {formatPrice(displayPrice)}
-                        </span>
-                        {hasOffer && product.price > displayPrice && (
+                        <span className="text-2xl font-bold text-[#800020]">{formatPrice(displayPrice)}</span>
+                        {hasOffer && originalPrice && originalPrice > displayPrice && (
                           <>
-                            <span className="text-gray-400 text-sm line-through">
-                              {formatPrice(product.price)}
-                            </span>
-                            <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded">
-                              SAVE {Math.round(((product.price - displayPrice) / product.price) * 100)}%
-                            </span>
+                            <span className="text-gray-400 text-sm line-through">{formatPrice(originalPrice)}</span>
                           </>
                         )}
                       </div>
-
-                      {/* Action Button */}
                       <Link to={`/viewdetails/${product.id || product._id}`}>
-                        <button
-                          className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-300 transform ${inStock
-                            ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:shadow-lg hover:scale-105 active:scale-95'
-                            : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                            }`}
-                          disabled={!inStock}
-                        >
+                        <button className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-300 transform ${inStock ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:shadow-lg hover:scale-105 active:scale-95' : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`} disabled={!inStock}>
                           {inStock ? (
                             <span className="flex items-center justify-center gap-2">
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -995,14 +910,10 @@ const Home = () => {
                               </svg>
                               Quick View
                             </span>
-                          ) : (
-                            'Out of Stock'
-                          )}
+                          ) : 'Out of Stock'}
                         </button>
                       </Link>
                     </div>
-
-                    {/* Hover Effect Border Animation */}
                     <div className="absolute inset-0 rounded-2xl pointer-events-none">
                       <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-[#800020]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                     </div>
@@ -1011,8 +922,6 @@ const Home = () => {
               })}
             </div>
           )}
-
-          {/* View All Button */}
           <div className="text-center mt-16">
             <Link to="/products">
               <button className="relative overflow-hidden group bg-transparent border-2 border-[#800020] text-[#800020] px-10 py-4 rounded-xl text-lg font-cinzel font-semibold hover:text-white transition-all duration-300 shadow-md hover:shadow-xl">
@@ -1029,7 +938,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Special Offers Section */}
       {/* Special Offers Section */}
 <section className="py-24 relative overflow-hidden bg-gradient-to-br from-[#800020] via-[#6B001A] to-[#4A0012]">
   {/* Background Pattern Overlay */}

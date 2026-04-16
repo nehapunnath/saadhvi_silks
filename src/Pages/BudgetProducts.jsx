@@ -1,46 +1,53 @@
-// src/pages/CategoryProducts.jsx
+// src/pages/BudgetProducts.jsx
 import React, { useState, useEffect } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
 import authApi from '../Services/authApi';
 import categoryApi from '../Services/CategoryApi';
 
-
-const CategoryProducts = () => {
-  const { categoryName } = useParams();
+const BudgetProducts = () => {
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const budgetParam = searchParams.get('budget');
+  
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [category, setCategory] = useState(null);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [filterOpen, setFilterOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [selectedBudget, setSelectedBudget] = useState(budgetParam || 'under2000');
   
   // Filter states
   const [selectedFilters, setSelectedFilters] = useState({
-    price: [],
+    category: [],
     occasion: [],
     offers: [],
   });
 
   const productsPerPage = 20;
 
+  // Budget display names
+  const budgetNames = {
+    under2000: "Under ₹2,000",
+    mid2000to5000: "₹2,000 - ₹5,000",
+    mid5000to10000: "₹5,000 - ₹10,000",
+    premium: "Premium Collection"
+  };
+
+  const budgetDescriptions = {
+    under2000: "Beautiful budget-friendly sarees that don't compromise on quality",
+    mid2000to5000: "Elegant sarees perfect for daily wear and casual occasions",
+    mid5000to10000: "Premium quality sarees for festive occasions and family gatherings",
+    premium: "Luxurious handcrafted sarees for weddings and special events"
+  };
+
   // Filter options
   const occasions = ["Wedding", "Bridal", "Festival", "Party", "Formal", "Casual"];
   
-  const prices = [
-    { label: "₹0 – ₹1,000", value: "0-1000" },
-    { label: "₹1,000 – ₹3,000", value: "1000-3000" },
-    { label: "₹3,000 – ₹5,000", value: "3000-5000" },
-    { label: "₹5,000 – ₹10,000", value: "5000-10000" },
-    { label: "₹10,000 – ₹15,000", value: "10000-15000" },
-    { label: "Premium C0llection", value: "15000-100000" },
-
-  ];
-
   const offerTypes = [
     { label: "Special Offers", value: "hasOffer" },
   ];
@@ -71,60 +78,86 @@ const CategoryProducts = () => {
     return [];
   };
 
+  // Get category name by ID
+  const getCategoryName = (categoryId) => {
+    if (!categoryId) return 'N/A';
+    let cleanId = String(categoryId).trim();
+    if (cleanId.includes(',')) {
+      cleanId = cleanId.split(',')[0].trim();
+    }
+    const category = categories.find(c => String(c.id) === cleanId);
+    return category ? category.name : cleanId.substring(0, 8);
+  };
+
+  // Load categories
   useEffect(() => {
-    const fetchCategoryAndProducts = async () => {
+    const loadCategories = async () => {
+      try {
+        const categoriesRes = await categoryApi.getPublicCategories();
+        if (categoriesRes?.success) {
+          setCategories(categoriesRes.categories || []);
+        }
+      } catch (err) {
+        console.error('Error loading categories:', err);
+      }
+    };
+    loadCategories();
+  }, []);
+
+  // Load budget products
+  useEffect(() => {
+    const loadBudgetProducts = async () => {
       try {
         setLoading(true);
         setError(null);
         
-        // Decode the category name from URL
-        const decodedCategoryName = decodeURIComponent(categoryName);
-        
-        // Fetch all categories
-        const categoriesRes = await categoryApi.getPublicCategories();
-        let categoryData = null;
-        
-        if (categoriesRes?.success) {
-          // Find the category by name (case-insensitive)
-          categoryData = categoriesRes.categories.find(
-            cat => cat.name.toLowerCase() === decodedCategoryName.toLowerCase() && cat.isActive !== false
-          );
-        }
-        
-        if (!categoryData) {
-          setError(`Category "${decodedCategoryName}" not found`);
-          setLoading(false);
-          return;
-        }
-        
-        setCategory(categoryData);
-        
-        // Fetch all products
-        const productsRes = await productApi.getPublicProducts();
-        
-        if (productsRes?.success) {
-          const allProducts = productsRes.products || [];
+        const result = await productApi.getBudgetSelections();
+        if (result.success && result.selections) {
+          let selectedProductIds = [];
           
-          // Filter products by category
-          const categoryProducts = allProducts
-            .filter(product => product.isVisible !== false)
-            .filter(product => {
-              const productCategories = normalizeCategories(product.categories);
-              return productCategories.includes(categoryData.id);
-            })
-            .sort((a, b) => {
-              if (a.displayOrder !== undefined && a.displayOrder !== null &&
-                  b.displayOrder !== undefined && b.displayOrder !== null) {
-                return a.displayOrder - b.displayOrder;
-              }
-              return 0;
-            });
+          switch (selectedBudget) {
+            case 'under2000':
+              selectedProductIds = result.selections.under2000 || [];
+              break;
+            case 'mid2000to5000':
+              selectedProductIds = result.selections.mid2000to5000 || [];
+              break;
+            case 'mid5000to10000':
+              selectedProductIds = result.selections.mid5000to10000 || [];
+              break;
+            case 'premium':
+              selectedProductIds = result.selections.premium || [];
+              break;
+            default:
+              selectedProductIds = result.selections.under2000 || [];
+          }
           
-          setProducts(categoryProducts);
-          setFilteredProducts(categoryProducts);
-          
-          if (categoryProducts.length === 0) {
-            toast(`No products found in ${categoryData.name} category`);
+          // Fetch all products and filter by selected IDs
+          const allProductsRes = await productApi.getPublicProducts();
+          if (allProductsRes.success) {
+            let filtered = allProductsRes.products
+              .filter(product => 
+                selectedProductIds.includes(String(product.id || product._id)) && 
+                product.isVisible !== false
+              )
+              .map(product => {
+                // Normalize categories for each product
+                const normalizedProduct = { ...product };
+                if (product.categories) {
+                  normalizedProduct.categories = normalizeCategories(product.categories);
+                } else if (product.category) {
+                  normalizedProduct.categories = normalizeCategories(product.category);
+                } else {
+                  normalizedProduct.categories = [];
+                }
+                return normalizedProduct;
+              });
+            
+            // Sort by price ascending
+            filtered.sort((a, b) => a.price - b.price);
+            
+            setProducts(filtered);
+            setFilteredProducts(filtered);
           }
         }
         
@@ -141,17 +174,15 @@ const CategoryProducts = () => {
         }
         
       } catch (err) {
-        console.error('Error fetching category products:', err);
+        console.error('Error loading budget products:', err);
         setError('Failed to load products');
       } finally {
         setLoading(false);
       }
     };
     
-    if (categoryName) {
-      fetchCategoryAndProducts();
-    }
-  }, [categoryName]);
+    loadBudgetProducts();
+  }, [selectedBudget]);
 
   // Apply filters whenever filters change
   useEffect(() => {
@@ -159,14 +190,11 @@ const CategoryProducts = () => {
 
     let result = [...products];
 
-    // Price filter - using current price (which is the discounted price if offer exists)
-    if (selectedFilters.price.length > 0) {
+    // Category filter - Check if product has ANY of the selected categories
+    if (selectedFilters.category.length > 0 && !selectedFilters.category.includes("All")) {
       result = result.filter((product) => {
-        const price = product.price; // Use current price directly
-        return selectedFilters.price.some((range) => {
-          const [min, max] = range.split('-').map(Number);
-          return price >= min && price <= max;
-        });
+        if (!product.categories || product.categories.length === 0) return false;
+        return product.categories.some(catId => selectedFilters.category.includes(catId));
       });
     }
 
@@ -200,7 +228,7 @@ const CategoryProducts = () => {
 
   const clearFilters = () => {
     setSelectedFilters({
-      price: [],
+      category: [],
       occasion: [],
       offers: [],
     });
@@ -309,14 +337,36 @@ const CategoryProducts = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
       <div className="container mx-auto px-4 py-12">
-        {/* Category Header */}
+        {/* Budget Header */}
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4">
-            {category?.name || 'Category Products'}
+            {budgetNames[selectedBudget]}
           </h1>
           <p className="text-[#1C2526] max-w-2xl mx-auto">
-            {category?.description || `Explore our beautiful collection of ${category?.name || 'sarees'}`}
+            {budgetDescriptions[selectedBudget]}
           </p>
+        </div>
+
+        {/* Budget Filter Tabs */}
+        <div className="flex flex-wrap justify-center gap-3 mb-8">
+          {Object.entries(budgetNames).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => {
+                setSelectedBudget(key);
+                setCurrentPage(1);
+                setSelectedFilters({ category: [], occasion: [], offers: [] });
+                navigate(`/products-by-budget?budget=${key}`);
+              }}
+              className={`px-5 py-2.5 rounded-xl font-medium transition-all duration-300 ${
+                selectedBudget === key
+                  ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white shadow-lg'
+                  : 'bg-white text-[#800020] border-2 border-[#800020] hover:bg-[#800020]/10'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
         </div>
 
         {/* Main Content with Filters */}
@@ -341,16 +391,16 @@ const CategoryProducts = () => {
               </div>
 
               {/* Active Filters Summary */}
-              {(selectedFilters.price.length > 0 || selectedFilters.occasion.length > 0 || selectedFilters.offers.length > 0) && (
+              {(selectedFilters.category.length > 0 || selectedFilters.occasion.length > 0 || selectedFilters.offers.length > 0) && (
                 <div className="mb-6 p-3 bg-gray-50 rounded-lg">
                   <p className="text-sm text-gray-600 mb-2">Active Filters:</p>
                   <div className="flex flex-wrap gap-2">
-                    {selectedFilters.price.map(price => {
-                      const priceLabel = prices.find(p => p.value === price)?.label;
-                      return priceLabel && (
-                        <span key={price} className="inline-flex items-center bg-[#6B2D2D]/10 text-[#6B2D2D] text-xs px-2 py-1 rounded-full">
-                          {priceLabel}
-                          <button onClick={() => handleFilterChange('price', price)} className="ml-1 hover:text-red-600">×</button>
+                    {selectedFilters.category.filter(cat => cat !== "All").map(catId => {
+                      const categoryName = getCategoryName(catId);
+                      return (
+                        <span key={catId} className="inline-flex items-center bg-[#6B2D2D]/10 text-[#6B2D2D] text-xs px-2 py-1 rounded-full">
+                          {categoryName}
+                          <button onClick={() => handleFilterChange('category', catId)} className="ml-1 hover:text-red-600">×</button>
                         </span>
                       );
                     })}
@@ -370,19 +420,28 @@ const CategoryProducts = () => {
                 </div>
               )}
 
-              {/* Price Filter */}
+              {/* Category Filter */}
               <div className="mb-6">
-                <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Price Range</h3>
+                <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Category</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {prices.map((price, i) => (
-                    <label key={i} className="flex items-center py-1 cursor-pointer hover:bg-gray-50 rounded px-2">
+                  <label className="flex items-center py-1 cursor-pointer hover:bg-gray-50 rounded px-2">
+                    <input 
+                      type="checkbox" 
+                      className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
+                      checked={selectedFilters.category.includes("All")}
+                      onChange={() => handleFilterChange('category', "All")}
+                    />
+                    <span className="ml-3 text-[#2E2E2E] text-sm">All Categories</span>
+                  </label>
+                  {categories.filter((cat) => cat.isActive !== false).map((category) => (
+                    <label key={category.id} className="flex items-center py-1 cursor-pointer hover:bg-gray-50 rounded px-2">
                       <input 
                         type="checkbox" 
                         className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
-                        checked={selectedFilters.price.includes(price.value)}
-                        onChange={() => handleFilterChange('price', price.value)}
+                        checked={selectedFilters.category.includes(category.id)}
+                        onChange={() => handleFilterChange('category', category.id)}
                       />
-                      <span className="ml-3 text-[#2E2E2E] text-sm">{price.label}</span>
+                      <span className="ml-3 text-[#2E2E2E] text-sm">{category.name}</span>
                     </label>
                   ))}
                 </div>
@@ -450,9 +509,9 @@ const CategoryProducts = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 Filters
-                {(selectedFilters.price.length > 0 || selectedFilters.occasion.length > 0 || selectedFilters.offers.length > 0) && (
+                {(selectedFilters.category.length > 0 || selectedFilters.occasion.length > 0 || selectedFilters.offers.length > 0) && (
                   <span className="ml-2 bg-[#6B2D2D] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                    {selectedFilters.price.length + selectedFilters.occasion.length + selectedFilters.offers.length}
+                    {selectedFilters.category.length + selectedFilters.occasion.length + selectedFilters.offers.length}
                   </span>
                 )}
               </button>
@@ -493,9 +552,7 @@ const CategoryProducts = () => {
                           <div className="absolute top-2 sm:top-4 left-2 sm:left-4 flex flex-col gap-1 sm:gap-2 z-10">
                             {hasOffer && (
                               <div className="flex flex-col gap-1">
-                                {/* <span className="bg-green-600 text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-sm">
-                                  SALE
-                                </span> */}
+                            
                                 <span className="bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
                                   {discountPercentage}% OFF
                                 </span>
@@ -537,6 +594,27 @@ const CategoryProducts = () => {
                             {product.description || '—'}
                           </p>
 
+                          {/* Categories Section */}
+                          <div className="mb-2 sm:mb-3 flex flex-wrap gap-1">
+                            {product.categories && product.categories.length > 0 ? (
+                              product.categories.map((categoryId, idx) => {
+                                const categoryName = getCategoryName(categoryId);
+                                return (
+                                  <span
+                                    key={idx}
+                                    className="inline-block bg-blue-100 text-blue-800 text-[9px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded"
+                                  >
+                                    {categoryName}
+                                  </span>
+                                );
+                              })
+                            ) : (
+                              <span className="inline-block bg-gray-100 text-gray-500 text-[9px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
+                                No Category
+                              </span>
+                            )}
+                          </div>
+
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-2 mb-2 sm:mb-3">
                             <span className="text-[#6B2D2D] font-bold text-sm sm:text-lg">
                               {formatPrice(displayPrice)}
@@ -546,9 +624,9 @@ const CategoryProducts = () => {
                                 <span className="text-[#2E2E2E] text-[10px] sm:text-sm line-through">
                                   {formatPrice(originalPrice)}
                                 </span>
-                                <span className="bg-[#D9A7A7] text-[#800020] text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
+                                {/* <span className="bg-[#D9A7A7] text-[#800020] text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
                                   {discountPercentage}% OFF
-                                </span>
+                                </span> */}
                               </>
                             )}
                           </div>
@@ -639,4 +717,4 @@ const CategoryProducts = () => {
   );
 };
 
-export default CategoryProducts;
+export default BudgetProducts;

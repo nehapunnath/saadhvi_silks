@@ -17,7 +17,7 @@ const Products = () => {
     offers: [],
   });
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [allProducts, setAllProducts] = useState([]); 
+  const [allProducts, setAllProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [badges, setBadges] = useState([]);
   const [error, setError] = useState(null);
@@ -25,7 +25,7 @@ const Products = () => {
   const [wishlistItems, setWishlistItems] = useState([]);
   const [activeZoom, setActiveZoom] = useState(null);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
-  
+
   const imageRefs = useRef({});
   const productsPerPage = 20;
 
@@ -36,7 +36,9 @@ const Products = () => {
     { label: "₹1,000 – ₹3,000", value: "1000-3000" },
     { label: "₹3,000 – ₹5,000", value: "3000-5000" },
     { label: "₹5,000 – ₹10,000", value: "5000-10000" },
-    { label: "₹15,000 – ₹20,000", value: "15000-20000" },
+    { label: "₹10,000 – ₹15,000", value: "10000-15000" },
+    { label: "Premium C0llection", value: "15000-100000" },
+
   ];
 
   const offerTypes = [
@@ -46,12 +48,12 @@ const Products = () => {
   // Helper function to normalize categories (convert string to array) - SAME AS ADMIN
   const normalizeCategories = (categoriesInput) => {
     if (!categoriesInput) return [];
-    
+
     // If it's already an array, return it
     if (Array.isArray(categoriesInput)) {
       return categoriesInput;
     }
-    
+
     // If it's a string
     if (typeof categoriesInput === 'string') {
       // If it contains commas, split it
@@ -62,29 +64,29 @@ const Products = () => {
         return [categoriesInput.trim()];
       }
     }
-    
+
     return [];
   };
 
   // Get category name by ID - SAME AS ADMIN
   const getCategoryName = (categoryId) => {
     if (!categoryId) return 'N/A';
-    
+
     // Clean the ID - remove any whitespace
     let cleanId = String(categoryId).trim();
-    
+
     // If the ID still contains commas, it means it wasn't split properly
     if (cleanId.includes(',')) {
       cleanId = cleanId.split(',')[0].trim();
     }
-    
+
     // Find the category
     const category = categories.find(c => String(c.id) === cleanId);
-    
+
     if (category) {
       return category.name;
     }
-    
+
     return cleanId.substring(0, 8);
   };
 
@@ -117,51 +119,51 @@ const Products = () => {
         if (productsRes?.success) {
           // Process products - NORMALIZE CATEGORIES (SAME AS ADMIN)
           const allProductsData = productsRes.products || [];
-          
+
           // Normalize each product's categories (SAME AS ADMIN)
           const normalizedProducts = allProductsData
             .filter(product => product.isVisible !== false)
             .map(product => {
               const normalizedProduct = { ...product };
-              
+
               // Normalize categories from any source
               let normalizedCategories = [];
-              
+
               if (product.categories) {
                 normalizedCategories = normalizeCategories(product.categories);
               } else if (product.category) {
                 normalizedCategories = normalizeCategories(product.category);
               }
-              
+
               // Special handling: If normalizedCategories has one item that still contains commas
               if (normalizedCategories.length === 1 && typeof normalizedCategories[0] === 'string' && normalizedCategories[0].includes(',')) {
                 normalizedCategories = normalizedCategories[0].split(',').map(id => id.trim());
               }
-              
+
               // Remove any empty strings
               normalizedCategories = normalizedCategories.filter(id => id && id.trim());
-              
+
               normalizedProduct.categories = normalizedCategories;
               return normalizedProduct;
             });
-          
+
           // Sort by displayOrder
           const sortedProducts = normalizedProducts.sort((a, b) => {
             if (a.displayOrder !== undefined && a.displayOrder !== null &&
-                b.displayOrder !== undefined && b.displayOrder !== null) {
+              b.displayOrder !== undefined && b.displayOrder !== null) {
               return a.displayOrder - b.displayOrder;
             }
             if (a.displayOrder !== undefined && a.displayOrder !== null) return -1;
             if (b.displayOrder !== undefined && b.displayOrder !== null) return 1;
             return 0;
           });
-          
+
           console.log("Products loaded:", sortedProducts.length);
-          
+
           setAllProducts(sortedProducts);
           setFilteredProducts(sortedProducts);
         }
-        
+
         if (authApi.isLoggedIn()) {
           try {
             const wishlistResult = await productApi.getWishlist();
@@ -259,7 +261,7 @@ const Products = () => {
   const handleWishlistToggle = async (e, product) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!authApi.isLoggedIn()) {
       toast.error('Please login first!');
       navigate('/login');
@@ -478,14 +480,59 @@ const Products = () => {
             ) : currentProducts.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                 {currentProducts.map((product) => {
-                  const hasOffer = product.hasOffer === true;
-                  const displayPrice = hasOffer ? product.offerPrice : product.price;
+
+                  const hasOffer = product.hasOffer === true ||
+                    (product.originalPrice && product.originalPrice > product.price) ||
+                    (product.offerPrice && product.offerPrice < product.price);
+
+                  // Determine display price and original price
+                  let displayPrice = product.price;
+                  let originalPrice = null;
+                  let offerName = product.offerName;
+
+                  if (product.hasOffer === true && product.offerPrice) {
+                    // Case 1: Using hasOffer flag
+                    displayPrice = product.offerPrice;
+                    originalPrice = product.price;
+                    offerName = product.offerName || 'SPECIAL OFFER';
+                  } else if (product.originalPrice && product.originalPrice > product.price) {
+                    // Case 2: Using originalPrice field (your current data structure)
+                    displayPrice = product.price;
+                    originalPrice = product.originalPrice;
+                    // offerName = 'SALE';
+                  } else if (product.offerPrice && product.offerPrice < product.price) {
+                    // Case 3: Using offerPrice field
+                    displayPrice = product.offerPrice;
+                    originalPrice = product.price;
+                    offerName = product.offerName || 'SPECIAL OFFER';
+                  }
+
+                  // Calculate discount percentage
+                  let discountPercentage = 0;
+                  if (originalPrice && originalPrice > displayPrice) {
+                    discountPercentage = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
+                  }
+
                   const badgeName = getBadgeName(product.badge);
                   const isZoomed = activeZoom === product.id;
 
+                  // Debug log
+                  if (hasOffer) {
+                    console.log('Product with offer:', product.name, {
+                      price: product.price,
+                      originalPrice: product.originalPrice,
+                      offerPrice: product.offerPrice,
+                      hasOffer: product.hasOffer,
+                      displayPrice,
+                      originalPriceFinal: originalPrice,
+                      discountPercentage,
+                      offerName
+                    });
+                  }
+
                   return (
-                    <Link 
-                      key={product.id} 
+                    <Link
+                      key={product.id}
                       to={`/viewdetails/${product.id}`}
                       className="block bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7] cursor-pointer"
                     >
@@ -496,9 +543,14 @@ const Products = () => {
                               {badgeName}
                             </span>
                           )}
-                          {hasOffer && (
-                            <span className="bg-green-600 text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
-                              {product.offerName || 'SPECIAL OFFER'}
+                          {/* {hasOffer && offerName && (
+            <span className="bg-green-600 text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
+              {offerName}
+            </span>
+          )} */}
+                          {discountPercentage > 0 && (
+                            <span className="bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
+                              {discountPercentage}% OFF
                             </span>
                           )}
                         </div>
@@ -523,7 +575,7 @@ const Products = () => {
                               backgroundRepeat: 'no-repeat',
                             }} />
                           )}
-                          
+
                           {isZoomed && (
                             <div className="absolute pointer-events-none shadow-lg"
                               style={{
@@ -536,13 +588,12 @@ const Products = () => {
                           )}
                         </div>
 
-                        <button 
+                        <button
                           onClick={(e) => handleWishlistToggle(e, product)}
-                          className={`absolute top-2 sm:top-4 right-2 sm:right-4 p-1.5 sm:p-2 rounded-full shadow-md transition-all duration-300 ${
-                            wishlistItems.includes(product.id)
+                          className={`absolute top-2 sm:top-4 right-2 sm:right-4 p-1.5 sm:p-2 rounded-full shadow-md transition-all duration-300 ${wishlistItems.includes(product.id)
                               ? 'bg-[#6B2D2D] text-white'
                               : 'bg-white text-[#6B2D2D] hover:bg-[#D9A7A7]'
-                          }`}
+                            }`}
                           aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                         >
                           <svg className="h-3.5 w-3.5 sm:h-5 sm:w-5" fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
@@ -557,7 +608,7 @@ const Products = () => {
                         </h3>
                         <p className="text-[#2E2E2E] text-[11px] sm:text-sm mb-2 sm:mb-3 line-clamp-2">{product.description || '—'}</p>
 
-                        {/* Categories Section - Display Multiple Categories (SAME AS ADMIN) */}
+                        {/* Categories Section */}
                         <div className="mb-2 sm:mb-3 flex flex-wrap gap-1">
                           {product.categories && product.categories.length > 0 ? (
                             product.categories.map((categoryId, idx) => {
@@ -573,20 +624,22 @@ const Products = () => {
                             })
                           ) : (
                             <span className="inline-block bg-gray-100 text-gray-500 text-[9px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
-                              No Category
+                              N/A
                             </span>
                           )}
                         </div>
 
-                        <div className="flex items-center mt-1 sm:mt-2 mb-2 sm:mb-3">
+                        {/* Price Section - Show both original and discounted price */}
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-2 mb-2 sm:mb-3">
                           <span className="text-[#6B2D2D] font-bold text-sm sm:text-lg">
                             {formatPrice(displayPrice)}
                           </span>
-                          {hasOffer && product.price && product.price > displayPrice && (
-                            <span className="text-[#2E2E2E] text-[10px] sm:text-sm line-through ml-1 sm:ml-2">
-                              {formatPrice(product.price)}
+                          {originalPrice && originalPrice > displayPrice && (
+                            <span className="text-[#2E2E2E] text-[10px] sm:text-sm line-through">
+                              {formatPrice(originalPrice)}
                             </span>
                           )}
+
                         </div>
 
                         <div className="flex items-center justify-between mt-2 sm:mt-4">
@@ -598,7 +651,7 @@ const Products = () => {
                             )}
                           </div>
                           <div onClick={(e) => e.preventDefault()} className="relative z-10">
-                            <button 
+                            <button
                               className="bg-[#800020] text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300"
                               onClick={(e) => {
                                 e.preventDefault();
@@ -638,11 +691,10 @@ const Products = () => {
                   </button>
                   {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
                     <button key={page} onClick={() => paginate(page)}
-                      className={`px-4 py-2 rounded-lg border ${
-                        currentPage === page
+                      className={`px-4 py-2 rounded-lg border ${currentPage === page
                           ? 'bg-[#6B2D2D] text-white border-[#6B2D2D]'
                           : 'border-gray-300 text-[#2E2E2E] hover:bg-gray-100'
-                      }`}>
+                        }`}>
                       {page}
                     </button>
                   ))}

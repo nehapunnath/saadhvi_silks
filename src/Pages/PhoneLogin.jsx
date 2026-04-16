@@ -152,7 +152,6 @@ const PhoneLogin = ({ onSuccess, onSwitchToEmail }) => {
                 type="tel"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(formatPhoneNumber(e.target.value))}
-                placeholder="9876543210"
                 className="flex-1 px-4 py-3 border border-[#D9A7A7] rounded-r-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent bg-white"
                 maxLength={10}
                 autoFocus
@@ -165,7 +164,7 @@ const PhoneLogin = ({ onSuccess, onSwitchToEmail }) => {
           
           <div>
             <label className="block text-sm font-medium text-[#2E2E2E] mb-2">
-              Name <span className="text-xs text-[#8B5A5A]">(Optional)</span>
+              Name 
             </label>
             <input
               type="text"
