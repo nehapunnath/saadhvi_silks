@@ -340,10 +340,9 @@ const Header = () => {
       </div>
 
       {/* Bottom Navigation Bar - Categories with Arrow Buttons - Maroon Background */}
-      {categories.length > 0 && (
+      {/* {categories.length > 0 && (
         <div className="bg-gradient-to-r from-[#800020] to-[#6B001A] shadow-lg relative">
           <div className="relative flex items-center w-full">
-            {/* Left Arrow Button */}
             {showLeftArrow && (
               <button
                 onClick={() => scrollCategories('left')}
@@ -360,7 +359,6 @@ const Header = () => {
               </button>
             )}
 
-            {/* Categories Scroll Container - Full Width */}
             <div 
               ref={categoriesScrollRef}
               className="overflow-x-auto scrollbar-hide w-full"
@@ -369,7 +367,6 @@ const Header = () => {
               <div className="flex items-center space-x-2 md:space-x-3 min-w-max px-12 py-3">
                 
 
-                {/* Category Buttons */}
                 {categories
                   .filter(cat => cat.isActive !== false)
                   .map((category) => (
@@ -388,7 +385,6 @@ const Header = () => {
               </div>
             </div>
 
-            {/* Right Arrow Button */}
             {showRightArrow && (
               <button
                 onClick={() => scrollCategories('right')}
@@ -406,7 +402,7 @@ const Header = () => {
             )}
           </div>
         </div>
-      )}
+      )} */}
 
       {/* Mobile Menu */}
       {isMenuOpen && (
@@ -442,7 +438,7 @@ const Header = () => {
             </Link>
             
             {/* Categories in Mobile Menu */}
-            {categories.length > 0 && (
+            {/* {categories.length > 0 && (
               <div className="pt-2">
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
                   Shop by Category
@@ -463,7 +459,7 @@ const Header = () => {
                     ))}
                 </div>
               </div>
-            )}
+            )} */}
 
             <Link
               to="/wishlist"

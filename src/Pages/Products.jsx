@@ -37,57 +37,87 @@ const Products = () => {
     { label: "₹3,000 – ₹5,000", value: "3000-5000" },
     { label: "₹5,000 – ₹10,000", value: "5000-10000" },
     { label: "₹10,000 – ₹15,000", value: "10000-15000" },
-    { label: "Premium C0llection", value: "15000-100000" },
-
+    { label: "Premium Collection", value: "15000-100000" },
   ];
 
   const offerTypes = [
     { label: "Special Offers", value: "hasOffer" },
   ];
 
-  // Helper function to normalize categories (convert string to array) - SAME AS ADMIN
-  const normalizeCategories = (categoriesInput) => {
-    if (!categoriesInput) return [];
+  // Updated getProductOfferInfo function to handle both admin offers and normal discounts
+  const getProductOfferInfo = (product) => {
+    const inStock = product?.stock > 0;
 
-    // If it's already an array, return it
-    if (Array.isArray(categoriesInput)) {
-      return categoriesInput;
+    // Check for Admin Offer (has offerName and offerPrice from offer system)
+    const hasAdminOffer = product?.hasOffer === true && product?.offerName && product?.offerPrice && product?.offerPrice < product?.price;
+
+    // Check for Normal Discount (originalPrice vs price - regular markdown)
+    const hasNormalDiscount = !hasAdminOffer && product?.originalPrice && product?.originalPrice > product?.price;
+
+    // Determine which offer to show
+    const hasOffer = hasAdminOffer || hasNormalDiscount;
+
+    // Display price (lowest price available)
+    let displayPrice;
+    let originalPrice;
+    let discountPercentage;
+    let offerName;
+
+    if (hasAdminOffer) {
+      // Admin Offer takes precedence
+      displayPrice = product.offerPrice;
+      originalPrice = product.price;
+      discountPercentage = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
+      offerName = product.offerName;
+    } else if (hasNormalDiscount) {
+      // Normal discount from originalPrice
+      displayPrice = product.price;
+      originalPrice = product.originalPrice;
+      discountPercentage = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
+      offerName = null;
+    } else {
+      // No offer
+      displayPrice = product?.price || 0;
+      originalPrice = null;
+      discountPercentage = 0;
+      offerName = null;
     }
 
-    // If it's a string
+    return {
+      inStock,
+      hasOffer,
+      hasAdminOffer,
+      hasNormalDiscount,
+      displayPrice,
+      originalPrice,
+      discountPercentage,
+      offerName
+    };
+  };
+
+  // Helper function to normalize categories (convert string to array)
+  const normalizeCategories = (categoriesInput) => {
+    if (!categoriesInput) return [];
+    if (Array.isArray(categoriesInput)) return categoriesInput;
     if (typeof categoriesInput === 'string') {
-      // If it contains commas, split it
       if (categoriesInput.includes(',')) {
         return categoriesInput.split(',').map(id => id.trim());
       } else {
-        // Single category
         return [categoriesInput.trim()];
       }
     }
-
     return [];
   };
 
-  // Get category name by ID - SAME AS ADMIN
+  // Get category name by ID
   const getCategoryName = (categoryId) => {
     if (!categoryId) return 'N/A';
-
-    // Clean the ID - remove any whitespace
     let cleanId = String(categoryId).trim();
-
-    // If the ID still contains commas, it means it wasn't split properly
     if (cleanId.includes(',')) {
       cleanId = cleanId.split(',')[0].trim();
     }
-
-    // Find the category
     const category = categories.find(c => String(c.id) === cleanId);
-
-    if (category) {
-      return category.name;
-    }
-
-    return cleanId.substring(0, 8);
+    return category ? category.name : cleanId.substring(0, 8);
   };
 
   useEffect(() => {
@@ -117,16 +147,13 @@ const Products = () => {
         // Fetch products
         const productsRes = await productApi.getPublicProducts();
         if (productsRes?.success) {
-          // Process products - NORMALIZE CATEGORIES (SAME AS ADMIN)
           const allProductsData = productsRes.products || [];
 
-          // Normalize each product's categories (SAME AS ADMIN)
+          // Normalize each product's categories
           const normalizedProducts = allProductsData
             .filter(product => product.isVisible !== false)
             .map(product => {
               const normalizedProduct = { ...product };
-
-              // Normalize categories from any source
               let normalizedCategories = [];
 
               if (product.categories) {
@@ -135,14 +162,11 @@ const Products = () => {
                 normalizedCategories = normalizeCategories(product.category);
               }
 
-              // Special handling: If normalizedCategories has one item that still contains commas
               if (normalizedCategories.length === 1 && typeof normalizedCategories[0] === 'string' && normalizedCategories[0].includes(',')) {
                 normalizedCategories = normalizedCategories[0].split(',').map(id => id.trim());
               }
 
-              // Remove any empty strings
               normalizedCategories = normalizedCategories.filter(id => id && id.trim());
-
               normalizedProduct.categories = normalizedCategories;
               return normalizedProduct;
             });
@@ -159,7 +183,6 @@ const Products = () => {
           });
 
           console.log("Products loaded:", sortedProducts.length);
-
           setAllProducts(sortedProducts);
           setFilteredProducts(sortedProducts);
         }
@@ -195,7 +218,7 @@ const Products = () => {
 
     let result = [...allProducts];
 
-    // Category filter - Check if product has ANY of the selected categories
+    // Category filter
     if (selectedFilters.category.length > 0 && !selectedFilters.category.includes("All")) {
       result = result.filter((product) => {
         if (!product.categories || product.categories.length === 0) return false;
@@ -206,10 +229,10 @@ const Products = () => {
     // Price filter
     if (selectedFilters.price.length > 0) {
       result = result.filter((product) => {
-        const price = product.hasOffer && product.offerPrice ? product.offerPrice : product.price;
+        const { displayPrice } = getProductOfferInfo(product);
         return selectedFilters.price.some((range) => {
           const [min, max] = range.split('-').map(Number);
-          return price >= min && price <= max;
+          return displayPrice >= min && displayPrice <= max;
         });
       });
     }
@@ -221,9 +244,13 @@ const Products = () => {
       );
     }
 
-    // Offers only filter
+    // Offers only filter - includes both admin offers and normal discounts
     if (selectedFilters.offers.length > 0) {
-      result = result.filter((product) => product.hasOffer === true);
+      result = result.filter((product) => {
+        const hasAdminOffer = product?.hasOffer === true && product?.offerPrice && product?.offerPrice < product?.price;
+        const hasNormalDiscount = product?.originalPrice && product?.originalPrice > product?.price;
+        return hasAdminOffer || hasNormalDiscount;
+      });
     }
 
     setFilteredProducts(result);
@@ -270,7 +297,7 @@ const Products = () => {
 
     try {
       const isInWishlist = wishlistItems.includes(product.id);
-      const displayPrice = product.hasOffer ? product.offerPrice : product.price;
+      const { displayPrice } = getProductOfferInfo(product);
 
       if (isInWishlist) {
         await productApi.removeFromWishlist(product.id);
@@ -325,7 +352,11 @@ const Products = () => {
     setActiveZoom(null);
   };
 
-  const productsWithOffers = allProducts.filter((p) => p.hasOffer === true).length;
+  const productsWithOffers = allProducts.filter((p) => {
+    const hasAdminOffer = p?.hasOffer === true && p?.offerPrice && p?.offerPrice < p?.price;
+    const hasNormalDiscount = p?.originalPrice && p?.originalPrice > p?.price;
+    return hasAdminOffer || hasNormalDiscount;
+  }).length;
 
   if (error) {
     return (
@@ -367,11 +398,50 @@ const Products = () => {
                 </div>
               </div>
 
+              {/* Active Filters Summary */}
+              {(selectedFilters.category.length > 0 || selectedFilters.price.length > 0 || selectedFilters.occasion.length > 0 || selectedFilters.offers.length > 0) && (
+                <div className="mb-6 p-3 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600 mb-2">Active Filters:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selectedFilters.category.filter(cat => cat !== "All").map(catId => {
+                      const categoryName = getCategoryName(catId);
+                      return (
+                        <span key={catId} className="inline-flex items-center bg-[#6B2D2D]/10 text-[#6B2D2D] text-xs px-2 py-1 rounded-full">
+                          {categoryName}
+                          <button onClick={() => handleFilterChange('category', catId)} className="ml-1 hover:text-red-600">×</button>
+                        </span>
+                      );
+                    })}
+                    {selectedFilters.price.map(price => {
+                      const priceLabel = prices.find(p => p.value === price)?.label;
+                      return priceLabel && (
+                        <span key={price} className="inline-flex items-center bg-[#6B2D2D]/10 text-[#6B2D2D] text-xs px-2 py-1 rounded-full">
+                          {priceLabel}
+                          <button onClick={() => handleFilterChange('price', price)} className="ml-1 hover:text-red-600">×</button>
+                        </span>
+                      );
+                    })}
+                    {selectedFilters.occasion.map(occ => (
+                      <span key={occ} className="inline-flex items-center bg-[#6B2D2D]/10 text-[#6B2D2D] text-xs px-2 py-1 rounded-full">
+                        {occ}
+                        <button onClick={() => handleFilterChange('occasion', occ)} className="ml-1 hover:text-red-600">×</button>
+                      </span>
+                    ))}
+                    {selectedFilters.offers.map(offer => (
+                      <span key={offer} className="inline-flex items-center bg-green-100 text-green-700 text-xs px-2 py-1 rounded-full">
+                        Special Offers
+                        <button onClick={() => handleFilterChange('offers', offer)} className="ml-1 hover:text-red-600">×</button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Category Filter */}
               <div className="mb-6">
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Category</h3>
                 <div className="space-y-2 max-h-60 overflow-y-auto">
-                  <label className="flex items-center py-1">
+                  <label className="flex items-center py-1 cursor-pointer hover:bg-gray-50 rounded px-2">
                     <input type="checkbox" className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
                       checked={selectedFilters.category.includes("All")}
                       onChange={() => handleFilterChange('category', "All")}
@@ -379,7 +449,7 @@ const Products = () => {
                     <span className="ml-3 text-[#2E2E2E]">All Categories</span>
                   </label>
                   {categories.filter((cat) => cat.isActive !== false).map((category) => (
-                    <label key={category.id} className="flex items-center py-1">
+                    <label key={category.id} className="flex items-center py-1 cursor-pointer hover:bg-gray-50 rounded px-2">
                       <input type="checkbox" className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
                         checked={selectedFilters.category.includes(category.id)}
                         onChange={() => handleFilterChange('category', category.id)}
@@ -395,7 +465,7 @@ const Products = () => {
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Price Range</h3>
                 <div className="space-y-2">
                   {prices.map((price, i) => (
-                    <label key={i} className="flex items-center py-1">
+                    <label key={i} className="flex items-center py-1 cursor-pointer hover:bg-gray-50 rounded px-2">
                       <input type="checkbox" className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
                         checked={selectedFilters.price.includes(price.value)}
                         onChange={() => handleFilterChange('price', price.value)}
@@ -411,7 +481,7 @@ const Products = () => {
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Occasion</h3>
                 <div className="space-y-2">
                   {occasions.map((occ, i) => (
-                    <label key={i} className="flex items-center py-1">
+                    <label key={i} className="flex items-center py-1 cursor-pointer hover:bg-gray-50 rounded px-2">
                       <input type="checkbox" className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
                         checked={selectedFilters.occasion.includes(occ)}
                         onChange={() => handleFilterChange('occasion', occ)}
@@ -427,7 +497,7 @@ const Products = () => {
                 <h3 className="text-lg font-medium text-[#2E2E2E] mb-3">Special Offers</h3>
                 <div className="space-y-2">
                   {offerTypes.map((offer, i) => (
-                    <label key={i} className="flex items-center justify-between py-1">
+                    <label key={i} className="flex items-center justify-between py-1 cursor-pointer hover:bg-gray-50 rounded px-2">
                       <div className="flex items-center">
                         <input type="checkbox" className="rounded text-[#6B2D2D] focus:ring-[#6B2D2D]"
                           checked={selectedFilters.offers.includes(offer.value)}
@@ -442,6 +512,13 @@ const Products = () => {
                   ))}
                 </div>
               </div>
+
+              {/* Results Count */}
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-center text-gray-600">
+                  Showing {filteredProducts.length} of {allProducts.length} products
+                </p>
+              </div>
             </div>
           </div>
 
@@ -453,6 +530,11 @@ const Products = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 Filters
+                {(selectedFilters.category.length > 0 || selectedFilters.price.length > 0 || selectedFilters.occasion.length > 0 || selectedFilters.offers.length > 0) && (
+                  <span className="ml-2 bg-[#6B2D2D] text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                    {selectedFilters.category.length + selectedFilters.price.length + selectedFilters.occasion.length + selectedFilters.offers.length}
+                  </span>
+                )}
               </button>
               <div className="text-[#2E2E2E] text-sm sm:text-base">
                 Showing {currentProducts.length} of {filteredProducts.length} products
@@ -462,7 +544,7 @@ const Products = () => {
               </div>
             </div>
 
-            {/* Product Grid - UPDATED FOR MOBILE: 2 columns, Tablet: 2 columns, Desktop: 3 columns */}
+            {/* Product Grid */}
             {allProducts.length === 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -480,80 +562,56 @@ const Products = () => {
             ) : currentProducts.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                 {currentProducts.map((product) => {
-
-                  const hasOffer = product.hasOffer === true ||
-                    (product.originalPrice && product.originalPrice > product.price) ||
-                    (product.offerPrice && product.offerPrice < product.price);
-
-                  // Determine display price and original price
-                  let displayPrice = product.price;
-                  let originalPrice = null;
-                  let offerName = product.offerName;
-
-                  if (product.hasOffer === true && product.offerPrice) {
-                    // Case 1: Using hasOffer flag
-                    displayPrice = product.offerPrice;
-                    originalPrice = product.price;
-                    offerName = product.offerName || 'SPECIAL OFFER';
-                  } else if (product.originalPrice && product.originalPrice > product.price) {
-                    // Case 2: Using originalPrice field (your current data structure)
-                    displayPrice = product.price;
-                    originalPrice = product.originalPrice;
-                    // offerName = 'SALE';
-                  } else if (product.offerPrice && product.offerPrice < product.price) {
-                    // Case 3: Using offerPrice field
-                    displayPrice = product.offerPrice;
-                    originalPrice = product.price;
-                    offerName = product.offerName || 'SPECIAL OFFER';
-                  }
-
-                  // Calculate discount percentage
-                  let discountPercentage = 0;
-                  if (originalPrice && originalPrice > displayPrice) {
-                    discountPercentage = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
-                  }
-
+                  const { inStock, hasOffer, hasAdminOffer, hasNormalDiscount, displayPrice, originalPrice, discountPercentage, offerName } = getProductOfferInfo(product);
                   const badgeName = getBadgeName(product.badge);
                   const isZoomed = activeZoom === product.id;
-
-                  // Debug log
-                  if (hasOffer) {
-                    console.log('Product with offer:', product.name, {
-                      price: product.price,
-                      originalPrice: product.originalPrice,
-                      offerPrice: product.offerPrice,
-                      hasOffer: product.hasOffer,
-                      displayPrice,
-                      originalPriceFinal: originalPrice,
-                      discountPercentage,
-                      offerName
-                    });
-                  }
 
                   return (
                     <Link
                       key={product.id}
                       to={`/viewdetails/${product.id}`}
-                      className="block bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7] cursor-pointer"
+                      className={`block bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border ${hasAdminOffer ? 'border-[#FFD700]/50 shadow-[0_0_10px_rgba(128,0,32,0.2)]' : 'border-[#D9A7A7]'} cursor-pointer`}
                     >
                       <div className="relative overflow-hidden">
-                        <div className="absolute top-2 sm:top-4 left-2 sm:left-4 flex flex-col gap-1 sm:gap-2 z-10">
-                          {badgeName && (
-                            <span className="bg-[#800020] text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full shadow-sm">
-                              {badgeName}
-                            </span>
-                          )}
-                          {/* {hasOffer && offerName && (
-            <span className="bg-green-600 text-white text-[10px] sm:text-xs font-semibold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
-              {offerName}
-            </span>
-          )} */}
-                          {discountPercentage > 0 && (
-                            <span className="bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
-                              {discountPercentage}% OFF
-                            </span>
-                          )}
-                        </div>
+                        {/* Admin Offer Badge - Top Left Corner */}
+                        {hasAdminOffer && (
+                          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-20">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-lg blur-sm opacity-60"></div>
+                              <div className="relative bg-gradient-to-r from-[#800020] to-[#A0002A] text-[#FFD700] px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold tracking-wider shadow-lg flex items-center gap-1">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                                </svg>
+                                {offerName?.substring(0, 15)}{offerName?.length > 15 ? '...' : ''}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Normal Discount Badge */}
+                        {hasNormalDiscount && (
+                          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-20">
+                            <div className="relative">
+                              <div className="bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
+                                {discountPercentage}% OFF
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Regular Badge (from badge system) */}
+                        {product.badge && badgeName && (
+                          <div className="absolute bottom-2 sm:bottom-4 left-0 z-20">
+                            <div className="relative">
+                              <div className="bg-gradient-to-r from-[#800020] to-[#D4AF37] text-white px-3 sm:px-5 py-0.5 sm:py-1.5 text-[10px] sm:text-xs font-bold shadow-md"
+                                style={{
+                                  clipPath: 'polygon(0% 0%, 90% 0%, 100% 50%, 90% 100%, 0% 100%)'
+                                }}>
+                                {badgeName}
+                              </div>
+                            </div>
+                          </div>
+                        )}
 
                         <div className="h-48 sm:h-64 md:h-80 overflow-hidden cursor-zoom-in relative"
                           ref={el => imageRefs.current[product.id] = el}
@@ -590,9 +648,9 @@ const Products = () => {
 
                         <button
                           onClick={(e) => handleWishlistToggle(e, product)}
-                          className={`absolute top-2 sm:top-4 right-2 sm:right-4 p-1.5 sm:p-2 rounded-full shadow-md transition-all duration-300 ${wishlistItems.includes(product.id)
-                              ? 'bg-[#6B2D2D] text-white'
-                              : 'bg-white text-[#6B2D2D] hover:bg-[#D9A7A7]'
+                          className={`absolute top-2 sm:top-4 right-2 sm:right-4 p-1.5 sm:p-2 rounded-full shadow-md transition-all duration-300 z-20 ${wishlistItems.includes(product.id)
+                              ? 'bg-[#800020] text-white'
+                              : 'bg-white text-[#800020] hover:bg-[#D9A7A7]'
                             }`}
                           aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                         >
@@ -603,15 +661,24 @@ const Products = () => {
                       </div>
 
                       <div className="p-3 sm:p-5">
-                        <h3 className="text-sm sm:text-lg font-semibold text-[#2E2E2E] mb-1 sm:mb-2 group-hover:text-[#3A1A1A] transition-colors line-clamp-2">
+                        <h3 className="text-sm sm:text-lg font-semibold text-[#2E2E2E] mb-1 sm:mb-2 group-hover:text-[#800020] transition-colors line-clamp-2">
                           {product.name}
                         </h3>
                         <p className="text-[#2E2E2E] text-[11px] sm:text-sm mb-2 sm:mb-3 line-clamp-2">{product.description || '—'}</p>
 
+                        {/* Admin Offer Label */}
+                        {hasAdminOffer && offerName && (
+                          <div className="mb-2">
+                            <span className="inline-block bg-gradient-to-r from-[#800020]/10 to-[#A0002A]/10 text-[#800020] px-2 py-0.5 rounded-full text-[10px] font-semibold border border-[#800020]/20">
+                              ✨ Special Offer
+                            </span>
+                          </div>
+                        )}
+
                         {/* Categories Section */}
                         <div className="mb-2 sm:mb-3 flex flex-wrap gap-1">
                           {product.categories && product.categories.length > 0 ? (
-                            product.categories.map((categoryId, idx) => {
+                            product.categories.slice(0, 2).map((categoryId, idx) => {
                               const categoryName = getCategoryName(categoryId);
                               return (
                                 <span
@@ -629,22 +696,21 @@ const Products = () => {
                           )}
                         </div>
 
-                        {/* Price Section - Show both original and discounted price */}
+                        {/* Price Section */}
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-2 mb-2 sm:mb-3">
-                          <span className="text-[#6B2D2D] font-bold text-sm sm:text-lg">
+                          <span className={`font-bold text-sm sm:text-lg ${hasAdminOffer ? 'text-[#800020]' : 'text-[#6B2D2D]'}`}>
                             {formatPrice(displayPrice)}
                           </span>
-                          {originalPrice && originalPrice > displayPrice && (
+                          {hasOffer && originalPrice && originalPrice > displayPrice && (
                             <span className="text-[#2E2E2E] text-[10px] sm:text-sm line-through">
                               {formatPrice(originalPrice)}
                             </span>
                           )}
-
                         </div>
 
                         <div className="flex items-center justify-between mt-2 sm:mt-4">
                           <div className="flex">
-                            {product.stock > 0 ? (
+                            {inStock ? (
                               <span className="text-green-600 text-[10px] sm:text-sm">In Stock</span>
                             ) : (
                               <span className="text-red-600 text-[10px] sm:text-sm">Out of Stock</span>
@@ -652,7 +718,7 @@ const Products = () => {
                           </div>
                           <div onClick={(e) => e.preventDefault()} className="relative z-10">
                             <button
-                              className="bg-[#800020] text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300"
+                              className={`${hasAdminOffer ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white border border-[#FFD700]/30' : 'bg-[#800020] text-white'} px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300`}
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -684,22 +750,38 @@ const Products = () => {
             {/* Pagination */}
             {filteredProducts.length > productsPerPage && (
               <div className="flex justify-center mt-16">
-                <nav className="flex items-center space-x-2">
+                <nav className="flex items-center space-x-2 flex-wrap gap-2">
                   <button onClick={() => paginate(currentPage - 1)} disabled={currentPage === 1}
-                    className="px-5 py-2 rounded-lg border border-gray-300 text-[#2E2E2E] hover:bg-gray-100 disabled:opacity-50">
+                    className="px-5 py-2 rounded-lg border border-gray-300 text-[#2E2E2E] hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
                     Previous
                   </button>
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                    <button key={page} onClick={() => paginate(page)}
-                      className={`px-4 py-2 rounded-lg border ${currentPage === page
-                          ? 'bg-[#6B2D2D] text-white border-[#6B2D2D]'
-                          : 'border-gray-300 text-[#2E2E2E] hover:bg-gray-100'
-                        }`}>
-                      {page}
-                    </button>
-                  ))}
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 7) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 4) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 3) {
+                      pageNum = totalPages - 6 + i;
+                    } else {
+                      pageNum = currentPage - 3 + i;
+                    }
+
+                    if (pageNum > 0 && pageNum <= totalPages) {
+                      return (
+                        <button key={pageNum} onClick={() => paginate(pageNum)}
+                          className={`px-4 py-2 rounded-lg border ${currentPage === pageNum
+                              ? 'bg-[#6B2D2D] text-white border-[#6B2D2D]'
+                              : 'border-gray-300 text-[#2E2E2E] hover:bg-gray-100'
+                            }`}>
+                          {pageNum}
+                        </button>
+                      );
+                    }
+                    return null;
+                  })}
                   <button onClick={() => paginate(currentPage + 1)} disabled={currentPage === totalPages}
-                    className="px-5 py-2 rounded-lg border border-gray-300 text-[#2E2E2E] hover:bg-gray-100 disabled:opacity-50">
+                    className="px-5 py-2 rounded-lg border border-gray-300 text-[#2E2E2E] hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed">
                     Next
                   </button>
                 </nav>

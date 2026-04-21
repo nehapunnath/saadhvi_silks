@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import productApi from '../Services/proApi';
 import authApi from '../Services/authApi';
 import categoryApi from '../Services/CategoryApi';
+import badgeApi from '../Services/BadgeApi'; // Add this import
 
 const BudgetProducts = () => {
   const [searchParams] = useSearchParams();
@@ -14,6 +15,7 @@ const BudgetProducts = () => {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [badges, setBadges] = useState([]); // Add badges state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [wishlistItems, setWishlistItems] = useState([]);
@@ -52,18 +54,73 @@ const BudgetProducts = () => {
     { label: "Special Offers", value: "hasOffer" },
   ];
 
+  // Add getBadgeName function
+  const getBadgeName = (badgeValue) => {
+    if (!badgeValue) return null;
+    
+    // Try to find by ID first
+    let badge = badges.find(b => b.id === badgeValue);
+    
+    // If not found by ID, try to find by name (case-insensitive)
+    if (!badge && typeof badgeValue === 'string') {
+      badge = badges.find(b => 
+        b.name.toLowerCase() === badgeValue.toLowerCase()
+      );
+    }
+    
+    return badge ? badge.name : null;
+  };
+
+  // Updated getProductOfferInfo function to handle both admin offers and normal discounts
   const getProductOfferInfo = (product) => {
-  const inStock = product?.stock > 0;
-  // Check for offer using originalPrice field (your database pattern)
-  const hasOffer = product?.originalPrice && product?.originalPrice > product?.price;
-  const displayPrice = product?.price;
-  const originalPrice = hasOffer ? product?.originalPrice : null;
-  const discountPercentage = hasOffer && originalPrice && originalPrice > displayPrice 
-    ? Math.round(((originalPrice - displayPrice) / originalPrice) * 100)
-    : 0;
-  
-  return { inStock, hasOffer, displayPrice, originalPrice, discountPercentage };
-};
+    const inStock = product?.stock > 0;
+    
+    // Check for Admin Offer (has offerName and offerPrice from offer system)
+    const hasAdminOffer = product?.hasOffer === true && product?.offerName && product?.offerPrice && product?.offerPrice < product?.price;
+    
+    // Check for Normal Discount (originalPrice vs price - regular markdown)
+    const hasNormalDiscount = !hasAdminOffer && product?.originalPrice && product?.originalPrice > product?.price;
+    
+    // Determine which offer to show
+    const hasOffer = hasAdminOffer || hasNormalDiscount;
+    
+    // Display price (lowest price available)
+    let displayPrice;
+    let originalPrice;
+    let discountPercentage;
+    let offerName;
+    
+    if (hasAdminOffer) {
+      // Admin Offer takes precedence
+      displayPrice = product.offerPrice;
+      originalPrice = product.price;
+      discountPercentage = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
+      offerName = product.offerName;
+    } else if (hasNormalDiscount) {
+      // Normal discount from originalPrice
+      displayPrice = product.price;
+      originalPrice = product.originalPrice;
+      discountPercentage = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
+      offerName = null;
+    } else {
+      // No offer
+      displayPrice = product?.price || 0;
+      originalPrice = null;
+      discountPercentage = 0;
+      offerName = null;
+    }
+    
+    return { 
+      inStock, 
+      hasOffer, 
+      hasAdminOffer,
+      hasNormalDiscount,
+      displayPrice, 
+      originalPrice, 
+      discountPercentage, 
+      offerName 
+    };
+  };
 
   // Helper function to normalize categories
   const normalizeCategories = (categoriesInput) => {
@@ -89,19 +146,27 @@ const BudgetProducts = () => {
     return category ? category.name : cleanId.substring(0, 8);
   };
 
-  // Load categories
+  // Load categories and badges
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadCategoriesAndBadges = async () => {
       try {
-        const categoriesRes = await categoryApi.getPublicCategories();
+        const [categoriesRes, badgesRes] = await Promise.all([
+          categoryApi.getPublicCategories(),
+          badgeApi.getPublicBadges()
+        ]);
+        
         if (categoriesRes?.success) {
           setCategories(categoriesRes.categories || []);
         }
+        
+        if (badgesRes?.badges) {
+          setBadges(badgesRes.badges);
+        }
       } catch (err) {
-        console.error('Error loading categories:', err);
+        console.error('Error loading data:', err);
       }
     };
-    loadCategories();
+    loadCategoriesAndBadges();
   }, []);
 
   // Load budget products
@@ -190,7 +255,7 @@ const BudgetProducts = () => {
 
     let result = [...products];
 
-    // Category filter - Check if product has ANY of the selected categories
+    // Category filter
     if (selectedFilters.category.length > 0 && !selectedFilters.category.includes("All")) {
       result = result.filter((product) => {
         if (!product.categories || product.categories.length === 0) return false;
@@ -205,9 +270,13 @@ const BudgetProducts = () => {
       );
     }
 
-    // Offers only filter - using originalPrice pattern
+    // Offers only filter - includes both admin offers and normal discounts
     if (selectedFilters.offers.length > 0) {
-      result = result.filter((product) => product.originalPrice && product.originalPrice > product.price);
+      result = result.filter((product) => {
+        const hasAdminOffer = product?.hasOffer === true && product?.offerPrice && product?.offerPrice < product?.price;
+        const hasNormalDiscount = product?.originalPrice && product?.originalPrice > product?.price;
+        return hasAdminOffer || hasNormalDiscount;
+      });
     }
 
     setFilteredProducts(result);
@@ -248,7 +317,7 @@ const BudgetProducts = () => {
 
     try {
       const isInWishlist = wishlistItems.includes(product.id);
-      const displayPrice = product.price; // Use current price
+      const { displayPrice } = getProductOfferInfo(product);
 
       if (isInWishlist) {
         await productApi.removeFromWishlist(product.id);
@@ -291,7 +360,11 @@ const BudgetProducts = () => {
     }
   };
 
-  const productsWithOffers = products.filter((p) => p.originalPrice && p.originalPrice > p.price).length;
+  const productsWithOffers = products.filter((p) => {
+    const hasAdminOffer = p?.hasOffer === true && p?.offerPrice && p?.offerPrice < p?.price;
+    const hasNormalDiscount = p?.originalPrice && p?.originalPrice > p?.price;
+    return hasAdminOffer || hasNormalDiscount;
+  }).length;
 
   if (loading) {
     return (
@@ -540,25 +613,55 @@ const BudgetProducts = () => {
               <>
                 <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                   {currentProducts.map((product) => {
-                    const { inStock, hasOffer, displayPrice, originalPrice, discountPercentage } = getProductOfferInfo(product);
+                    const { inStock, hasOffer, hasAdminOffer, hasNormalDiscount, displayPrice, originalPrice, discountPercentage, offerName } = getProductOfferInfo(product);
+                    const badgeName = getBadgeName(product.badge); // Get badge name
 
                     return (
                       <Link
                         key={product.id}
                         to={`/viewdetails/${product.id}`}
-                        className="block bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border border-[#D9A7A7] cursor-pointer"
+                        className={`block bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border ${hasAdminOffer ? 'border-[#FFD700]/50 shadow-[0_0_10px_rgba(128,0,32,0.2)]' : 'border-[#D9A7A7]'} cursor-pointer`}
                       >
                         <div className="relative overflow-hidden">
-                          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 flex flex-col gap-1 sm:gap-2 z-10">
-                            {hasOffer && (
-                              <div className="flex flex-col gap-1">
-                            
-                                <span className="bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
-                                  {discountPercentage}% OFF
-                                </span>
+                          {/* Admin Offer Badge - Top Left Corner */}
+                          {hasAdminOffer && (
+                            <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-20">
+                              <div className="relative">
+                                <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-lg blur-sm opacity-60"></div>
+                                <div className="relative bg-gradient-to-r from-[#800020] to-[#A0002A] text-[#FFD700] px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold tracking-wider shadow-lg flex items-center gap-1">
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                                  </svg>
+                                  {offerName?.substring(0, 15)}{offerName?.length > 15 ? '...' : ''}
+                                </div>
                               </div>
-                            )}
-                          </div>
+                            </div>
+                          )}
+
+                          {/* Normal Discount Badge */}
+                          {hasNormalDiscount && (
+                            <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-20">
+                              <div className="relative">
+                                <div className="bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
+                                  {discountPercentage}% OFF
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Regular Badge - Bottom Left */}
+                         {product.badge && (
+                            <div className="absolute bottom-2 sm:bottom-4 left-0 z-20">
+                            <div className="relative">
+                              <div className="bg-gradient-to-r from-[#800020] to-[#D4AF37] text-white px-3 sm:px-5 py-0.5 sm:py-1.5 text-[10px] sm:text-xs font-bold shadow-md"
+                                style={{
+                                  clipPath: 'polygon(0% 0%, 90% 0%, 100% 50%, 90% 100%, 0% 100%)'
+                                }}>
+                                {getBadgeName(product.badge)}
+                              </div>
+                            </div>
+                            </div>
+                          )}
 
                           <div className="h-48 sm:h-64 overflow-hidden">
                             <img
@@ -573,10 +676,10 @@ const BudgetProducts = () => {
 
                           <button
                             onClick={(e) => handleWishlistToggle(e, product)}
-                            className={`absolute top-2 sm:top-4 right-2 sm:right-4 p-1.5 sm:p-2 rounded-full shadow-md transition-all duration-300 ${
+                            className={`absolute top-2 sm:top-4 right-2 sm:right-4 p-1.5 sm:p-2 rounded-full shadow-md transition-all duration-300 z-20 ${
                               wishlistItems.includes(product.id)
-                                ? 'bg-[#6B2D2D] text-white'
-                                : 'bg-white text-[#6B2D2D] hover:bg-[#D9A7A7]'
+                                ? 'bg-[#800020] text-white'
+                                : 'bg-white text-[#800020] hover:bg-[#D9A7A7]'
                             }`}
                             aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
                           >
@@ -587,17 +690,26 @@ const BudgetProducts = () => {
                         </div>
 
                         <div className="p-3 sm:p-5">
-                          <h3 className="text-sm sm:text-lg font-semibold text-[#2E2E2E] mb-1 sm:mb-2 group-hover:text-[#3A1A1A] transition-colors line-clamp-2">
+                          <h3 className="text-sm sm:text-lg font-semibold text-[#2E2E2E] mb-1 sm:mb-2 group-hover:text-[#800020] transition-colors line-clamp-2">
                             {product.name}
                           </h3>
                           <p className="text-[#2E2E2E] text-[11px] sm:text-sm mb-2 sm:mb-3 line-clamp-2">
                             {product.description || '—'}
                           </p>
 
+                          {/* Admin Offer Label */}
+                          {hasAdminOffer && offerName && (
+                            <div className="mb-2">
+                              <span className="inline-block bg-gradient-to-r from-[#800020]/10 to-[#A0002A]/10 text-[#800020] px-2 py-0.5 rounded-full text-[10px] font-semibold border border-[#800020]/20">
+                                ✨ Special Offer
+                              </span>
+                            </div>
+                          )}
+
                           {/* Categories Section */}
                           <div className="mb-2 sm:mb-3 flex flex-wrap gap-1">
                             {product.categories && product.categories.length > 0 ? (
-                              product.categories.map((categoryId, idx) => {
+                              product.categories.slice(0, 2).map((categoryId, idx) => {
                                 const categoryName = getCategoryName(categoryId);
                                 return (
                                   <span
@@ -616,7 +728,7 @@ const BudgetProducts = () => {
                           </div>
 
                           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-2 mb-2 sm:mb-3">
-                            <span className="text-[#6B2D2D] font-bold text-sm sm:text-lg">
+                            <span className={`font-bold text-sm sm:text-lg ${hasAdminOffer ? 'text-[#800020]' : 'text-[#6B2D2D]'}`}>
                               {formatPrice(displayPrice)}
                             </span>
                             {hasOffer && originalPrice && originalPrice > displayPrice && (
@@ -624,9 +736,6 @@ const BudgetProducts = () => {
                                 <span className="text-[#2E2E2E] text-[10px] sm:text-sm line-through">
                                   {formatPrice(originalPrice)}
                                 </span>
-                                {/* <span className="bg-[#D9A7A7] text-[#800020] text-[10px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
-                                  {discountPercentage}% OFF
-                                </span> */}
                               </>
                             )}
                           </div>
@@ -641,7 +750,7 @@ const BudgetProducts = () => {
                             </div>
                             <div onClick={(e) => e.preventDefault()} className="relative z-10">
                               <button
-                                className="bg-[#800020] text-white px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300"
+                                className={`${hasAdminOffer ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white border border-[#FFD700]/30' : 'bg-[#800020] text-white'} px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300`}
                                 onClick={(e) => {
                                   e.preventDefault();
                                   e.stopPropagation();
