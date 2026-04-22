@@ -11,20 +11,21 @@ import badgeApi from '../../Services/BadgeApi';
 const AddProducts = () => {
   const [product, setProduct] = useState({
     name: '',
+    productCode: '', // NEW: Product ID/Code
     price: '',
     originalPrice: '',
     extraCharges: '',
     categories: [],
     occasion: [],
-    description: '',
+    // Removed: description, weave, origin, weight, sizeGuide
     material: '',
+    work: '', // NEW: Work field
+    bodyColor: '', // NEW: Body Color field
+    blouseColor: '', // NEW: Blouse Color field
+    type: '', // NEW: Type field
     length: '',
-    weave: '',
     care: '',
-    weight: '',
     border: '',
-    origin: '',
-    sizeGuide: '',
     images: [],
     badge: '',
     stock: '',
@@ -69,7 +70,7 @@ const AddProducts = () => {
     }
   };
 
-  const loadBadges = async () => {                  // ← NEW
+  const loadBadges = async () => {
     try {
       const result = await badgeApi.getBadges();
       if (result.success) {
@@ -81,13 +82,13 @@ const AddProducts = () => {
     }
   };
 
- const handleInputChange = (e) => {
-  const { name, value } = e.target;
-  setProduct(prev => ({
-    ...prev,
-    [name]: value
-  }));
-};
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setProduct(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
   const handleOccasionChange = (occasion) => {
     setSelectedOccasions(prev => {
@@ -133,29 +134,29 @@ const AddProducts = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    // Prepare product data with categories array
-    const productData = {
-      ...product,
-      categories: selectedCategories, // Ensure categories is an array
-      price: parseFloat(product.price),
-      originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : null,
-      extraCharges: product.extraCharges ? parseFloat(product.extraCharges) : null,
-      stock: parseInt(product.stock),
-    };
-    
-    const result = await productApi.addProduct(productData);
-    toast.success('Product added successfully!');
-    window.location.href = '/admin/products';
-  } catch (error) {
-    toast.error('Something Went Wrong !!!');
-  } finally {
-    setLoading(false);
-  }
-};
+    try {
+      // Prepare product data with categories array
+      const productData = {
+        ...product,
+        categories: selectedCategories,
+        price: parseFloat(product.price),
+        originalPrice: product.originalPrice ? parseFloat(product.originalPrice) : null,
+        extraCharges: product.extraCharges ? parseFloat(product.extraCharges) : null,
+        stock: parseInt(product.stock),
+      };
+      
+      const result = await productApi.addProduct(productData);
+      toast.success('Product added successfully!');
+      window.location.href = '/admin/products';
+    } catch (error) {
+      toast.error('Something Went Wrong !!!');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Category Management Functions
   const handleAddCategory = async (e) => {
@@ -192,30 +193,29 @@ const AddProducts = () => {
     setShowCategoryModal(true);
   };
 
- const handleDeleteCategory = async (category) => {
-  if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) {
-    return;
-  }
-
-  try {
-    const result = await categoryApi.deleteCategory(category.id);
-    if (result.success) {
-      toast.success('Category deleted successfully!');
-      await loadCategories();
-      
-      // Remove the deleted category from selected categories if present
-      if (selectedCategories.includes(category.id)) {
-        const updatedCategories = selectedCategories.filter(id => id !== category.id);
-        setSelectedCategories(updatedCategories);
-        setProduct(prev => ({ ...prev, categories: updatedCategories }));
-      }
-    } else {
-      toast.error(result.error);
+  const handleDeleteCategory = async (category) => {
+    if (!window.confirm(`Are you sure you want to delete "${category.name}"?`)) {
+      return;
     }
-  } catch (error) {
-    toast.error(error.message);
-  }
-};
+
+    try {
+      const result = await categoryApi.deleteCategory(category.id);
+      if (result.success) {
+        toast.success('Category deleted successfully!');
+        await loadCategories();
+        
+        if (selectedCategories.includes(category.id)) {
+          const updatedCategories = selectedCategories.filter(id => id !== category.id);
+          setSelectedCategories(updatedCategories);
+          setProduct(prev => ({ ...prev, categories: updatedCategories }));
+        }
+      } else {
+        toast.error(result.error);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
 
   const openAddCategoryModal = () => {
     setEditingCategory(null);
@@ -224,22 +224,22 @@ const AddProducts = () => {
   };
 
   const handleCategoryChange = (categoryId) => {
-  setSelectedCategories(prev => {
-    const newCategories = prev.includes(categoryId)
-      ? prev.filter(id => id !== categoryId)
-      : [...prev, categoryId];
-    
-    setProduct(prevProduct => ({
-      ...prevProduct,
-      categories: newCategories
-    }));
-    
-    return newCategories;
-  });
-};
+    setSelectedCategories(prev => {
+      const newCategories = prev.includes(categoryId)
+        ? prev.filter(id => id !== categoryId)
+        : [...prev, categoryId];
+      
+      setProduct(prevProduct => ({
+        ...prevProduct,
+        categories: newCategories
+      }));
+      
+      return newCategories;
+    });
+  };
 
-// ── Badge Handlers ───────────────────────────────────────────
-  const handleAddBadge = async (e) => {               // ← NEW
+  // Badge Handlers
+  const handleAddBadge = async (e) => {
     e.preventDefault();
     if (!badgeName.trim()) {
       toast.error('Badge name is required');
@@ -267,13 +267,13 @@ const AddProducts = () => {
     }
   };
 
-  const handleEditBadge = (badge) => {                // ← NEW
+  const handleEditBadge = (badge) => {
     setEditingBadge(badge);
     setBadgeName(badge.name);
     setShowBadgeModal(true);
   };
 
-  const handleDeleteBadge = async (badge) => {        // ← NEW
+  const handleDeleteBadge = async (badge) => {
     if (!window.confirm(`Are you sure you want to delete badge "${badge.name}"?`)) return;
 
     try {
@@ -292,7 +292,7 @@ const AddProducts = () => {
     }
   };
 
-  const openAddBadgeModal = () => {                   
+  const openAddBadgeModal = () => {
     setEditingBadge(null);
     setBadgeName('');
     setShowBadgeModal(true);
@@ -348,6 +348,20 @@ const AddProducts = () => {
                           onChange={handleInputChange}
                           className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
                           placeholder="Enter product name"
+                          required
+                        />
+                      </div>
+
+                      {/* Product Code/ID - NEW */}
+                      <div>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Product ID/Code</label>
+                        <input
+                          type="text"
+                          name="productCode"
+                          value={product.productCode}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                          placeholder="e.g., SKU-001, SAR-2024-001"
                           required
                         />
                       </div>
@@ -413,90 +427,88 @@ const AddProducts = () => {
                         )}
                       </div>
 
-                      {/* Enhanced Category Section */}
-                      {/* Enhanced Category Section - Multiple Selection */}
-<div className="space-y-4">
-  <div className="flex justify-between items-center">
-    <label className="block text-sm font-medium text-[#2E2E2E]">Categories (Select multiple)</label>
-    <button
-      type="button"
-      onClick={openAddCategoryModal}
-      className="text-sm bg-[#6B2D2D] text-white px-3 py-1 rounded hover:bg-[#8B3A3A] transition-colors"
-    >
-      + Manage Categories
-    </button>
-  </div>
-  
-  {/* Selected Categories Display */}
-  {selectedCategories.length > 0 && (
-    <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg">
-      {selectedCategories.map(categoryId => {
-        const category = categories.find(cat => cat.id === categoryId);
-        return category ? (
-          <span key={categoryId} className="inline-flex items-center bg-[#6B2D2D] text-white px-3 py-1 rounded-full text-sm">
-            {category.name}
-            <button
-              type="button"
-              onClick={() => handleCategoryChange(categoryId)}
-              className="ml-2 hover:text-gray-200 focus:outline-none"
-            >
-              ×
-            </button>
-          </span>
-        ) : null;
-      })}
-    </div>
-  )}
-  
-  {/* Categories Grid with Checkboxes */}
-  <div className="border rounded-lg p-4 max-h-60 overflow-y-auto">
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-      {categories
-        .filter(cat => cat.isActive !== false)
-        .map(category => (
-          <label key={category.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
-            <input
-              type="checkbox"
-              checked={selectedCategories.includes(category.id)}
-              onChange={() => handleCategoryChange(category.id)}
-              className="w-4 h-4 text-[#6B2D2D] border-[#D9A7A7] rounded focus:ring-[#6B2D2D]"
-            />
-            <span className="text-sm text-[#2E2E2E] flex-1">{category.name}</span>
-            <div className="flex space-x-1">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEditCategory(category);
-                }}
-                className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
-              >
-                Edit
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleDeleteCategory(category);
-                }}
-                className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
-              >
-                Delete
-              </button>
-            </div>
-          </label>
-        ))}
-    </div>
-    {categories.length === 0 && (
-      <p className="text-sm text-gray-500 text-center p-4">No categories found. Add your first category!</p>
-    )}
-  </div>
-  
-  {/* Help text */}
-  <p className="text-xs text-gray-500">Select multiple categories that apply to this product</p>
-</div>
+                      {/* Categories Section */}
+                      <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                          <label className="block text-sm font-medium text-[#2E2E2E]">Categories (Select multiple)</label>
+                          <button
+                            type="button"
+                            onClick={openAddCategoryModal}
+                            className="text-sm bg-[#6B2D2D] text-white px-3 py-1 rounded hover:bg-[#8B3A3A] transition-colors"
+                          >
+                            + Manage Categories
+                          </button>
+                        </div>
+                        
+                        {/* Selected Categories Display */}
+                        {selectedCategories.length > 0 && (
+                          <div className="flex flex-wrap gap-2 p-3 bg-gray-50 rounded-lg">
+                            {selectedCategories.map(categoryId => {
+                              const category = categories.find(cat => cat.id === categoryId);
+                              return category ? (
+                                <span key={categoryId} className="inline-flex items-center bg-[#6B2D2D] text-white px-3 py-1 rounded-full text-sm">
+                                  {category.name}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleCategoryChange(categoryId)}
+                                    className="ml-2 hover:text-gray-200 focus:outline-none"
+                                  >
+                                    ×
+                                  </button>
+                                </span>
+                              ) : null;
+                            })}
+                          </div>
+                        )}
+                        
+                        {/* Categories Grid with Checkboxes */}
+                        <div className="border rounded-lg p-4 max-h-60 overflow-y-auto">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {categories
+                              .filter(cat => cat.isActive !== false)
+                              .map(category => (
+                                <label key={category.id} className="flex items-center space-x-3 p-2 hover:bg-gray-50 rounded cursor-pointer">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedCategories.includes(category.id)}
+                                    onChange={() => handleCategoryChange(category.id)}
+                                    className="w-4 h-4 text-[#6B2D2D] border-[#D9A7A7] rounded focus:ring-[#6B2D2D]"
+                                  />
+                                  <span className="text-sm text-[#2E2E2E] flex-1">{category.name}</span>
+                                  <div className="flex space-x-1">
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleEditCategory(category);
+                                      }}
+                                      className="text-blue-600 hover:text-blue-800 text-xs px-2 py-1 border border-blue-600 rounded"
+                                    >
+                                      Edit
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteCategory(category);
+                                      }}
+                                      className="text-red-600 hover:text-red-800 text-xs px-2 py-1 border border-red-600 rounded"
+                                    >
+                                      Delete
+                                    </button>
+                                  </div>
+                                </label>
+                              ))}
+                          </div>
+                          {categories.length === 0 && (
+                            <p className="text-sm text-gray-500 text-center p-4">No categories found. Add your first category!</p>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-500">Select multiple categories that apply to this product</p>
+                      </div>
 
-                     <div className="space-y-4">
+                      {/* Badge Section */}
+                      <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <label className="block text-sm font-medium text-[#2E2E2E]">Badge</label>
                           <button
@@ -628,93 +640,105 @@ const AddProducts = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Description */}
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Product Description</label>
-                    <textarea
-                      name="description"
-                      value={product.description}
-                      onChange={handleInputChange}
-                      rows="4"
-                      className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                      placeholder="Describe the product in detail..."
-                      required
-                    />
-                  </div>
                 </div>
 
-                {/* Product Details Section */}
+                {/* Product Details Section - Updated Fields */}
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                   <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Product Details</h2>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Material</label>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">1. Material</label>
                       <input
                         type="text"
                         name="material"
                         value={product.material}
                         onChange={handleInputChange}
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                        placeholder="Pure Kanjivaram Silk"
+                        placeholder="e.g., Pure Kanjivaram Silk"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Length</label>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">2. Work</label>
+                      <input
+                        type="text"
+                        name="work"
+                        value={product.work}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                        placeholder="e.g., Zari Work, Embroidery, Hand Painted"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">3. Body Color</label>
+                      <input
+                        type="text"
+                        name="bodyColor"
+                        value={product.bodyColor}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                        placeholder="e.g., Red, Blue, Green"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">4. Blouse Color</label>
+                      <input
+                        type="text"
+                        name="blouseColor"
+                        value={product.blouseColor}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                        placeholder="e.g., Contrast Red, Golden"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">5. Type</label>
+                      <input
+                        type="text"
+                        name="type"
+                        value={product.type}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
+                        placeholder="e.g., Kanjivaram, Banarasi, Patola"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">6. Length</label>
                       <input
                         type="text"
                         name="length"
                         value={product.length}
                         onChange={handleInputChange}
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                        placeholder="6.5 meters (with blouse piece)"
+                        placeholder="e.g., 6.5 meters (with blouse piece)"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Weave</label>
-                      <input
-                        type="text"
-                        name="weave"
-                        value={product.weave}
-                        onChange={handleInputChange}
-                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                        placeholder="Handwoven with pure zari"
-                        required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Care Instructions</label>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">7. Care Instructions</label>
                       <input
                         type="text"
                         name="care"
                         value={product.care}
                         onChange={handleInputChange}
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                        placeholder="Dry Clean Only"
+                        placeholder="e.g., Dry Clean Only"
                         required
                       />
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Weight</label>
-                      <input
-                        type="text"
-                        name="weight"
-                        value={product.weight}
-                        onChange={handleInputChange}
-                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                        placeholder="650 grams"
-                        required
-                      />
-                    </div>
-
-                    <div>
+                    {/* <div>
                       <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Border</label>
                       <input
                         type="text"
@@ -722,36 +746,9 @@ const AddProducts = () => {
                         value={product.border}
                         onChange={handleInputChange}
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                        placeholder="Contrast Zari Border"
-                        required
+                        placeholder="e.g., Contrast Zari Border"
                       />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Origin</label>
-                      <input
-                        type="text"
-                        name="origin"
-                        value={product.origin}
-                        onChange={handleInputChange}
-                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                        placeholder="Kanchipuram, Tamil Nadu"
-                        required
-                      />
-                    </div>
-
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Size Guide</label>
-                      <textarea
-                        name="sizeGuide"
-                        value={product.sizeGuide}
-                        onChange={handleInputChange}
-                        rows="3"
-                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
-                        placeholder="Standard saree length: 5.5m (saree) + 1m (blouse piece). Suitable for all body types."
-                        required
-                      />
-                    </div>
+                    </div> */}
                   </div>
                 </div>
 
@@ -777,7 +774,7 @@ const AddProducts = () => {
         </div>
       </div>
 
-      {/* Simplified Category Management Modal */}
+      {/* Category Management Modal */}
       {showCategoryModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md">
@@ -823,52 +820,53 @@ const AddProducts = () => {
           </div>
         </div>
       )}
-      {/* ── NEW ── Badge Management Modal */}
-        {showBadgeModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-              <h3 className="text-xl font-semibold mb-4">
-                {editingBadge ? 'Edit Badge' : 'Add New Badge'}
-              </h3>
+
+      {/* Badge Management Modal */}
+      {showBadgeModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-semibold mb-4">
+              {editingBadge ? 'Edit Badge' : 'Add New Badge'}
+            </h3>
+            
+            <form onSubmit={handleAddBadge}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Badge Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={badgeName}
+                    onChange={(e) => setBadgeName(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                    placeholder="e.g., Bestseller, New Arrival, Limited Stock"
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
               
-              <form onSubmit={handleAddBadge}>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Badge Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={badgeName}
-                      onChange={(e) => setBadgeName(e.target.value)}
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
-                      placeholder="e.g. Bestseller, New Arrival, Limited Stock"
-                      required
-                      autoFocus
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex justify-end space-x-3 mt-6">
-                  <button
-                    type="button"
-                    onClick={() => setShowBadgeModal(false)}
-                    className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={badgeLoading}
-                    className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] disabled:bg-gray-400"
-                  >
-                    {badgeLoading ? 'Saving...' : editingBadge ? 'Update' : 'Add'}
-                  </button>
-                </div>
-              </form>
-            </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setShowBadgeModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={badgeLoading}
+                  className="bg-[#6B2D2D] text-white px-4 py-2 rounded-lg hover:bg-[#8B3A3A] disabled:bg-gray-400"
+                >
+                  {badgeLoading ? 'Saving...' : editingBadge ? 'Update' : 'Add'}
+                </button>
+              </div>
+            </form>
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 };

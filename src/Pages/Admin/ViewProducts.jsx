@@ -4,12 +4,12 @@ import { toast } from 'react-hot-toast';
 import { Link, useParams } from 'react-router-dom';
 import Sidebar from '../../Components/SideBar';
 import productApi from '../../Services/proApi';
-import badgeApi from '../../Services/BadgeApi';           // ← NEW IMPORT
+import badgeApi from '../../Services/BadgeApi';
 
 const ViewProducts = () => {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
-  const [badges, setBadges] = useState([]);                    // ← NEW
+  const [badges, setBadges] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
@@ -200,10 +200,12 @@ const ViewProducts = () => {
                     {/* Product Info Section */}
                     <div className="space-y-7">
 
-                      {/* Name & Description */}
+                      {/* Name & Product Code */}
                       <div>
                         <h1 className="text-4xl font-bold text-gray-900 mb-3">{product.name}</h1>
-                        <p className="text-gray-600 text-lg leading-relaxed">{product.description}</p>
+                        {/* {product.productCode && (
+                          <p className="text-sm text-gray-500 font-mono mb-3">ID: {product.productCode}</p>
+                        )} */}
                       </div>
 
                       {/* Offer Display - Simple & Clean */}
@@ -265,40 +267,78 @@ const ViewProducts = () => {
                           </div>
                         </div>
                       )}
-
-                      {/* Quick Specs */}
-                      <div className="grid grid-cols-2 gap-6 pt-6 border-t border-gray-200">
-                        {['material', 'weave', 'border', 'care', 'weight', 'origin'].map(field => product[field] && (
-                          <div key={field} className="mb-5">
-                            <p className="text-sm text-gray-500 capitalize">{field.replace('weave', 'Weave Type').replace('border', 'Border Design')}</p>
-                            <p className="font-medium text-gray-900">{product[field]}</p>
-                          </div>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Product Details & Size Guide */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white rounded-2xl shadow-xl p-8">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-6">Product Specifications</h2>
-                  <div className="grid grid-cols-2 gap-6">
-                    {['material', 'weave', 'border', 'care', 'weight', 'origin'].map(field => product[field] && (
-                      <div key={field} className="mb-5">
-                        <p className="text-sm text-gray-500 capitalize">{field.replace('weave', 'Weave Type').replace('border', 'Border Design')}</p>
-                        <p className="font-medium text-gray-900">{product[field]}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+              {/* Product Details Section - Updated with new fields */}
+              <div className="bg-white rounded-2xl shadow-xl p-8">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">Product Specifications</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Material */}
+                  {product.material && (
+                    <div className="border-b border-gray-100 pb-3">
+                      <p className="text-sm text-gray-500">1. Material</p>
+                      <p className="font-medium text-gray-900">{product.material}</p>
+                    </div>
+                  )}
 
-                <div className="bg-white rounded-2xl shadow-xl p-8">
-                  <h2 className="text-2xl font-bold text-gray-800 mb-6">Size & Fit Guide</h2>
-                  <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">
-                    {product.sizeGuide || 'No size guide provided.'}
-                  </p>
+                  {/* Work */}
+                  {product.work && (
+                    <div className="border-b border-gray-100 pb-3">
+                      <p className="text-sm text-gray-500">2. Work</p>
+                      <p className="font-medium text-gray-900">{product.work}</p>
+                    </div>
+                  )}
+
+                  {/* Body Color */}
+                  {product.bodyColor && (
+                    <div className="border-b border-gray-100 pb-3">
+                      <p className="text-sm text-gray-500">3. Body Color</p>
+                      <p className="font-medium text-gray-900">{product.bodyColor}</p>
+                    </div>
+                  )}
+
+                  {/* Blouse Color */}
+                  {product.blouseColor && (
+                    <div className="border-b border-gray-100 pb-3">
+                      <p className="text-sm text-gray-500">4. Blouse Color</p>
+                      <p className="font-medium text-gray-900">{product.blouseColor}</p>
+                    </div>
+                  )}
+
+                  {/* Type */}
+                  {product.type && (
+                    <div className="border-b border-gray-100 pb-3">
+                      <p className="text-sm text-gray-500">5. Type</p>
+                      <p className="font-medium text-gray-900">{product.type}</p>
+                    </div>
+                  )}
+
+                  {/* Length */}
+                  {product.length && (
+                    <div className="border-b border-gray-100 pb-3">
+                      <p className="text-sm text-gray-500">6. Length</p>
+                      <p className="font-medium text-gray-900">{product.length}</p>
+                    </div>
+                  )}
+
+                  {/* Care Instructions */}
+                  {product.care && (
+                    <div className="border-b border-gray-100 pb-3">
+                      <p className="text-sm text-gray-500">7. Care Instructions</p>
+                      <p className="font-medium text-gray-900">{product.care}</p>
+                    </div>
+                  )}
+
+                  {/* Border */}
+                  {product.border && (
+                    <div className="border-b border-gray-100 pb-3">
+                      <p className="text-sm text-gray-500">Border</p>
+                      <p className="font-medium text-gray-900">{product.border}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -311,15 +351,20 @@ const ViewProducts = () => {
                     <p className={`text-2xl font-bold mt-2 ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
                       {product.stock > 0 ? 'Available' : 'Out of Stock'}
                     </p>
+                    {product.stock > 0 && (
+                      <p className="text-sm text-gray-500 mt-1">{product.stock} units left</p>
+                    )}
                   </div>
                   <div className="bg-gray-50 rounded-xl p-6">
-                    <p className="text-sm text-gray-500">Product ID</p>
-                    <p className="text-xl font-mono font-bold text-gray-800 mt-2">#{product.key}</p>
+                    <p className="text-sm text-gray-500">Product ID/Code</p>
+                    {product.productCode && (
+                          <p className="text-xl font-mono font-bold text-gray-800 mt-2">{product.productCode}</p>
+                        )}
                   </div>
                   <div className="bg-gray-50 rounded-xl p-6">
                     <p className="text-sm text-gray-500">Last Updated</p>
                     <p className="text-lg font-medium text-gray-800 mt-2">
-                      {new Date(product.updatedAt).toLocaleDateString('en-IN')}
+                      {product.updatedAt ? new Date(product.updatedAt).toLocaleDateString('en-IN') : 'N/A'}
                     </p>
                   </div>
                 </div>

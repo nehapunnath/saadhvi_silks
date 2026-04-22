@@ -43,6 +43,14 @@ const ViewOrder = () => {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
+  // Helper function to get all product codes from order items
+  const getAllProductCodes = (items) => {
+    if (!items || items.length === 0) return 'No products';
+    const codes = items.map(item => item.productCode || 'N/A').filter(code => code !== 'N/A');
+    if (codes.length === 0) return 'No product codes';
+    return codes.join(', ');
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
@@ -97,11 +105,7 @@ const ViewOrder = () => {
   }, 0);
 
   // Use calculated total (most reliable)
-  // If backend total is different → you can log it for debugging
   const calculatedTotal = productSubtotal + shippingTotal;
-
-  // Optional: if you want to trust backend total instead
-  // const displayTotal = total > 0 ? total : calculatedTotal;
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -114,7 +118,9 @@ const ViewOrder = () => {
             <div className="flex justify-between items-center">
               <div>
                 <h1 className="text-3xl font-bold text-gray-800">Order Details</h1>
-                <p className="text-gray-600 mt-1">Order #{id}</p>
+                <p className="text-gray-600 mt-1">
+                  Product Codes: <span className="font-mono font-semibold text-[#6B2D2D]">{getAllProductCodes(items)}</span>
+                </p>
               </div>
               <div className="flex gap-3">
                 <Link
@@ -146,7 +152,7 @@ const ViewOrder = () => {
                     Ordered on {createdAt ? new Date(createdAt).toLocaleString('en-IN') : 'N/A'}
                   </p>
                 </div>
-                {/* Add this block inside the summary grid or as a new section */}
+
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                   <h2 className="text-xl font-semibold text-gray-800 mb-4">Payment Details</h2>
                   <div className="space-y-3">
@@ -200,7 +206,7 @@ const ViewOrder = () => {
                 )}
               </div>
 
-              {/* Price Breakdown – now correct */}
+              {/* Price Breakdown */}
               <div className="bg-white rounded-2xl shadow-xl p-8">
                 <h2 className="text-xl font-semibold text-gray-800 mb-4">Price Breakdown</h2>
                 <div className="space-y-3 text-sm">
@@ -209,7 +215,7 @@ const ViewOrder = () => {
                     <span>{formatPrice(productSubtotal)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Shipping </span>
+                    <span className="text-gray-600">Shipping Charges</span>
                     <span>{formatPrice(shippingTotal)}</span>
                   </div>
                   <div className="flex justify-between font-bold text-lg pt-3 border-t border-gray-200">
@@ -225,8 +231,8 @@ const ViewOrder = () => {
               <h2 className="text-xl font-semibold text-gray-800 mb-6">Order Items</h2>
               {items.length > 0 ? (
                 <div className="space-y-6">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex gap-6 p-4 bg-gray-50 rounded-xl">
+                  {items.map((item, index) => (
+                    <div key={index} className="flex gap-6 p-4 bg-gray-50 rounded-xl">
                       <img
                         src={item.image || '/placeholder.jpg'}
                         alt={item.name}
@@ -236,7 +242,14 @@ const ViewOrder = () => {
                         onError={(e) => (e.target.src = '/placeholder.jpg')}
                       />
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-800">{item.name || 'Unknown Item'}</h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="font-semibold text-gray-800">{item.name || 'Unknown Item'}</h3>
+                          {item.productCode && (
+                            <span className="inline-block bg-blue-100 text-blue-800 text-xs font-mono font-semibold px-2 py-1 rounded">
+                              ID: {item.productCode}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex gap-6 mt-2 text-sm text-gray-600">
                           <span>Qty: {item.quantity || 1}</span>
                           <span>₹{(item.price || 0).toLocaleString('en-IN')} each</span>

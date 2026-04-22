@@ -111,6 +111,14 @@ const Orders = () => {
     Cancelled: orders.filter(o => o.status === 'Cancelled').length,
   };
 
+  // Helper function to get product codes from order items
+  const getProductCodes = (items) => {
+    if (!items || items.length === 0) return 'No products';
+    const codes = items.map(item => item.productCode || 'N/A').filter(code => code !== 'N/A');
+    if (codes.length === 0) return 'N/A';
+    return codes.join(', ');
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
@@ -260,14 +268,13 @@ const Orders = () => {
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Order</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Product Id</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Payment Method</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Payment</th>
                       <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
-
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
@@ -275,7 +282,9 @@ const Orders = () => {
                       <tr key={order.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4">
                           <div>
-                            <div className="font-semibold text-gray-900">{order.id}</div>
+                            <div className="font-semibold text-gray-900">
+                              {getProductCodes(order.items)}
+                            </div>
                             <div className="text-sm text-gray-500">
                               {new Date(order.createdAt).toLocaleDateString('en-IN')}
                             </div>

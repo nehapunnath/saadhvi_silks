@@ -40,8 +40,6 @@ const EditProducts = () => {
     'Wedding', 'Festival', 'Party', 'Casual', 'Office', 'Traditional',
   ];
 
-  // In the useEffect where you load the product data, replace the category parsing logic:
-
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -60,34 +58,29 @@ const EditProducts = () => {
         let productCategories = [];
 
         if (p.categories && Array.isArray(p.categories) && p.categories.length > 0) {
-          // If it's already an array
           productCategories = p.categories;
         }
         else if (p.category && p.category !== '') {
-          // If using old single category field
           productCategories = [p.category];
         }
         else if (p.categories && typeof p.categories === 'string') {
-          // If it's a string, check if it contains commas (multiple IDs)
           if (p.categories.includes(',')) {
-            // Split by comma and trim each ID
             productCategories = p.categories.split(',').map(id => id.trim());
           } else {
-            // Single ID as string
             productCategories = [p.categories];
           }
         }
 
-        // CRITICAL FIX: If productCategories[0] is a string with commas, split it
+        // Fix for comma-separated string in array element
         if (productCategories.length === 1 && typeof productCategories[0] === 'string' && productCategories[0].includes(',')) {
           productCategories = productCategories[0].split(',').map(id => id.trim());
         }
 
-        console.log('Parsed product categories (after fix):', productCategories);
+        console.log('Parsed product categories:', productCategories);
 
         setProduct(p);
         setSelectedOccasions(p.occasion || []);
-        setSelectedCategories(productCategories); // Now this will be a proper array
+        setSelectedCategories(productCategories);
         setImagePreviews(p.images || []);
         setImagesToDelete([]);
 
@@ -163,9 +156,8 @@ const EditProducts = () => {
 
       return newCategories;
     });
-  };;
+  };
 
-  // Remove a specific category from selected list
   const removeCategory = (categoryId) => {
     setSelectedCategories(prev => {
       const newCategories = prev.filter(id => id !== categoryId);
@@ -270,7 +262,6 @@ const EditProducts = () => {
         toast.success('Category deleted successfully!');
         await loadCategories();
 
-        // Remove the deleted category from selected categories if present
         if (selectedCategories.includes(category.id)) {
           const updatedCategories = selectedCategories.filter(catId => catId !== category.id);
           setSelectedCategories(updatedCategories);
@@ -283,8 +274,6 @@ const EditProducts = () => {
       toast.error(error.message);
     }
   };
-
-
 
   const openAddCategoryModal = () => {
     setEditingCategory(null);
@@ -359,12 +348,6 @@ const EditProducts = () => {
       maximumFractionDigits: 0,
     }).format(p);
 
-  // Helper function to get category name by ID
-  const getCategoryName = (categoryId) => {
-    const category = categories.find(cat => cat.id === categoryId);
-    return category?.name || `Unknown (${categoryId})`;
-  };
-
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
@@ -436,6 +419,20 @@ const EditProducts = () => {
                         />
                       </div>
 
+                      {/* Product Code/ID - NEW */}
+                      <div>
+                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Product ID/Code</label>
+                        <input
+                          type="text"
+                          name="productCode"
+                          value={product.productCode || ''}
+                          onChange={handleInputChange}
+                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                          placeholder="e.g., SKU-001, SAR-2024-001"
+                          required
+                        />
+                      </div>
+
                       {/* Pricing & Stock */}
                       <div className="space-y-4">
                         <label className="block text-sm font-medium text-[#2E2E2E]">Pricing & Stock</label>
@@ -497,9 +494,7 @@ const EditProducts = () => {
                         )}
                       </div>
 
-                      {/* Categories Section - Fixed to show names */}
-                      {/* Categories Section - Shows names with X buttons */}
-                      {/* Categories Section - Fixed to show proper checkbox ticks */}
+                      {/* Categories Section */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
                           <label className="block text-sm font-medium text-[#2E2E2E]">Categories (Select multiple)</label>
@@ -512,7 +507,7 @@ const EditProducts = () => {
                           </button>
                         </div>
 
-                        {/* Categories Grid with Checkboxes - This should show the ticks */}
+                        {/* Categories Grid with Checkboxes */}
                         <div className="border rounded-lg p-4 max-h-60 overflow-y-auto">
                           {categories.length === 0 ? (
                             <p className="text-sm text-gray-500 text-center p-4">No categories found. Add your first category!</p>
@@ -558,6 +553,7 @@ const EditProducts = () => {
                         </div>
                         <p className="text-xs text-gray-500">Select multiple categories that apply to this product</p>
                       </div>
+
                       {/* Badge Section */}
                       <div className="space-y-4">
                         <div className="flex justify-between items-center">
@@ -682,56 +678,107 @@ const EditProducts = () => {
                       </div>
                     </div>
                   </div>
-
-                  {/* Description */}
-                  <div className="mt-6">
-                    <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Description *</label>
-                    <textarea
-                      name="description"
-                      value={product.description || ''}
-                      onChange={handleInputChange}
-                      rows={4}
-                      className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
-                      required
-                    />
-                  </div>
                 </div>
 
-                {/* DETAILS */}
+                {/* Product Details Section - Updated Fields */}
                 <div className="bg-white rounded-2xl shadow-xl p-8">
                   <h2 className="text-2xl font-semibold text-[#2E2E2E] mb-6">Product Details</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {[
-                      { label: 'Material', name: 'material' },
-                      { label: 'Length', name: 'length' },
-                      { label: 'Weave', name: 'weave' },
-                      { label: 'Care Instructions', name: 'care' },
-                      { label: 'Weight', name: 'weight' },
-                      { label: 'Border', name: 'border' },
-                      { label: 'Origin', name: 'origin' },
-                    ].map(f => (
-                      <div key={f.name}>
-                        <label className="block text-sm font-medium text-[#2E2E2E] mb-2">{f.label}</label>
-                        <input
-                          type="text"
-                          name={f.name}
-                          value={product[f.name] || ''}
-                          onChange={handleInputChange}
-                          className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
-                        />
-                      </div>
-                    ))}
 
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Size Guide</label>
-                      <textarea
-                        name="sizeGuide"
-                        value={product.sizeGuide || ''}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">1. Material</label>
+                      <input
+                        type="text"
+                        name="material"
+                        value={product.material || ''}
                         onChange={handleInputChange}
-                        rows={3}
                         className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        required
                       />
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">2. Work</label>
+                      <input
+                        type="text"
+                        name="work"
+                        value={product.work || ''}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">3. Body Color</label>
+                      <input
+                        type="text"
+                        name="bodyColor"
+                        value={product.bodyColor || ''}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">4. Blouse Color</label>
+                      <input
+                        type="text"
+                        name="blouseColor"
+                        value={product.blouseColor || ''}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">5. Type</label>
+                      <input
+                        type="text"
+                        name="type"
+                        value={product.type || ''}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">6. Length</label>
+                      <input
+                        type="text"
+                        name="length"
+                        value={product.length || ''}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">7. Care Instructions</label>
+                      <input
+                        type="text"
+                        name="care"
+                        value={product.care || ''}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                        required
+                      />
+                    </div>
+
+                    {/* <div>
+                      <label className="block text-sm font-medium text-[#2E2E2E] mb-2">Border</label>
+                      <input
+                        type="text"
+                        name="border"
+                        value={product.border || ''}
+                        onChange={handleInputChange}
+                        className="w-full p-3 border border-[#D9A7A7] rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
+                      />
+                    </div> */}
                   </div>
                 </div>
 

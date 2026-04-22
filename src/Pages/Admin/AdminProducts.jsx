@@ -18,7 +18,7 @@ const AdminProducts = () => {
   const [selectedProducts, setSelectedProducts] = useState(new Set());
   const [showHomepageCount, setShowHomepageCount] = useState(3);
   const [isSaving, setIsSaving] = useState(false);
-  
+
   // Offer Management States
   const [offers, setOffers] = useState([]);
   const [selectedOfferId, setSelectedOfferId] = useState('');
@@ -35,7 +35,7 @@ const AdminProducts = () => {
     discountType: 'percentage',
     discountValue: ''
   });
-  
+
   // Budget selection states
   const [budgetSelections, setBudgetSelections] = useState({
     under2000: new Set(),
@@ -74,12 +74,12 @@ const AdminProducts = () => {
       toast.error('Offer name is required');
       return;
     }
-    
+
     if (!newOfferData.discountValue || parseFloat(newOfferData.discountValue) <= 0) {
       toast.error('Valid discount value is required');
       return;
     }
-    
+
     try {
       const result = await productApi.createOffer(newOfferData);
       if (result.success) {
@@ -99,12 +99,12 @@ const AdminProducts = () => {
   // Update existing offer
   const handleUpdateOffer = async () => {
     if (!editingOffer) return;
-    
+
     if (!editingOffer.name) {
       toast.error('Offer name is required');
       return;
     }
-    
+
     try {
       const result = await productApi.updateOffer(editingOffer.id, {
         name: editingOffer.name,
@@ -112,7 +112,7 @@ const AdminProducts = () => {
         discountType: editingOffer.discountType,
         discountValue: parseFloat(editingOffer.discountValue)
       });
-      
+
       if (result.success) {
         toast.success('Offer updated successfully');
         await loadOffers();
@@ -132,7 +132,7 @@ const AdminProducts = () => {
     if (!window.confirm(`Are you sure you want to delete the offer "${offerName}"? This will remove the offer from all products.`)) {
       return;
     }
-    
+
     try {
       const result = await productApi.deleteOffer(offerId);
       if (result.success) {
@@ -152,10 +152,10 @@ const AdminProducts = () => {
       toast.error('Please select an offer');
       return;
     }
-    
+
     try {
       await productApi.applyOfferToProduct(selectedProductId, selectedOfferId, customOfferPrice || null);
-      
+
       const selectedOffer = offers.find(o => o.id === selectedOfferId);
       setProducts(prev =>
         prev.map(p =>
@@ -169,7 +169,7 @@ const AdminProducts = () => {
           } : p
         )
       );
-      
+
       toast.success('Offer applied successfully!');
       closeOfferModal();
     } catch (error) {
@@ -226,7 +226,7 @@ const AdminProducts = () => {
         mid5000to10000: Array.from(budgetSelections.mid5000to10000).map(id => String(id)),
         premium: Array.from(budgetSelections.premium).map(id => String(id))
       };
-      
+
       await productApi.updateBudgetSelections(settings);
       toast.success('Budget section products saved!');
     } catch (error) {
@@ -240,7 +240,7 @@ const AdminProducts = () => {
   const handleBudgetCheckboxChange = (productId, budgetRange, isChecked) => {
     setBudgetSelections(prev => {
       const newSelections = { ...prev };
-      
+
       if (isChecked) {
         Object.keys(newSelections).forEach(range => {
           if (newSelections[range].has(productId)) {
@@ -251,7 +251,7 @@ const AdminProducts = () => {
       } else {
         newSelections[budgetRange].delete(productId);
       }
-      
+
       return newSelections;
     });
   };
@@ -280,11 +280,11 @@ const AdminProducts = () => {
 
   const normalizeCategories = (categoriesInput) => {
     if (!categoriesInput) return [];
-    
+
     if (Array.isArray(categoriesInput)) {
       return categoriesInput;
     }
-    
+
     if (typeof categoriesInput === 'string') {
       if (categoriesInput.includes(',')) {
         return categoriesInput.split(',').map(id => id.trim());
@@ -292,7 +292,7 @@ const AdminProducts = () => {
         return [categoriesInput.trim()];
       }
     }
-    
+
     return [];
   };
 
@@ -313,45 +313,45 @@ const AdminProducts = () => {
       } else {
         console.error('Failed to load categories:', categoriesResult.error);
       }
-      
+
       setCategories(categoriesList);
 
       const allProducts = productsResult.products || [];
-      
+
       const normalizedProducts = allProducts.map(product => {
         const normalizedProduct = { ...product };
-        
+
         let normalizedCategories = [];
-        
+
         if (product.categories) {
           normalizedCategories = normalizeCategories(product.categories);
         } else if (product.category) {
           normalizedCategories = normalizeCategories(product.category);
         }
-        
+
         if (normalizedCategories.length === 1 && typeof normalizedCategories[0] === 'string' && normalizedCategories[0].includes(',')) {
           normalizedCategories = normalizedCategories[0].split(',').map(id => id.trim());
         }
-        
+
         normalizedCategories = normalizedCategories.filter(id => id && id.trim());
-        
+
         normalizedProduct.categories = normalizedCategories;
         return normalizedProduct;
       });
-      
+
       const sortedProducts = [...normalizedProducts].sort((a, b) => {
         const aVisible = a.isVisible !== false;
         const bVisible = b.isVisible !== false;
-        
+
         if (aVisible && !bVisible) return -1;
         if (!aVisible && bVisible) return 1;
-        
+
         if (aVisible && bVisible) {
           const aOrder = a.displayOrder ?? 999999;
           const bOrder = b.displayOrder ?? 999999;
           return aOrder - bOrder;
         }
-        
+
         const aTime = a.createdAt || a.key || 0;
         const bTime = b.createdAt || b.key || 0;
         return bTime - aTime;
@@ -359,7 +359,7 @@ const AdminProducts = () => {
 
       setProducts(sortedProducts);
       setBadges(badgesResult.badges || []);
-      
+
       toast.success(`Loaded ${productsResult.products?.length || 0} products`);
     } catch (error) {
       console.error('Fetch data error:', error);
@@ -396,19 +396,19 @@ const AdminProducts = () => {
 
   const getCategoryName = (categoryId) => {
     if (!categoryId) return 'N/A';
-    
+
     let cleanId = String(categoryId).trim();
-    
+
     if (cleanId.includes(',')) {
       cleanId = cleanId.split(',')[0].trim();
     }
-    
+
     const category = categories.find(c => String(c.id) === cleanId);
-    
+
     if (category) {
       return category.name;
     }
-    
+
     return cleanId.substring(0, 8);
   };
 
@@ -467,7 +467,7 @@ const AdminProducts = () => {
       }
 
       const reorderedVisible = [...visibleProducts];
-      [reorderedVisible[currentIndex], reorderedVisible[swapIndex]] = 
+      [reorderedVisible[currentIndex], reorderedVisible[swapIndex]] =
         [reorderedVisible[swapIndex], reorderedVisible[currentIndex]];
 
       const orderMap = {};
@@ -539,32 +539,32 @@ const AdminProducts = () => {
   };
 
   const handleRemoveOffer = async (productId) => {
-  if (!window.confirm('Remove offer from this product?')) return;
+    if (!window.confirm('Remove offer from this product?')) return;
 
-  try {
-    // Call the API to remove offer from product
-    await productApi.removeOfferFromProduct(productId);
+    try {
+      // Call the API to remove offer from product
+      await productApi.removeOfferFromProduct(productId);
 
-    // Update local state - remove ALL offer-related fields
-    setProducts(prev =>
-      prev.map(p =>
-        p.key === productId ? { 
-          ...p, 
-          hasOffer: false, 
-          offerId: null, 
-          offerName: null, 
-          offerPrice: null, 
-          offerDescription: null 
-        } : p
-      )
-    );
+      // Update local state - remove ALL offer-related fields
+      setProducts(prev =>
+        prev.map(p =>
+          p.key === productId ? {
+            ...p,
+            hasOffer: false,
+            offerId: null,
+            offerName: null,
+            offerPrice: null,
+            offerDescription: null
+          } : p
+        )
+      );
 
-    toast.success('Offer removed successfully');
-  } catch (error) {
-    console.error('Remove offer error:', error);
-    toast.error('Failed to remove offer: ' + error.message);
-  }
-};
+      toast.success('Offer removed successfully');
+    } catch (error) {
+      console.error('Remove offer error:', error);
+      toast.error('Failed to remove offer: ' + error.message);
+    }
+  };
 
   const handleVisibilityToggle = async (product) => {
     const current = product.isVisible !== false;
@@ -580,14 +580,14 @@ const AdminProducts = () => {
       const resortedProducts = [...updatedProducts].sort((a, b) => {
         const aVisible = a.isVisible !== false;
         const bVisible = b.isVisible !== false;
-        
+
         if (aVisible && !bVisible) return -1;
         if (!aVisible && bVisible) return 1;
-        
+
         if (aVisible && bVisible) {
           return (a.displayOrder || 0) - (b.displayOrder || 0);
         }
-        
+
         return 0;
       });
 
@@ -604,10 +604,10 @@ const AdminProducts = () => {
     if (!matchesCategory && product.categories && product.categories.length > 0) {
       matchesCategory = product.categories.includes(filterCategory);
     }
-    
+
     const matchesSearch = product.name?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesVisibility = showHidden ? true : product.isVisible !== false;
-    
+
     return matchesCategory && matchesSearch && matchesVisibility;
   });
 
@@ -624,7 +624,7 @@ const AdminProducts = () => {
     { id: 'under2000', label: 'Under ₹2,000', color: 'blue', bgColor: 'bg-blue-50', borderColor: 'border-blue-200', textColor: 'text-blue-700', count: budgetSelections.under2000.size },
     { id: 'mid2000to5000', label: '₹2,000 - ₹5,000', color: 'green', bgColor: 'bg-green-50', borderColor: 'border-green-200', textColor: 'text-green-700', count: budgetSelections.mid2000to5000.size },
     { id: 'mid5000to10000', label: '₹5,000 - ₹10,000', color: 'orange', bgColor: 'bg-orange-50', borderColor: 'border-orange-200', textColor: 'text-orange-700', count: budgetSelections.mid5000to10000.size },
-    { id: 'premium', label: 'Premium (Above ₹10,000)',  color: 'purple', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', textColor: 'text-purple-700', count: budgetSelections.premium.size }
+    { id: 'premium', label: 'Premium (Above ₹10,000)', color: 'purple', bgColor: 'bg-purple-50', borderColor: 'border-purple-200', textColor: 'text-purple-700', count: budgetSelections.premium.size }
   ];
 
   if (loading) {
@@ -736,7 +736,7 @@ const AdminProducts = () => {
                       ({budgetSelections[activeBudgetTab].size} products selected)
                     </span>
                   </h3>
-                  
+
                   {budgetSelections[activeBudgetTab].size === 0 ? (
                     <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-300">
                       <p className="text-gray-500">No products assigned to this budget range yet</p>
@@ -802,7 +802,7 @@ const AdminProducts = () => {
                     </button>
                   </div>
                 </div>
-                
+
                 <div className="mt-4 flex items-center gap-4">
                   <label className="text-sm">Show on homepage:</label>
                   <select
@@ -917,7 +917,7 @@ const AdminProducts = () => {
                           .findIndex(p => p.key === product.key);
                         const isSelected = selectedProducts.has(product.key);
                         const currentBudgetRange = getProductBudgetRange(product.key);
-                        
+
                         return (
                           <tr key={product.key} className={`hover:bg-gray-50 ${!isVisible ? 'bg-gray-50 opacity-75' : ''} ${isSelected ? 'bg-green-50' : ''}`}>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -999,12 +999,11 @@ const AdminProducts = () => {
                                       </span>
                                     )}
                                     {currentBudgetRange && (
-                                      <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                        currentBudgetRange === 'under2000' ? 'bg-blue-100 text-blue-800' :
+                                      <span className={`ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${currentBudgetRange === 'under2000' ? 'bg-blue-100 text-blue-800' :
                                         currentBudgetRange === 'mid2000to5000' ? 'bg-green-100 text-green-800' :
-                                        currentBudgetRange === 'mid5000to10000' ? 'bg-orange-100 text-orange-800' :
-                                        'bg-purple-100 text-purple-800'
-                                      }`}>
+                                          currentBudgetRange === 'mid5000to10000' ? 'bg-orange-100 text-orange-800' :
+                                            'bg-purple-100 text-purple-800'
+                                        }`}>
                                         {budgetRanges.find(r => r.id === currentBudgetRange)?.label}
                                       </span>
                                     )}
@@ -1017,8 +1016,13 @@ const AdminProducts = () => {
                                     <span className="inline-block bg-[#800020] text-white text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1">
                                       {getBadgeName(product.badge) || product.badge}
                                     </span>
+                                  )} <br />
+                                  {product.productCode && (
+                                    <span className="inline-block bg-blue-600 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1">
+                                      ID: {product.productCode}
+                                    </span>
                                   )}
-                                  
+
                                   {!isVisible && (
                                     <span className="inline-block bg-gray-500 text-white text-xs font-semibold px-2.5 py-0.5 rounded-full mt-1 ml-1">
                                       Hidden
@@ -1076,14 +1080,12 @@ const AdminProducts = () => {
                                       });
                                     }
                                   }}
-                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:ring-offset-2 ${
-                                    product.hasOffer ? 'bg-[#6B2D2D]' : 'bg-gray-300'
-                                  }`}
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-[#6B2D2D] focus:ring-offset-2 ${product.hasOffer ? 'bg-[#6B2D2D]' : 'bg-gray-300'
+                                    }`}
                                 >
                                   <span
-                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                      product.hasOffer ? 'translate-x-6' : 'translate-x-1'
-                                    }`}
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${product.hasOffer ? 'translate-x-6' : 'translate-x-1'
+                                      }`}
                                   />
                                 </button>
 
@@ -1149,11 +1151,10 @@ const AdminProducts = () => {
 
                                 <button
                                   onClick={() => handleVisibilityToggle(product)}
-                                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                                    isVisible
-                                      ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                      : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
-                                  }`}
+                                  className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${isVisible
+                                    ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                    : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                    }`}
                                 >
                                   {isVisible ? 'Hide' : 'Show'}
                                 </button>
@@ -1252,54 +1253,54 @@ const AdminProducts = () => {
                 {isCreatingOffer && (
                   <div className="border-t pt-4 mt-2 space-y-4">
                     <h3 className="font-semibold text-gray-800">Create New Offer</h3>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Offer Name *</label>
                       <input
                         type="text"
                         value={newOfferData.name}
-                        onChange={(e) => setNewOfferData({...newOfferData, name: e.target.value})}
+                        onChange={(e) => setNewOfferData({ ...newOfferData, name: e.target.value })}
                         // placeholder="e.g., Summer Sale 2024"
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                       <textarea
                         value={newOfferData.description}
-                        onChange={(e) => setNewOfferData({...newOfferData, description: e.target.value})}
+                        onChange={(e) => setNewOfferData({ ...newOfferData, description: e.target.value })}
                         placeholder="Offer description"
                         rows="2"
                         className="w-full px-3 py-2 border rounded-lg"
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Discount Type</label>
                         <select
                           value={newOfferData.discountType}
-                          onChange={(e) => setNewOfferData({...newOfferData, discountType: e.target.value})}
+                          onChange={(e) => setNewOfferData({ ...newOfferData, discountType: e.target.value })}
                           className="w-full px-3 py-2 border rounded-lg"
                         >
                           <option value="percentage">Percentage (%)</option>
                           <option value="fixed">Fixed Amount (₹)</option>
                         </select>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Discount Value</label>
                         <input
                           type="number"
                           value={newOfferData.discountValue}
-                          onChange={(e) => setNewOfferData({...newOfferData, discountValue: e.target.value})}
+                          onChange={(e) => setNewOfferData({ ...newOfferData, discountValue: e.target.value })}
                           placeholder={newOfferData.discountType === 'percentage' ? 'e.g., 20' : 'e.g., 500'}
                           className="w-full px-3 py-2 border rounded-lg"
                         />
                       </div>
                     </div>
-                    
+
                     <button
                       onClick={handleCreateOffer}
                       className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition"
@@ -1374,7 +1375,7 @@ const AdminProducts = () => {
                   ×
                 </button>
               </div>
-              
+
               <div className="p-6">
                 {/* Tabs */}
                 <div className="flex gap-2 mb-6 border-b">
@@ -1384,11 +1385,10 @@ const AdminProducts = () => {
                       setIsCreatingOffer(false);
                       setIsEditingOffer(false);
                     }}
-                    className={`px-4 py-2 font-medium transition-colors ${
-                      offerManagementTab === 'list' 
-                        ? 'text-[#6B2D2D] border-b-2 border-[#6B2D2D]' 
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`px-4 py-2 font-medium transition-colors ${offerManagementTab === 'list'
+                      ? 'text-[#6B2D2D] border-b-2 border-[#6B2D2D]'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     All Offers
                   </button>
@@ -1399,16 +1399,15 @@ const AdminProducts = () => {
                       setIsEditingOffer(false);
                       setNewOfferData({ name: '', description: '', discountType: 'percentage', discountValue: '' });
                     }}
-                    className={`px-4 py-2 font-medium transition-colors ${
-                      offerManagementTab === 'create' 
-                        ? 'text-[#6B2D2D] border-b-2 border-[#6B2D2D]' 
-                        : 'text-gray-500 hover:text-gray-700'
-                    }`}
+                    className={`px-4 py-2 font-medium transition-colors ${offerManagementTab === 'create'
+                      ? 'text-[#6B2D2D] border-b-2 border-[#6B2D2D]'
+                      : 'text-gray-500 hover:text-gray-700'
+                      }`}
                   >
                     Create New Offer
                   </button>
                 </div>
-                
+
                 {/* List Offers Tab */}
                 {offerManagementTab === 'list' && (
                   <div className="space-y-4">
@@ -1427,8 +1426,8 @@ const AdminProducts = () => {
                               <p className="text-gray-600 text-sm mb-2">{offer.description || 'No description'}</p>
                               <div className="flex items-center gap-4 text-sm">
                                 <span className="text-[#6B2D2D] font-medium">
-                                  {offer.discountType === 'percentage' 
-                                    ? `${offer.discountValue}% OFF` 
+                                  {offer.discountType === 'percentage'
+                                    ? `${offer.discountValue}% OFF`
                                     : `₹${offer.discountValue} OFF`}
                                 </span>
                                 <span className="text-gray-500">
@@ -1460,7 +1459,7 @@ const AdminProducts = () => {
                     )}
                   </div>
                 )}
-                
+
                 {/* Create Offer Tab */}
                 {offerManagementTab === 'create' && (
                   <div className="space-y-5">
@@ -1471,25 +1470,25 @@ const AdminProducts = () => {
                       <input
                         type="text"
                         value={newOfferData.name}
-                        onChange={(e) => setNewOfferData({...newOfferData, name: e.target.value})}
+                        onChange={(e) => setNewOfferData({ ...newOfferData, name: e.target.value })}
                         // placeholder="e.g., Summer Sale 2024"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Description
                       </label>
                       <textarea
                         value={newOfferData.description}
-                        onChange={(e) => setNewOfferData({...newOfferData, description: e.target.value})}
+                        onChange={(e) => setNewOfferData({ ...newOfferData, description: e.target.value })}
                         placeholder="Describe the offer..."
                         rows="3"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1497,14 +1496,14 @@ const AdminProducts = () => {
                         </label>
                         <select
                           value={newOfferData.discountType}
-                          onChange={(e) => setNewOfferData({...newOfferData, discountType: e.target.value})}
+                          onChange={(e) => setNewOfferData({ ...newOfferData, discountType: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                         >
                           <option value="percentage">Percentage (%)</option>
                           <option value="fixed">Fixed Amount (₹)</option>
                         </select>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Discount Value *
@@ -1512,13 +1511,13 @@ const AdminProducts = () => {
                         <input
                           type="number"
                           value={newOfferData.discountValue}
-                          onChange={(e) => setNewOfferData({...newOfferData, discountValue: e.target.value})}
+                          onChange={(e) => setNewOfferData({ ...newOfferData, discountValue: e.target.value })}
                           placeholder={newOfferData.discountType === 'percentage' ? 'e.g., 20' : 'e.g., 500'}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                         />
                       </div>
                     </div>
-                    
+
                     <div className="flex justify-end gap-3 pt-4">
                       <button
                         onClick={() => {
@@ -1538,7 +1537,7 @@ const AdminProducts = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Edit Offer Tab */}
                 {offerManagementTab === 'edit' && editingOffer && (
                   <div className="space-y-5">
@@ -1549,23 +1548,23 @@ const AdminProducts = () => {
                       <input
                         type="text"
                         value={editingOffer.name}
-                        onChange={(e) => setEditingOffer({...editingOffer, name: e.target.value})}
+                        onChange={(e) => setEditingOffer({ ...editingOffer, name: e.target.value })}
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Description
                       </label>
                       <textarea
                         value={editingOffer.description || ''}
-                        onChange={(e) => setEditingOffer({...editingOffer, description: e.target.value})}
+                        onChange={(e) => setEditingOffer({ ...editingOffer, description: e.target.value })}
                         rows="3"
                         className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1573,14 +1572,14 @@ const AdminProducts = () => {
                         </label>
                         <select
                           value={editingOffer.discountType}
-                          onChange={(e) => setEditingOffer({...editingOffer, discountType: e.target.value})}
+                          onChange={(e) => setEditingOffer({ ...editingOffer, discountType: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                         >
                           <option value="percentage">Percentage (%)</option>
                           <option value="fixed">Fixed Amount (₹)</option>
                         </select>
                       </div>
-                      
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Discount Value *
@@ -1588,12 +1587,12 @@ const AdminProducts = () => {
                         <input
                           type="number"
                           value={editingOffer.discountValue}
-                          onChange={(e) => setEditingOffer({...editingOffer, discountValue: e.target.value})}
+                          onChange={(e) => setEditingOffer({ ...editingOffer, discountValue: e.target.value })}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D]"
                         />
                       </div>
                     </div>
-                    
+
                     <div className="flex justify-end gap-3 pt-4">
                       <button
                         onClick={() => {

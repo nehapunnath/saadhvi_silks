@@ -9,7 +9,6 @@ import authApi from '../Services/authApi';
 import GalleryApi from '../Services/GalleryApi';
 import logo from '../assets/saadhvi_silks.png';
 
-
 // Simple cache utility
 const homeCache = {
   data: null,
@@ -46,7 +45,7 @@ const Home = () => {
   const [mainImageError, setMainImageError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [homepageProducts, setHomepageProducts] = useState([]);
-  const [selectedBudget, setSelectedBudget] = useState('under2000')
+  const [selectedBudget, setSelectedBudget] = useState('under2000');
   const [budgetProducts, setBudgetProducts] = useState([]);
   const [budgetLoading, setBudgetLoading] = useState(false);
   const [specialOffers, setSpecialOffers] = useState([]);
@@ -56,62 +55,52 @@ const Home = () => {
   const [offerProducts, setOfferProducts] = useState([]);
   const [offerProductsLoading, setOfferProductsLoading] = useState(false);
 
-
   const scrollContainerRef = useRef(null);
 
-const scrollLeft = () => {
-  if (scrollContainerRef.current) {
-    scrollContainerRef.current.scrollBy({
-      left: -320,
-      behavior: 'smooth'
-    });
-  }
-};
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({
+        left: -320,
+        behavior: 'smooth'
+      });
+    }
+  };
 
-const scrollRight = () => {
-  if (scrollContainerRef.current) {
-    scrollContainerRef.current.scrollBy({
-      left: 320,
-      behavior: 'smooth'
-    });
-  }
-};
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollBy({
+        left: 320,
+        behavior: 'smooth'
+      });
+    }
+  };
+  
   // Brand constants
   const brandName = "Saadhvi Silks";
   const brandTagline = "Timeless Elegance in Every Thread";
 
   const getProductOfferInfo = (product) => {
     const inStock = product?.stock > 0;
-
-    // Check for Admin Offer (has offerName and offerPrice from offer system)
     const hasAdminOffer = product?.hasOffer === true && product?.offerName && product?.offerPrice && product?.offerPrice < product?.price;
-
-    // Check for Normal Discount (originalPrice vs price - regular markdown)
     const hasNormalDiscount = !hasAdminOffer && product?.originalPrice && product?.originalPrice > product?.price;
-
-    // Determine which offer to show
     const hasOffer = hasAdminOffer || hasNormalDiscount;
 
-    // Display price (lowest price available)
     let displayPrice;
     let originalPrice;
     let discountPercentage;
     let offerName;
 
     if (hasAdminOffer) {
-      // Admin Offer takes precedence
       displayPrice = product.offerPrice;
       originalPrice = product.price;
       discountPercentage = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
-      offerName = product.offerName; // Show the admin offer name
+      offerName = product.offerName;
     } else if (hasNormalDiscount) {
-      // Normal discount from originalPrice
       displayPrice = product.price;
       originalPrice = product.originalPrice;
       discountPercentage = Math.round(((originalPrice - displayPrice) / originalPrice) * 100);
-      offerName = null; // No special name for normal discount
+      offerName = null;
     } else {
-      // No offer
       displayPrice = product?.price || 0;
       originalPrice = null;
       discountPercentage = 0;
@@ -129,6 +118,7 @@ const scrollRight = () => {
       offerName
     };
   };
+
   // Load special offers from backend
   useEffect(() => {
     const loadSpecialOffers = async () => {
@@ -155,7 +145,6 @@ const scrollRight = () => {
     setOfferProductsLoading(true);
 
     try {
-      // Get products for this offer
       const result = await productApi.getProductsByOffer(offer.id);
       if (result.success) {
         setOfferProducts(result.products || []);
@@ -176,7 +165,6 @@ const scrollRight = () => {
         setIsLoading(true);
         console.time('Home page load');
 
-        // Check cache first
         const cachedData = homeCache.get();
         if (cachedData) {
           setCarouselSlides(cachedData.carouselSlides);
@@ -189,7 +177,6 @@ const scrollRight = () => {
           return;
         }
 
-        // Load all data in parallel with error handling for each
         const [slidesResult, mainImageResult, collectionsResult, productsResult] = await Promise.allSettled([
           GalleryApi.getPublicSlides(),
           GalleryApi.getPublicMainGalleryImage(),
@@ -197,7 +184,6 @@ const scrollRight = () => {
           productApi.getPublicProducts()
         ]);
 
-        // Process slides
         if (slidesResult.status === 'fulfilled') {
           setCarouselSlides(slidesResult.value?.slides || []);
         } else {
@@ -205,7 +191,6 @@ const scrollRight = () => {
           toast.error('Failed to load carousel');
         }
 
-        // Process main image
         if (mainImageResult.status === 'fulfilled') {
           setMainGalleryImage(mainImageResult.value?.image || null);
         } else {
@@ -213,14 +198,12 @@ const scrollRight = () => {
           setMainImageError(mainImageResult.reason?.message);
         }
 
-        // Process collections
         if (collectionsResult.status === 'fulfilled') {
           setCollections(collectionsResult.value?.collections || []);
         } else {
           console.error('Collections fetch error:', collectionsResult.reason);
         }
 
-        // Process products
         if (productsResult.status === 'fulfilled') {
           setProducts(productsResult.value?.products || []);
         } else {
@@ -228,7 +211,6 @@ const scrollRight = () => {
           setError('Failed to load products');
         }
 
-        // Save to cache
         homeCache.set({
           carouselSlides: slidesResult.status === 'fulfilled' ? slidesResult.value?.slides || [] : [],
           mainGalleryImage: mainImageResult.status === 'fulfilled' ? mainImageResult.value?.image || null : null,
@@ -248,30 +230,23 @@ const scrollRight = () => {
 
     loadHomeData();
 
-    // Cleanup function
-    return () => {
-      // Clear any pending timeouts if needed
-    };
+    return () => {};
   }, []);
 
-  // Replace the useEffect that loads homepage products
   useEffect(() => {
     const loadHomepageProducts = async () => {
       try {
-        // Get settings from backend
         const settingsResult = await productApi.getHomepageSettings();
         if (settingsResult.success && settingsResult.settings) {
           const selectedIds = settingsResult.settings.selectedProductIds || [];
           const count = settingsResult.settings.count || 3;
 
-          // Get selected products in order
           const selected = products
             .filter(p => selectedIds.includes(String(p.id || p._id)) && p.isVisible !== false)
             .slice(0, count);
 
           setHomepageProducts(selected);
         } else {
-          // Fallback: show first 3 visible products
           setHomepageProducts(products.filter(p => p.isVisible !== false).slice(0, 3));
         }
       } catch (error) {
@@ -285,7 +260,6 @@ const scrollRight = () => {
     }
   }, [products]);
 
-  // Replace the useEffect that loads budget products
   useEffect(() => {
     const loadBudgetProducts = async () => {
       setBudgetLoading(true);
@@ -312,11 +286,9 @@ const scrollRight = () => {
               selectedProductIds = result.selections.under2000 || [];
           }
 
-          // Get products by IDs
           let filtered = products
             .filter(product => selectedProductIds.includes(String(product.id || product._id)) && product.isVisible !== false);
 
-          // Sort products by price (ascending)
           filtered.sort((a, b) => {
             const getPrice = (product) => {
               return product.hasOffer && product.offerPrice ? product.offerPrice : product.price;
@@ -353,81 +325,21 @@ const scrollRight = () => {
   }, [carouselSlides.length, isLoading]);
 
   useEffect(() => {
-    const loadBudgetProducts = async () => {
-      setBudgetLoading(true);
-
-      try {
-        const result = await productApi.getBudgetSelections();
-        if (result.success && result.selections) {
-          let selectedProductIds = [];
-
-          switch (selectedBudget) {
-            case 'under2000':
-              selectedProductIds = result.selections.under2000 || [];
-              break;
-            case 'mid2000to5000':
-              selectedProductIds = result.selections.mid2000to5000 || [];
-              break;
-            case 'mid5000to10000':
-              selectedProductIds = result.selections.mid5000to10000 || [];
-              break;
-            case 'premium':
-              selectedProductIds = result.selections.premium || [];
-              break;
-            default:
-              selectedProductIds = result.selections.under2000 || [];
-          }
-
-          // Get products by IDs
-          let filtered = products
-            .filter(product => selectedProductIds.includes(String(product.id || product._id)) && product.isVisible !== false);
-
-          // Sort products by price (ascending)
-          filtered.sort((a, b) => {
-            const getPrice = (product) => {
-              return product.hasOffer && product.offerPrice ? product.offerPrice : product.price;
-            };
-            return getPrice(a) - getPrice(b);
-          });
-
-          setBudgetProducts(filtered.slice(0, 6));
-        } else {
-          setBudgetProducts([]);
-        }
-      } catch (error) {
-        console.error('Error loading budget products:', error);
-        setBudgetProducts([]);
-      } finally {
-        setBudgetLoading(false);
-      }
-    };
-
-    if (products.length > 0) {
-      loadBudgetProducts();
-    }
-  }, [selectedBudget, products]);
-
-  useEffect(() => {
     const script = document.createElement("script");
     script.src = "https://featurable.com/assets/v2/slider_default.min.js";
     script.async = true;
     document.body.appendChild(script);
   }, []);
 
-
-
   const handleCollectionExplore = (collection) => {
     console.log('Exploring collection:', collection.name, 'Category ID:', collection.categoryId);
 
     if (collection.categoryId && collection.categoryId !== 'undefined' && collection.categoryName) {
-      // Navigate to category products page with category name
       navigate(`/category/${encodeURIComponent(collection.categoryName)}`);
     } else {
-      // Navigate to products page without filter
       navigate('/products');
     }
   };
-
 
   const getUniqueOfferNames = () => {
     const offers = new Set();
@@ -467,7 +379,7 @@ const scrollRight = () => {
   };
 
   const handleImageError = (e) => {
-    e.target.src = logo; // fallback to brand logo
+    e.target.src = logo;
   };
 
   const handleRetry = () => {
@@ -475,7 +387,6 @@ const scrollRight = () => {
     window.location.reload();
   };
 
-  // Show error state if critical data failed to load
   if (error && carouselSlides.length === 0 && collections.length === 0 && products.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
@@ -496,25 +407,23 @@ const scrollRight = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] overflow-hidden">
-
+      {/* Hero Carousel Section */}
       <section className="relative h-[85vh] md:h-screen overflow-hidden">
         <div className="absolute inset-0 overflow-hidden">
           {carouselSlides.length > 0 ? (
             carouselSlides.map((slide, idx) => (
               <div
                 key={slide.id || slide._id || idx}
-                className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100' : 'opacity-0'
-                  }`}
+                className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100' : 'opacity-0'}`}
               >
                 <img
                   src={slide.image}
                   alt={slide.title || brandName}
-                  className="w-full h-full object-cover bg-transparent"
+                  className="w-full h-full object-cover"
                   loading={idx === 0 ? 'eager' : 'lazy'}
                   decoding="async"
                   onError={handleImageError}
                 />
-                {/* Multi-layered gradient overlay for text readability */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30"></div>
                 <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30"></div>
               </div>
@@ -538,24 +447,24 @@ const scrollRight = () => {
           )}
         </div>
 
-        {/* Content Container */}
         <div className="relative h-full flex items-center justify-center text-center px-4">
           <div className="max-w-4xl z-20 w-full">
             {carouselSlides.length > 0 && carouselSlides[currentSlide] ? (
               <div className="space-y-6 md:space-y-8">
-                {/* Title with #FFD700 Gold Color */}
-                <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold px-4 transition-all duration-700"
+                <h1 
+                  className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold px-4 transition-all duration-700"
                   style={{
                     color: '#FFD700',
                     textShadow: '0 2px 15px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.2)',
                     letterSpacing: '-0.02em'
-                  }}>
+                  }}
+                >
                   {carouselSlides[currentSlide].title}
                 </h1>
 
-                {/* Subtitle with semi-transparent background */}
                 <div className="px-6 py-0.5 inline-block mx-auto">
-                  <p className="text-lg md:text-2xl lg:text-3xl font-light max-w-2xl mx-auto transition-all duration-700"
+                  <p 
+                    className="text-lg md:text-2xl lg:text-3xl font-light max-w-2xl mx-auto transition-all duration-700"
                     style={{
                       color: '#FFFFFF',
                       textShadow: '0 1px 8px rgba(0,0,0,0.25)',
@@ -565,26 +474,25 @@ const scrollRight = () => {
                       borderRadius: '2rem',
                       display: 'inline-block',
                       letterSpacing: '0.01em'
-                    }}>
+                    }}
+                  >
                     {carouselSlides[currentSlide].subtitle}
                   </p>
                 </div>
 
-                {/* Button */}
                 <div className="pt-4">
                   <Link to="/products">
-                    <button className="group relative overflow-hidden px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg font-medium transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-xl"
+                    <button 
+                      className="group relative overflow-hidden px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg font-medium transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-xl"
                       style={{
                         background: 'linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 100%)',
                         color: '#800020',
                         border: 'none'
-                      }}>
+                      }}
+                    >
                       <span className="relative z-10 flex items-center gap-2">
                         {carouselSlides[currentSlide].cta || "Shop Now"}
-                        <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24">
+                        <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
                         </svg>
                       </span>
@@ -603,32 +511,27 @@ const scrollRight = () => {
           </div>
         </div>
 
-        {/* Dots Navigation */}
         {carouselSlides.length > 0 && (
           <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3 z-20">
             {carouselSlides.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setCurrentSlide(i)}
-                className={`transition-all duration-300 rounded-full ${i === currentSlide
+                className={`transition-all duration-300 rounded-full ${
+                  i === currentSlide
                     ? "w-10 h-2.5 bg-white shadow-lg"
                     : "w-2.5 h-2.5 bg-white/50 hover:bg-white/80 hover:scale-110"
-                  }`}
+                }`}
               />
             ))}
           </div>
         )}
 
-        {/* Navigation Arrows */}
         {carouselSlides.length > 1 && (
           <>
             <button
               className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 backdrop-blur-sm rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center transition-all duration-300 z-20 hover:scale-110"
-              onClick={() =>
-                setCurrentSlide(
-                  (prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length
-                )
-              }
+              onClick={() => setCurrentSlide((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)}
             >
               <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -637,9 +540,7 @@ const scrollRight = () => {
 
             <button
               className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 backdrop-blur-sm rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center transition-all duration-300 z-20 hover:scale-110"
-              onClick={() =>
-                setCurrentSlide((prev) => (prev + 1) % carouselSlides.length)
-              }
+              onClick={() => setCurrentSlide((prev) => (prev + 1) % carouselSlides.length)}
             >
               <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -648,6 +549,7 @@ const scrollRight = () => {
           </>
         )}
       </section>
+
       {/* Elegance Woven with Tradition Section */}
       <section className="relative py-20 md:py-32 overflow-hidden">
         <div className="absolute top-0 left-0 w-72 h-72 bg-[#800020] opacity-5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
@@ -690,11 +592,7 @@ const scrollRight = () => {
                 />
               ) : (
                 <div className="w-full h-96 bg-gray-200 rounded-2xl animate-pulse flex items-center justify-center">
-                  <img
-                    src={logo}
-                    alt={brandName}
-                    className="w-32 md:w-48 opacity-70"
-                  />
+                  <img src={logo} alt={brandName} className="w-32 md:w-48 opacity-70" />
                 </div>
               )}
             </div>
@@ -702,153 +600,107 @@ const scrollRight = () => {
         </div>
       </section>
 
+      {/* Our Saree Collections Section */}
+      <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
+              Our Saree Collections
+              <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
+            </h2>
+            <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg">
+              Discover the perfect blend of tradition and contemporary design
+            </p>
+          </div>
 
-<section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
-  <div className="container mx-auto px-4">
-    <div className="text-center mb-16">
-      <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
-        Our Saree Collections
-        <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
-      </h2>
-      <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg">
-        Discover the perfect blend of tradition and contemporary design
-      </p>
-    </div>
-
-    {/* Horizontal Scrollable Container with Arrows */}
-    <div className="relative group">
-      {/* Left Navigation Arrow */}
-      {collections.length > 3 && (
-        <button
-          onClick={scrollLeft}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-[#800020] text-[#800020] hover:text-white rounded-full p-3 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-4 group-hover:translate-x-0"
-          style={{ transform: 'translateY(-50%)' }}
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-        </button>
-      )}
-      
-      {/* Right Navigation Arrow */}
-      {collections.length > 3 && (
-        <button
-          onClick={scrollRight}
-          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-[#800020] text-[#800020] hover:text-white rounded-full p-3 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0"
-          style={{ transform: 'translateY(-50%)' }}
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </button>
-      )}
-      
-      {/* Gradient Fade Effects */}
-      <div className="absolute left-0 top-0 bottom-0 w-12 md:w-20 bg-gradient-to-r from-[#F9F3F3] to-transparent z-10 pointer-events-none"></div>
-      <div className="absolute right-0 top-0 bottom-0 w-12 md:w-20 bg-gradient-to-l from-[#F9F3F3] to-transparent z-10 pointer-events-none"></div>
-      
-      {/* Scrollable Row */}
-      <div 
-        ref={scrollContainerRef}
-        className="overflow-x-auto overflow-y-visible pb-6 scroll-smooth"
-        // style={{ scrollbarWidth: 'thin', scrollbarColor: '#800020 #f1f1f1' }}
-      >
-        <div className="flex gap-8 md:gap-12 lg:gap-16 min-w-max px-4">
-          {collections.length > 0 ? (
-            collections.map((collection, index) => (
-              <div
-                key={collection.id || collection._id || index}
-                className="group relative flex flex-col items-center cursor-pointer w-[280px] md:w-[320px] lg:w-[360px]"
-                onClick={() => handleCollectionExplore(collection)}
+          <div className="relative group">
+            {collections.length > 3 && (
+              <button
+                onClick={scrollLeft}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-[#800020] text-[#800020] hover:text-white rounded-full p-3 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-4 group-hover:translate-x-0"
+                style={{ transform: 'translateY(-50%)' }}
               >
-                {/* Animated ring effect on hover */}
-                <div className="relative mb-6 pt-4">
-                  {/* Outer ring - decorative */}
-                  {/* <div className="absolute -inset-3 rounded-full bg-gradient-to-r from-[#FFD700] to-[#FFA500] opacity-0 group-hover:opacity-100 transition-all duration-500 group-hover:scale-110 blur-md"></div> */}
-                  
-                  {/* Main Circular Container */}
-                  <div className="relative w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64">
-                    {/* Rotating border on hover */}
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#800020] via-[#A0002A] to-[#800020] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                         style={{ padding: '3px' }}>
-                      <div className="w-full h-full rounded-full bg-white"></div>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+            )}
+            
+            {collections.length > 3 && (
+              <button
+                onClick={scrollRight}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-20 bg-white/90 hover:bg-[#800020] text-[#800020] hover:text-white rounded-full p-3 shadow-lg opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-4 group-hover:translate-x-0"
+                style={{ transform: 'translateY(-50%)' }}
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
+            
+            <div className="absolute left-0 top-0 bottom-0 w-12 md:w-20 bg-gradient-to-r from-[#F9F3F3] to-transparent z-10 pointer-events-none"></div>
+            <div className="absolute right-0 top-0 bottom-0 w-12 md:w-20 bg-gradient-to-l from-[#F9F3F3] to-transparent z-10 pointer-events-none"></div>
+            
+            <div ref={scrollContainerRef} className="overflow-x-auto overflow-y-visible pb-6 scroll-smooth">
+              <div className="flex gap-8 md:gap-12 lg:gap-16 min-w-max px-4">
+                {collections.length > 0 ? (
+                  collections.map((collection, index) => (
+                    <div
+                      key={collection.id || collection._id || index}
+                      className="group relative flex flex-col items-center cursor-pointer w-[280px] md:w-[320px] lg:w-[360px]"
+                      onClick={() => handleCollectionExplore(collection)}
+                    >
+                      <div className="relative mb-6 pt-4">
+                        <div className="relative w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64">
+                          <div 
+                            className="absolute inset-0 rounded-full bg-gradient-to-r from-[#800020] via-[#A0002A] to-[#800020] opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                            style={{ padding: '3px' }}
+                          >
+                            <div className="w-full h-full rounded-full bg-white"></div>
+                          </div>
+                          
+                          <div className="w-full h-full rounded-full overflow-hidden shadow-xl group-hover:shadow-2xl transition-all duration-500 transform group-hover:scale-105">
+                            <img
+                              src={collection.image}
+                              alt={collection.name}
+                              className="w-full h-full object-cover transition-transform duration-700"
+                              loading="lazy"
+                              decoding="async"
+                              onError={handleImageError}
+                            />
+                          </div>
+                          
+                          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+                          
+                          <div className="absolute -top-2 -right-2 bg-gradient-to-r from-[#800020] to-[#A0002A] text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg transform group-hover:scale-110 transition-transform duration-300">
+                            {collection.items || 'Collection'}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <h3 className="text-xl md:text-2xl font-cinzel font-bold text-[#1C2526] mb-2 text-center group-hover:text-[#800020] transition-colors duration-300">
+                        {collection.name}
+                      </h3>
+                      
+                      <p className="text-[#1C2526]/70 text-center max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 text-sm md:text-base">
+                        {collection.description || 'Beautifully crafted sarees'}
+                      </p>
                     </div>
-                    
-                    {/* Image Circle */}
-                    <div className="w-full h-full rounded-full overflow-hidden shadow-xl group-hover:shadow-2xl transition-all duration-500 transform group-hover:scale-105">
-                      <img
-                        src={collection.image}
-                        alt={collection.name}
-                        className="w-full h-full object-cover transition-transform duration-700 "
-                        loading="lazy"
-                        decoding="async"
-                        onError={handleImageError}
-                      />
+                  ))
+                ) : (
+                  Array(6).fill().map((_, i) => (
+                    <div key={i} className="flex flex-col items-center w-[280px] md:w-[320px] lg:w-[360px]">
+                      <div className="w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 rounded-full bg-gray-200 animate-pulse shadow-lg mb-4" />
+                      <div className="h-6 bg-gray-200 rounded w-32 animate-pulse mb-2" />
+                      <div className="h-4 bg-gray-200 rounded w-40 animate-pulse" />
                     </div>
-                    
-                    {/* Overlay with shine effect */}
-                    <div className="absolute inset-0 rounded-full bg-gradient-to-br from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-                    
-                    {/* Items Count Badge */}
-                    <div className="absolute -top-2 -right-2 bg-gradient-to-r from-[#800020] to-[#A0002A] text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg transform group-hover:scale-110 transition-transform duration-300">
-                      {collection.items || 'Collection'}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Collection Name */}
-                <h3 className="text-xl md:text-2xl font-cinzel font-bold text-[#1C2526] mb-2 text-center group-hover:text-[#800020] transition-colors duration-300">
-                  {collection.name}
-                </h3>
-                
-                {/* Description - appears on hover */}
-                <p className="text-[#1C2526]/70 text-center max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 text-sm md:text-base">
-                  {collection.description || 'Beautifully crafted sarees'}
-                </p>
-                
-                {/* Explore Link */}
-                {/* <div className="mt-3 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
-                  <span className="text-[#800020] text-sm font-medium flex items-center gap-1">
-                    Explore Collection
-                    <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </span>
-                </div> */}
+                  ))
+                )}
               </div>
-            ))
-          ) : (
-            // Loading skeletons
-            Array(6).fill().map((_, i) => (
-              <div key={i} className="flex flex-col items-center w-[280px] md:w-[320px] lg:w-[360px]">
-                <div className="w-48 h-48 md:w-56 md:h-56 lg:w-64 lg:h-64 rounded-full bg-gray-200 animate-pulse shadow-lg mb-4" />
-                <div className="h-6 bg-gray-200 rounded w-32 animate-pulse mb-2" />
-                <div className="h-4 bg-gray-200 rounded w-40 animate-pulse" />
-              </div>
-            ))
-          )}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
-    
-    {/* View All Collections Button */}
-    {/* {collections.length > 0 && (
-      <div className="text-center mt-12">
-        <Link to="/products">
-          <button className="relative overflow-hidden group bg-transparent border-2 border-[#800020] text-[#800020] px-10 py-4 rounded-xl text-lg font-cinzel font-semibold hover:text-white transition-all duration-300 shadow-md hover:shadow-xl">
-            <span className="absolute inset-0 bg-gradient-to-r from-[#800020] to-[#A0002A] transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 z-0"></span>
-            <span className="relative z-10 flex items-center justify-center gap-2">
-              View All Collections
-              <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </span>
-          </button>
-        </Link>
-      </div>
-    )} */}
-  </div>
-</section>
+      </section>
 
       {/* Budget Wise Collection Section */}
       <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
@@ -868,7 +720,15 @@ const scrollRight = () => {
               { label: "₹5,000 - ₹10,000", value: "mid5000to10000" },
               { label: "Premium Collection", value: "premium" }
             ].map((budget) => (
-              <button key={budget.value} onClick={() => setSelectedBudget(budget.value)} className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2 ${selectedBudget === budget.value ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white shadow-lg' : 'bg-white text-[#800020] border-2 border-[#800020] hover:bg-[#800020]/10'}`}>
+              <button 
+                key={budget.value} 
+                onClick={() => setSelectedBudget(budget.value)} 
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2 ${
+                  selectedBudget === budget.value 
+                    ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white shadow-lg' 
+                    : 'bg-white text-[#800020] border-2 border-[#800020] hover:bg-[#800020]/10'
+                }`}
+              >
                 <span>{budget.label}</span>
               </button>
             ))}
@@ -890,16 +750,12 @@ const scrollRight = () => {
 
                 return (
                   <div key={product.id || product._id} className={`group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 ${hasAdminOffer ? 'shadow-[0_0_15px_rgba(128,0,32,0.3)]' : ''}`}>
-
-                    {/* Admin Offer - Elegant Maroon Glow */}
                     {hasAdminOffer && (
                       <div className="absolute inset-0 bg-gradient-to-br from-[#800020]/5 via-[#A0002A]/5 to-[#800020]/5 rounded-2xl"></div>
                     )}
 
                     <div className="absolute inset-0 bg-gradient-to-r from-[#800020] via-[#A0002A] to-[#800020] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl p-[2px] -z-10"></div>
                     <div className="relative overflow-hidden bg-gradient-to-br from-[#F8EDE3] to-[#F5E6D3]">
-
-                      {/* Admin Offer Badge - Elegant Gold/Maroon */}
                       {hasAdminOffer && (
                         <div className="absolute top-4 left-4 z-20">
                           <div className="relative">
@@ -914,13 +770,11 @@ const scrollRight = () => {
                         </div>
                       )}
 
-                      {/* Normal Discount Badge - Standard Gold */}
                       {hasNormalDiscount && (
                         <div className="absolute top-4 left-4 z-20">
                           <div className="relative">
                             <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-lg blur-sm opacity-50"></div>
                             <div className="relative bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-[#800020] px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-1">
-                              
                               {`${discountPercentage}% OFF`}
                             </div>
                           </div>
@@ -1010,16 +864,12 @@ const scrollRight = () => {
 
                 return (
                   <div key={product._id || product.id} className={`group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 ${hasAdminOffer ? 'shadow-[0_0_15px_rgba(128,0,32,0.3)]' : ''}`}>
-
-                    {/* Admin Offer - Elegant Maroon Glow */}
                     {hasAdminOffer && (
                       <div className="absolute inset-0 bg-gradient-to-br from-[#800020]/5 via-[#A0002A]/5 to-[#800020]/5 rounded-2xl"></div>
                     )}
 
                     <div className="absolute inset-0 bg-gradient-to-r from-[#800020] via-[#A0002A] to-[#800020] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl p-[2px] -z-10"></div>
                     <div className="relative overflow-hidden bg-gradient-to-br from-[#F8EDE3] to-[#F5E6D3]">
-
-                      {/* Admin Offer Badge - Elegant Gold/Maroon */}
                       {hasAdminOffer && (
                         <div className="absolute top-4 left-4 z-20">
                           <div className="relative">
@@ -1034,7 +884,6 @@ const scrollRight = () => {
                         </div>
                       )}
 
-                      {/* Normal Discount Badge - Standard Gold */}
                       {hasNormalDiscount && (
                         <div className="absolute top-4 left-4 z-20">
                           <div className="relative">
@@ -1104,9 +953,10 @@ const scrollRight = () => {
             </Link>
           </div>
         </div>
-      </section>      {/* Special Offers Section */}
+      </section>
+
+      {/* Special Offers Section */}
       <section className="py-24 relative overflow-hidden bg-gradient-to-br from-[#800020] via-[#6B001A] to-[#4A0012]">
-        {/* Background Pattern Overlay */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute inset-0" style={{
             backgroundImage: `radial-gradient(circle at 2px 2px, white 1.5px, transparent 1px)`,
@@ -1114,13 +964,11 @@ const scrollRight = () => {
           }}></div>
         </div>
 
-        {/* Decorative Corner Elements */}
         <div className="absolute top-0 left-0 w-64 h-64 bg-white/5 rounded-full -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/5 rounded-full translate-x-1/2 translate-y-1/2"></div>
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="text-center mb-16">
-
             <h2 className="text-4xl md:text-5xl font-serif font-bold text-white mb-4 relative inline-block">
               Special Offers
               <span className="absolute -bottom-3 left-1/2 transform -translate-x-1/2 w-20 h-0.5 bg-gradient-to-r from-transparent via-[#FFD700] to-transparent rounded-full"></span>
@@ -1158,10 +1006,8 @@ const scrollRight = () => {
                   className="group relative bg-white rounded-2xl overflow-hidden shadow-2xl transition-all duration-500 transform hover:-translate-y-3 cursor-pointer"
                   onClick={() => handleViewOfferProducts(offer)}
                 >
-                  {/* Decorative Border on Hover */}
                   <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] via-[#FFA500] to-[#FFD700] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl p-[2px] -z-10"></div>
 
-                  {/* Offer Badge Ribbon */}
                   <div className="absolute -top-1 -right-1 z-20">
                     <div className="relative">
                       <div className="absolute inset-0 bg-[#FFD700] blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
@@ -1173,7 +1019,6 @@ const scrollRight = () => {
                     </div>
                   </div>
 
-                  {/* Offer Header */}
                   <div className="relative bg-gradient-to-br from-[#800020] to-[#6B001A] p-8 text-center">
                     <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full -mr-20 -mt-20"></div>
                     <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -ml-24 -mb-24"></div>
@@ -1193,7 +1038,6 @@ const scrollRight = () => {
                     </div>
                   </div>
 
-                  {/* Offer Content */}
                   <div className="p-6 bg-white">
                     <p className="text-gray-700 mb-6 leading-relaxed">
                       {offer.description || 'Exclusive discount on selected premium sarees. Perfect for weddings and special occasions.'}
@@ -1227,7 +1071,6 @@ const scrollRight = () => {
             </div>
           )}
 
-          {/* View All Offers Button */}
           {specialOffers.length > 3 && (
             <div className="text-center mt-16">
               <Link to="/special-offers">
@@ -1346,10 +1189,11 @@ const scrollRight = () => {
 
                           <Link to={`/viewdetails/${product.id}`}>
                             <button
-                              className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ${inStock
-                                ? 'bg-gradient-to-r from-[#800020] to-[#6B001A] text-white hover:shadow-md hover:scale-105'
-                                : 'bg-gray-200 text-gray-500 cursor-not-allowed'
-                                }`}
+                              className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ${
+                                inStock
+                                  ? 'bg-gradient-to-r from-[#800020] to-[#6B001A] text-white hover:shadow-md hover:scale-105'
+                                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                              }`}
                               disabled={!inStock}
                             >
                               {inStock ? 'View Details' : 'Out of Stock'}
@@ -1365,10 +1209,10 @@ const scrollRight = () => {
           </div>
         </div>
       )}
+
       {/* Testimonials Section */}
       <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
         <div className="container mx-auto px-4">
-
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
               What Our Customers Say
@@ -1376,20 +1220,16 @@ const scrollRight = () => {
             </h2>
           </div>
 
-
-          <div className="w-5xl ">
+          <div className="w-5xl">
             <div
               id="featurable-524add98-912b-4007-8796-37b799468010"
               data-featurable-async
             />
           </div>
-
         </div>
       </section>
     </div>
   );
 };
-
-
 
 export default Home;
