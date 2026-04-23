@@ -19,7 +19,6 @@ const ViewDetails = () => {
   const [error, setError] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [zoomActive, setZoomActive] = useState(false);
-  const [activeTab, setActiveTab] = useState('description');
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [zoomPosition, setZoomPosition] = useState({ x: 0, y: 0 });
@@ -444,16 +443,18 @@ const ViewDetails = () => {
   }
 
   /* ------------------------------------------------------------------ */
-  /*  PRODUCT DETAILS                                                  */
+  /*  PRODUCT DETAILS IN SPECIFIED ORDER                               */
+  /*  1. Material, 2. Work, 3. Body Color, 4. Blouse Color,           */
+  /*  5. Type, 6. Length, 7. Care Instructions, Border                */
   /* ------------------------------------------------------------------ */
   const productDetails = {
     material: product.material || 'Not specified',
+    work: product.work || 'Not specified',
+    bodyColor: product.bodyColor || 'Not specified',
+    blouseColor: product.blouseColor || 'Not specified',
+    type: product.type || 'Not specified',
     length: product.length || 'Standard 6.5 meters',
-    weave: product.weave || 'Not specified',
     care: product.care || 'Dry Clean Only',
-    weight: product.weight || 'Not specified',
-    border: product.border || 'Not specified',
-    origin: product.origin || 'Not specified',
   };
 
   const hasMultipleImages = product?.images?.length > 1;
@@ -703,41 +704,25 @@ const ViewDetails = () => {
                 </div>
               )}
 
-              {/* TABS */}
+              {/* PRODUCT DETAILS SECTION - Displayed directly without tabs */}
               <div className="mb-6">
-                <div className="flex border-b border-[#D9A7A7]">
-                  {['description', 'details'].map(tab => (
-                    <button
-                      key={tab}
-                      className={`px-4 py-2 text-sm font-medium capitalize transition-colors duration-300 ${
-                        activeTab === tab
-                          ? 'text-[#6B2D2D] border-b-2 border-[#6B2D2D]'
-                          : 'text-[#2E2E2E] hover:text-[#3A1A1A]'
-                      }`}
-                      onClick={() => setActiveTab(tab)}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-4 text-[#2E2E2E]">
-                  {activeTab === 'description' && <p>{product.description}</p>}
-                  {activeTab === 'details' && (
-                    <ul className="space-y-2">
-                      {Object.entries(productDetails).map(([k, v]) => (
-                        <li key={k} className="flex">
-                          <span className="font-medium capitalize w-1/3">{k}:</span>
-                          <span>{v}</span>
-                        </li>
-                      ))}
-                      {product.sizeGuide && (
-                        <li className="flex">
-                          <span className="font-medium capitalize w-1/3">Size Guide:</span>
-                          <span>{product.sizeGuide}</span>
-                        </li>
-                      )}
-                    </ul>
-                  )}
+                <h3 className="text-lg font-medium text-[#2E2E2E] mb-4">Product Details</h3>
+                <div className="space-y-3">
+                  {Object.entries(productDetails).map(([key, value]) => {
+                    // Format the label for display
+                    let label = key;
+                    if (key === 'bodyColor') label = 'Body Color';
+                    if (key === 'blouseColor') label = 'Blouse Color';
+                    if (key === 'care') label = 'Care Instructions';
+                    label = label.charAt(0).toUpperCase() + label.slice(1);
+                    
+                    return (
+                      <div key={key} className="flex border-b border-gray-100 pb-2">
+                        <span className="font-medium w-2/5 text-gray-700">{label}:</span>
+                        <span className="text-gray-600 w-3/5">{value}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 

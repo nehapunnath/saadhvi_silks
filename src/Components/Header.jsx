@@ -11,8 +11,10 @@ import { auth } from '../Services/firebase';
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchResults, setSearchResults] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentUser, setCurrentUser] = useState(null);
@@ -28,20 +30,27 @@ const Header = () => {
   const isLoggedIn = !!currentUser;
   const userType = currentUser?.isAdmin ? 'admin' : 'user';
 
-  // Load categories on component mount
+  // Load categories and all products on component mount
   useEffect(() => {
-    const loadCategories = async () => {
+    const loadData = async () => {
       try {
-        const result = await categoryApi.getPublicCategories();
-        if (result.success) {
-          setCategories(result.categories);
+        // Load categories
+        const categoriesResult = await categoryApi.getPublicCategories();
+        if (categoriesResult.success) {
+          setCategories(categoriesResult.categories);
+        }
+        
+        // Load all products for searching
+        const productsResult = await productApi.getPublicProducts();
+        if (productsResult.success) {
+          setAllProducts(productsResult.products);
         }
       } catch (error) {
-        console.error('Failed to load categories:', error);
+        console.error('Failed to load data:', error);
       }
     };
 
-    loadCategories();
+    loadData();
   }, []);
 
   useEffect(() => {
@@ -96,9 +105,9 @@ const Header = () => {
     }
   }, [categories]);
 
-  // Real-time search
+  // Search products based on query and selected category
   useEffect(() => {
-    const searchProducts = async () => {
+    const searchProducts = () => {
       if (!searchQuery.trim() || searchQuery.trim().length < 2) {
         setSearchResults([]);
         setShowResults(false);
@@ -106,9 +115,49 @@ const Header = () => {
       }
 
       setLoading(true);
+      
       try {
-        const { results } = await productApi.searchProducts(searchQuery);
-        setSearchResults(results || []);
+        let results = [];
+        const searchTermLower = searchQuery.trim().toLowerCase();
+        
+        // Search in all products
+        results = allProducts.filter(product => {
+          // Check if product name matches search term
+          const nameMatch = product.name?.toLowerCase().includes(searchTermLower);
+          const descriptionMatch = product.description?.toLowerCase().includes(searchTermLower);
+          
+          // If no category selected or "all" categories, return name/description match
+          if (selectedCategory === 'all') {
+            return nameMatch || descriptionMatch;
+          }
+          
+          // Category filtering logic
+          let belongsToCategory = false;
+          
+          // Check if product has categories array
+          if (product.categories && Array.isArray(product.categories)) {
+            // Find the selected category object to get its ID
+            const selectedCategoryObj = categories.find(cat => cat.name === selectedCategory);
+            
+            if (selectedCategoryObj) {
+              // Check if product's categories include the selected category ID
+              belongsToCategory = product.categories.includes(selectedCategoryObj.id);
+            }
+          }
+          
+          // Also check if product has a category field (old format)
+          if (!belongsToCategory && product.category) {
+            belongsToCategory = product.category === selectedCategory;
+          }
+          
+          // Return true only if name/description matches AND product belongs to selected category
+          return (nameMatch || descriptionMatch) && belongsToCategory;
+        });
+        
+        // Limit to 10 results
+        results = results.slice(0, 10);
+        
+        setSearchResults(results);
         setShowResults(true);
       } catch (error) {
         console.error('Search error:', error);
@@ -119,9 +168,10 @@ const Header = () => {
       }
     };
 
+    // Debounce search
     const timer = setTimeout(searchProducts, 300);
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, selectedCategory, allProducts, categories]);
 
   const handleResultClick = (id) => {
     setSearchQuery('');
@@ -165,6 +215,19 @@ const Header = () => {
     }).format(price);
   };
 
+  // Get category names from categories array
+  const getProductCategories = (productCategories) => {
+    if (!productCategories || !Array.isArray(productCategories)) return [];
+    const names = [];
+    for (const catId of productCategories) {
+      const category = categories.find(cat => cat.id === catId);
+      if (category) {
+        names.push(category.name);
+      }
+    }
+    return names;
+  };
+
   return (
     <header className="sticky top-0 z-50">
       {/* Top Bar - Logo, Navigation, Search, Icons */}
@@ -203,17 +266,44 @@ const Header = () => {
 
           {/* Search Bar + Icons */}
           <div ref={searchRef} className="flex items-center space-x-4 flex-1 max-w-2xl mx-8 relative">
-            {/* Search Input */}
+            {/* Search Input with Category Dropdown */}
             <div className="relative flex-1">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onFocus={handleSearchInputFocus}
-                placeholder="Search sarees...."
-                className="w-full px-5 py-3 pl-12 rounded-full border border-gray-300 focus:border-[#800020] focus:outline-none text-gray-800 text-lg shadow-sm transition-all"
-              />
-              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex">
+                {/* Category Dropdown */}
+                <div className="relative">
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => {
+                      setSelectedCategory(e.target.value);
+                      setSearchQuery(''); // Clear search when category changes
+                      setSearchResults([]);
+                    }}
+                    className="h-full px-4 py-3 rounded-l-full border border-r-0 border-gray-300 bg-white text-gray-700 font-medium cursor-pointer hover:bg-gray-50 focus:outline-none focus:border-[#800020] transition-all"
+                  >
+                    <option value="all">All Categories</option>
+                    {categories
+                      .filter(cat => cat.isActive !== false)
+                      .map((category) => (
+                        <option key={category.id} value={category.name}>
+                          {category.name}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+                
+                {/* Search Input */}
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={handleSearchInputFocus}
+                  placeholder={selectedCategory === 'all' ? "Search sarees..." : `Search in ${selectedCategory}...`}
+                  className="flex-1 px-5 py-3 rounded-r-full border border-gray-300 focus:border-[#800020] focus:outline-none text-gray-800 text-lg shadow-sm transition-all"
+                />
+              </div>
+              
+              {/* Search Icon */}
+              <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
 
@@ -237,37 +327,53 @@ const Header = () => {
             {showResults && (
               <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-50">
                 <div className="max-h-80 overflow-y-auto">
-                  {searchResults.length > 0 ? (
+                  {loading ? (
+                    <div className="p-6 text-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#800020] mx-auto"></div>
+                      <p className="mt-2 text-gray-500">Searching...</p>
+                    </div>
+                  ) : searchResults.length > 0 ? (
                     <>
                       <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 sticky top-0 z-10">
                         <p className="text-sm text-gray-600 font-medium">
                           Found {searchResults.length} {searchResults.length === 1 ? 'result' : 'results'}
+                          {selectedCategory !== 'all' && (
+                            <span className="text-[#800020]"> in {selectedCategory}</span>
+                          )}
                         </p>
                       </div>
-                      {searchResults.map((product) => (
-                        <div
-                          key={product.id}
-                          onClick={() => handleResultClick(product.id)}
-                          className="flex items-center px-5 py-3 hover:bg-[#FDF6E3] cursor-pointer transition-all border-b border-gray-100 last:border-0"
-                        >
-                          <img
-                            src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder-image.jpg'}
-                            alt={product.name}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-12 h-12 rounded-lg object-cover mr-4 border flex-shrink-0"
-                            onError={(e) => {
-                              e.target.src = '/placeholder.jpg';
-                            }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-gray-800 truncate">{product.name}</h4>
+                      {searchResults.map((product) => {
+                        const productCategoryNames = getProductCategories(product.categories);
+                        return (
+                          <div
+                            key={product.id}
+                            onClick={() => handleResultClick(product.id)}
+                            className="flex items-center px-5 py-3 hover:bg-[#FDF6E3] cursor-pointer transition-all border-b border-gray-100 last:border-0"
+                          >
+                            <img
+                              src={product.images && product.images.length > 0 ? product.images[0] : '/placeholder-image.jpg'}
+                              alt={product.name}
+                              loading="lazy"
+                              decoding="async"
+                              className="w-12 h-12 rounded-lg object-cover mr-4 border flex-shrink-0"
+                              onError={(e) => {
+                                e.target.src = '/placeholder.jpg';
+                              }}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium text-gray-800 truncate">{product.name}</h4>
+                              {productCategoryNames.length > 0 && (
+                                <p className="text-xs text-gray-500 mt-0.5">
+                                  {productCategoryNames.slice(0, 2).join(', ')}
+                                </p>
+                              )}
+                            </div>
+                            <span className="font-bold text-[#800020] text-lg whitespace-nowrap ml-2">
+                              {formatPrice(product.price)}
+                            </span>
                           </div>
-                          <span className="font-bold text-[#800020] text-lg whitespace-nowrap ml-2">
-                            {formatPrice(product.price)}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </>
                   ) : searchQuery.length >= 2 && !loading ? (
                     <div className="p-6 text-center text-gray-500">
@@ -276,6 +382,9 @@ const Header = () => {
                       </svg>
                       <p>No products found for</p>
                       <p className="font-semibold">"{searchQuery}"</p>
+                      {selectedCategory !== 'all' && (
+                        <p className="text-sm mt-2">in category <span className="font-semibold">{selectedCategory}</span></p>
+                      )}
                     </div>
                   ) : null}
                 </div>
@@ -365,8 +474,6 @@ const Header = () => {
               style={{ scrollBehavior: 'smooth' }}
             >
               <div className="flex items-center space-x-2 md:space-x-3 min-w-max px-12 py-3">
-                
-
                 {categories
                   .filter(cat => cat.isActive !== false)
                   .map((category) => (
@@ -438,13 +545,12 @@ const Header = () => {
             </Link>
             
             {/* Categories in Mobile Menu */}
-            {/* {categories.length > 0 && (
+            {categories.length > 0 && (
               <div className="pt-2">
                 <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2 px-2">
                   Shop by Category
                 </p>
                 <div className="space-y-1">
-                  
                   {categories
                     .filter(cat => cat.isActive !== false)
                     .map((category) => (
@@ -459,7 +565,7 @@ const Header = () => {
                     ))}
                 </div>
               </div>
-            )} */}
+            )}
 
             <Link
               to="/wishlist"

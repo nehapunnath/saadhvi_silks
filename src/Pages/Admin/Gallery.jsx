@@ -953,7 +953,7 @@ const handleAddCollection = async () => {
                           />
                         </div>
 
-                        <div>
+                        {/* <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                           <textarea
                             value={newCollection.description}
@@ -962,7 +962,7 @@ const handleAddCollection = async () => {
                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
                             placeholder="Brief description of the collection"
                           />
-                        </div>
+                        </div> */}
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Items Count</label>
@@ -1104,7 +1104,7 @@ const handleAddCollection = async () => {
                           />
                         </div>
 
-                        <div>
+                        {/* <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                           <textarea
                             value={newCollection.description}
@@ -1112,7 +1112,7 @@ const handleAddCollection = async () => {
                             rows="3"
                             className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#6B2D2D] focus:border-transparent"
                           />
-                        </div>
+                        </div> */}
 
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Items Count</label>

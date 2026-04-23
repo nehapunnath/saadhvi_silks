@@ -682,9 +682,7 @@ const Home = () => {
                         {collection.name}
                       </h3>
                       
-                      <p className="text-[#1C2526]/70 text-center max-w-[200px] opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0 text-sm md:text-base">
-                        {collection.description || 'Beautifully crafted sarees'}
-                      </p>
+                      
                     </div>
                   ))
                 ) : (
