@@ -544,7 +544,7 @@ const Products = () => {
               </div>
             </div>
 
-            {/* Product Grid */}
+            {/* Product Grid - Updated Minimalist Design with Zoom */}
             {allProducts.length === 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -560,177 +560,181 @@ const Products = () => {
                 ))}
               </div>
             ) : currentProducts.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8 sm:gap-x-6 sm:gap-y-10 md:gap-x-8 md:gap-y-12">
                 {currentProducts.map((product) => {
                   const { inStock, hasOffer, hasAdminOffer, hasNormalDiscount, displayPrice, originalPrice, discountPercentage, offerName } = getProductOfferInfo(product);
                   const badgeName = getBadgeName(product.badge);
                   const isZoomed = activeZoom === product.id;
 
                   return (
-                    <Link
-                      key={product.id}
-                      to={`/viewdetails/${product.id}`}
-                      className={`block bg-white rounded-2xl overflow-hidden shadow-md transition-all duration-300 hover:shadow-xl group border ${hasAdminOffer ? 'border-[#FFD700]/50 shadow-[0_0_10px_rgba(128,0,32,0.2)]' : 'border-[#D9A7A7]'} cursor-pointer`}
-                    >
-                      <div className="relative overflow-hidden">
-                        {/* Admin Offer Badge - Top Left Corner */}
-                        {hasAdminOffer && (
-                          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-20">
-                            <div className="relative">
-                              <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-lg blur-sm opacity-60"></div>
-                              <div className="relative bg-gradient-to-r from-[#800020] to-[#A0002A] text-[#FFD700] px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold tracking-wider shadow-lg flex items-center gap-1">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                                </svg>
-                                {offerName?.substring(0, 15)}{offerName?.length > 15 ? '...' : ''}
+                    <div key={product.id} className="group">
+                      {/* Minimalist Card */}
+                      <div className="relative">
+                        {/* Image Section */}
+                        <div className="relative overflow-hidden bg-[#F5F0EB] rounded-2xl shadow-sm group-hover:shadow-xl transition-shadow duration-500">
+                          {/* Admin Offer Badge - Top Left */}
+                          {hasAdminOffer && (
+                            <div className="absolute top-0 left-0 z-20">
+                              <div className="bg-gradient-to-r from-[#800020] to-[#A0002A] text-white px-4 py-1.5 text-xs font-semibold tracking-wider">
+                                {offerName?.substring(0, 20)}{offerName?.length > 20 ? '...' : ''}
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Normal Discount Badge */}
-                        {hasNormalDiscount && (
-                          <div className="absolute top-2 sm:top-4 left-2 sm:left-4 z-20">
-                            <div className="relative">
-                              <div className="bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 sm:px-3 py-0.5 sm:py-1 rounded-full">
+                          {/* Normal Discount Badge */}
+                          {hasNormalDiscount && !hasAdminOffer && (
+                            <div className="absolute top-0 left-0 z-20">
+                              <div className="bg-black/90 text-white px-4 py-1.5 text-xs font-semibold tracking-wider">
                                 {discountPercentage}% OFF
                               </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        {/* Regular Badge (from badge system) */}
-                        {product.badge && badgeName && (
-                          <div className="absolute bottom-2 sm:bottom-4 left-0 z-20">
-                            <div className="relative">
-                              <div className="bg-gradient-to-r from-[#800020] to-[#D4AF37] text-white px-3 sm:px-5 py-0.5 sm:py-1.5 text-[10px] sm:text-xs font-bold shadow-md"
+                          {/* Regular Badge (from badge system) - Bottom Left */}
+                          {product.badge && badgeName && (
+                            <div className="absolute bottom-0 left-0 z-20">
+                              <div className="bg-gradient-to-r from-[#800020] to-[#D4AF37] text-white px-5 py-1.5 text-xs font-bold shadow-md"
                                 style={{
-                                  clipPath: 'polygon(0% 0%, 90% 0%, 100% 50%, 90% 100%, 0% 100%)'
+                                  clipPath: 'polygon(0% 0%, 95% 0%, 100% 50%, 95% 100%, 0% 100%)'
                                 }}>
                                 {badgeName}
                               </div>
                             </div>
-                          </div>
-                        )}
-
-                        <div className="h-48 sm:h-64 md:h-80 overflow-hidden cursor-zoom-in relative"
-                          ref={el => imageRefs.current[product.id] = el}
-                          onMouseEnter={() => handleImageMouseEnter(product.id)}
-                          onMouseLeave={handleImageMouseLeave}
-                          onMouseMove={(e) => handleImageMouseMove(e, product.id)}
-                        >
-                          {!isZoomed ? (
-                            <img src={product.images?.[0] || '/placeholder-image.jpg'} alt={product.name}
-                              loading="lazy" decoding="async"
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              onError={(e) => (e.target.src = '/placeholder-image.jpg')}
-                            />
-                          ) : (
-                            <div className="w-full h-full" style={{
-                              backgroundImage: `url(${product.images?.[0] || '/placeholder-image.jpg'})`,
-                              backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
-                              backgroundSize: '200%',
-                              backgroundRepeat: 'no-repeat',
-                            }} />
                           )}
 
-                          {isZoomed && (
-                            <div className="absolute pointer-events-none shadow-lg"
-                              style={{
-                                left: `${zoomPosition.x}%`,
-                                top: `${zoomPosition.y}%`,
-                                transform: 'translate(-50%, -50%)',
-                                boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.3)',
-                              }}
-                            />
-                          )}
-                        </div>
+                          {/* Wishlist Icon */}
+                          <button
+                            onClick={(e) => handleWishlistToggle(e, product)}
+                            className={`absolute top-4 right-4 z-20 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-[#800020] group/wishlist transition-all duration-300 shadow-md hover:shadow-lg`}
+                            title="Add to Wishlist"
+                          >
+                            <svg className={`w-4.5 h-4.5 ${wishlistItems.includes(product.id) ? 'text-[#800020] fill-[#800020]' : 'text-gray-700 group-hover/wishlist:text-white'}`} fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                          </button>
 
-                        <button
-                          onClick={(e) => handleWishlistToggle(e, product)}
-                          className={`absolute top-2 sm:top-4 right-2 sm:right-4 p-1.5 sm:p-2 rounded-full shadow-md transition-all duration-300 z-20 ${wishlistItems.includes(product.id)
-                              ? 'bg-[#800020] text-white'
-                              : 'bg-white text-[#800020] hover:bg-[#D9A7A7]'
-                            }`}
-                          aria-label={wishlistItems.includes(product.id) ? 'Remove from wishlist' : 'Add to wishlist'}
-                        >
-                          <svg className="h-3.5 w-3.5 sm:h-5 sm:w-5" fill={wishlistItems.includes(product.id) ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                          </svg>
-                        </button>
-                      </div>
-
-                      <div className="p-3 sm:p-5">
-                        <h3 className="text-sm sm:text-lg font-semibold text-[#2E2E2E] mb-1 sm:mb-2 group-hover:text-[#800020] transition-colors line-clamp-2">
-                          {product.name}
-                        </h3>
-                        <p className="text-[#2E2E2E] text-[11px] sm:text-sm mb-2 sm:mb-3 line-clamp-2">{product.description || '—'}</p>
-
-                        {/* Admin Offer Label */}
-                        {hasAdminOffer && offerName && (
-                          <div className="mb-2">
-                            <span className="inline-block bg-gradient-to-r from-[#800020]/10 to-[#A0002A]/10 text-[#800020] px-2 py-0.5 rounded-full text-[10px] font-semibold border border-[#800020]/20">
-                              ✨ Special Offer
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Categories Section */}
-                        <div className="mb-2 sm:mb-3 flex flex-wrap gap-1">
-                          {product.categories && product.categories.length > 0 ? (
-                            product.categories.slice(0, 2).map((categoryId, idx) => {
-                              const categoryName = getCategoryName(categoryId);
-                              return (
-                                <span
-                                  key={idx}
-                                  className="inline-block bg-blue-100 text-blue-800 text-[9px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded"
-                                >
-                                  {categoryName}
-                                </span>
-                              );
-                            })
-                          ) : (
-                            <span className="inline-block bg-gray-100 text-gray-500 text-[9px] sm:text-xs font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
-                              N/A
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Price Section */}
-                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 sm:mt-2 mb-2 sm:mb-3">
-                          <span className={`font-bold text-sm sm:text-lg ${hasAdminOffer ? 'text-[#800020]' : 'text-[#6B2D2D]'}`}>
-                            {formatPrice(displayPrice)}
-                          </span>
-                          {hasOffer && originalPrice && originalPrice > displayPrice && (
-                            <span className="text-[#2E2E2E] text-[10px] sm:text-sm line-through">
-                              {formatPrice(originalPrice)}
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center justify-between mt-2 sm:mt-4">
-                          <div className="flex">
-                            {inStock ? (
-                              <span className="text-green-600 text-[10px] sm:text-sm">In Stock</span>
+                          {/* Product Image with Zoom */}
+                          <div
+                            className="aspect-[3/4] overflow-hidden cursor-zoom-in"
+                            ref={el => imageRefs.current[product.id] = el}
+                            onMouseEnter={() => handleImageMouseEnter(product.id)}
+                            onMouseLeave={handleImageMouseLeave}
+                            onMouseMove={(e) => handleImageMouseMove(e, product.id)}
+                          >
+                            {!isZoomed ? (
+                              <img
+                                src={product.images?.[0] || '/placeholder-image.jpg'}
+                                alt={product.name}
+                                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                decoding="async"
+                                loading="lazy"
+                                onError={(e) => (e.target.src = '/placeholder-image.jpg')}
+                              />
                             ) : (
-                              <span className="text-red-600 text-[10px] sm:text-sm">Out of Stock</span>
+                              <div
+                                className="w-full h-full"
+                                style={{
+                                  backgroundImage: `url(${product.images?.[0] || '/placeholder-image.jpg'})`,
+                                  backgroundPosition: `${zoomPosition.x}% ${zoomPosition.y}%`,
+                                  backgroundSize: '200%',
+                                  backgroundRepeat: 'no-repeat',
+                                }}
+                              />
                             )}
                           </div>
-                          <div onClick={(e) => e.preventDefault()} className="relative z-10">
-                            <button
-                              className={`${hasAdminOffer ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white border border-[#FFD700]/30' : 'bg-[#800020] text-white'} px-2 sm:px-4 py-1 sm:py-2 rounded-lg text-[10px] sm:text-sm font-medium hover:bg-[#6B2D2D] transition-all duration-300`}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                navigate(`/viewdetails/${product.id}`);
-                              }}
-                            >
-                              View Details
-                            </button>
+                        </div>
+
+                        {/* Product Info */}
+                        <div className="mt-6 text-left">
+                          {/* Stock Status */}
+                          <div className="flex items-center justify-between mb-3">
+                            <div>
+                              {inStock ? (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full">
+                                  <span className="relative flex h-1.5 w-1.5">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                                  </span>
+                                  In Stock
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                                  Out of Stock
+                                </span>
+                              )}
+                            </div>
                           </div>
+
+                          {/* Product Name */}
+                          <Link to={`/viewdetails/${product.id}`}>
+                            <h3 className="text-xl md:text-2xl font-serif font-semibold text-gray-800 mb-2 hover:text-[#800020] transition-colors line-clamp-2 leading-tight">
+                              {product.name}
+                            </h3>
+                          </Link>
+
+                          {/* Admin Offer Label */}
+                          {hasAdminOffer && offerName && (
+                            <div className="mb-3">
+                              <span className="inline-block bg-gradient-to-r from-[#800020]/10 to-[#A0002A]/10 text-[#800020] px-2.5 py-0.5 rounded-full text-xs font-semibold border border-[#800020]/20">
+                                 Special Offer
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Categories Section - Highlighted */}
+                          <div className="mb-4 flex flex-wrap gap-1.5">
+                            {product.categories && product.categories.length > 0 ? (
+                              product.categories.slice(0, 2).map((categoryId, idx) => {
+                                const categoryName = getCategoryName(categoryId);
+                                return (
+                                  <span
+                                    key={idx}
+                                    className="inline-block bg-[#800020]/10 text-[#800020] text-xs font-medium px-2.5 py-0.5 rounded-full border border-[#800020]/20"
+                                  >
+                                    {categoryName}
+                                  </span>
+                                );
+                              })
+                            ) : (
+                              <span className="inline-block bg-gray-100 text-gray-500 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                N/A
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Price Section */}
+                          <div className="mb-5">
+                            <div className="flex items-baseline gap-2 flex-wrap">
+                              <span className={`text-2xl md:text-3xl font-bold ${hasAdminOffer ? 'text-[#800020]' : 'text-[#800020]'}`}>
+                                {formatPrice(displayPrice)}
+                              </span>
+                              {hasOffer && originalPrice && originalPrice > displayPrice && (
+                                <span className="text-gray-400 text-base line-through">
+                                  {formatPrice(originalPrice)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* View Details Button */}
+                          <Link to={`/viewdetails/${product.id}`}>
+                            <button
+                              className={`w-full py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-[1.02] active:scale-95 ${
+                                inStock
+                                  ? hasAdminOffer
+                                    ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white shadow-md hover:shadow-lg'
+                                    : 'bg-[#800020] text-white hover:bg-[#6B2D2D]'
+                                  : 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                              }`}
+                              disabled={!inStock}
+                            >
+                              {inStock ? 'View Details' : 'Out of Stock'}
+                            </button>
+                          </Link>
                         </div>
                       </div>
-                    </Link>
+                    </div>
                   );
                 })}
               </div>

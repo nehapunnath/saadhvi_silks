@@ -408,147 +408,154 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8] overflow-hidden">
       {/* Hero Carousel Section */}
-      <section className="relative h-[85vh] md:h-screen overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          {carouselSlides.length > 0 ? (
-            carouselSlides.map((slide, idx) => (
-              <div
-                key={slide.id || slide._id || idx}
-                className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100' : 'opacity-0'}`}
-              >
-                <img
-                  src={slide.image}
-                  alt={slide.title || brandName}
-                  className="w-full h-full object-cover"
-                  loading={idx === 0 ? 'eager' : 'lazy'}
-                  decoding="async"
-                  onError={handleImageError}
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-black/30"></div>
-                <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30"></div>
-              </div>
-            ))
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-[#800020]/90 to-[#A0002A]/80 flex items-center justify-center animate-pulse">
-              <div className="text-center text-white px-6">
-                <img
-                  src={logo}
-                  alt={brandName}
-                  className="w-48 md:w-64 mx-auto mb-6 opacity-90"
-                />
-                <h1 className="text-5xl md:text-7xl font-serif font-bold mb-4">
-                  {brandName}
-                </h1>
-                <p className="text-xl md:text-2xl opacity-90">
-                  {brandTagline}
-                </p>
-              </div>
-            </div>
-          )}
+      {/* Hero Carousel Section */}
+<section className="relative h-[85vh] md:h-screen overflow-hidden">
+  <div className="absolute inset-0 overflow-hidden">
+    {carouselSlides.length > 0 ? (
+      carouselSlides.map((slide, idx) => (
+        <div
+          key={slide.id || slide._id || idx}
+          className={`absolute inset-0 transition-opacity duration-1000 ${idx === currentSlide ? 'opacity-100' : 'opacity-0'}`}
+        >
+          <img
+            src={slide.image}
+            alt={slide.title || brandName}
+            className="w-full h-full object-cover"
+            loading={idx === 0 ? 'eager' : 'lazy'}
+            decoding="async"
+            onError={handleImageError}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/30"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30"></div>
         </div>
+      ))
+    ) : (
+      <div className="w-full h-full bg-gradient-to-br from-[#800020]/90 to-[#A0002A]/80 flex items-center justify-center animate-pulse">
+        <div className="text-center text-white px-6">
+          <img
+            src={logo}
+            alt={brandName}
+            className="w-48 md:w-64 mx-auto mb-6 opacity-90"
+          />
+          <h1 className="text-5xl md:text-7xl font-serif font-bold mb-4">
+            {brandName}
+          </h1>
+          <p className="text-xl md:text-2xl opacity-90">
+            {brandTagline}
+          </p>
+        </div>
+      </div>
+    )}
+  </div>
 
-        <div className="relative h-full flex items-center justify-center text-center px-4">
-          <div className="max-w-4xl z-20 w-full">
-            {carouselSlides.length > 0 && carouselSlides[currentSlide] ? (
-              <div className="space-y-6 md:space-y-8">
-                <h1 
-                  className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold px-4 transition-all duration-700"
+  {/* Content positioned at bottom center */}
+  <div className="absolute bottom-0 left-0 right-0 pb-12 md:pb-20 lg:pb-28 z-20">
+    <div className="container mx-auto px-4">
+      <div className="flex flex-col items-center justify-end text-center max-w-4xl mx-auto">
+        {carouselSlides.length > 0 && carouselSlides[currentSlide] ? (
+          <div className="space-y-4 md:space-y-6 w-full">
+            <h1 
+              className="text-3xl md:text-5xl lg:text-6xl font-serif font-bold px-4 transition-all duration-700"
+              style={{
+                color: '#FFD700',
+                textShadow: '0 2px 15px rgba(0,0,0,0.5), 0 4px 20px rgba(0,0,0,0.3)',
+                letterSpacing: '-0.02em'
+              }}
+            >
+              {carouselSlides[currentSlide].title}
+            </h1>
+
+            <div className="px-6">
+              <p 
+                className="text-base md:text-xl lg:text-2xl font-light max-w-2xl mx-auto transition-all duration-700"
+                style={{
+                  color: '#FFFFFF',
+                  textShadow: '0 1px 8px rgba(0,0,0,0.3)',
+                  backgroundColor: 'rgba(0,0,0,0.3)',
+                  backdropFilter: 'blur(8px)',
+                  padding: '0.6rem 1.5rem',
+                  borderRadius: '2rem',
+                  display: 'inline-block',
+                  letterSpacing: '0.01em'
+                }}
+              >
+                {carouselSlides[currentSlide].subtitle}
+              </p>
+            </div>
+
+            <div className="pt-2 md:pt-4">
+              <Link to="/products">
+                <button 
+                  className="group relative overflow-hidden px-8 py-3 md:px-10 md:py-3.5 rounded-lg text-base md:text-lg font-medium transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-xl"
                   style={{
-                    color: '#FFD700',
-                    textShadow: '0 2px 15px rgba(0,0,0,0.3), 0 4px 20px rgba(0,0,0,0.2)',
-                    letterSpacing: '-0.02em'
+                    background: 'linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 100%)',
+                    color: '#800020',
+                    border: 'none',
+                    minWidth: '180px'
                   }}
                 >
-                  {carouselSlides[currentSlide].title}
-                </h1>
-
-                <div className="px-6 py-0.5 inline-block mx-auto">
-                  <p 
-                    className="text-lg md:text-2xl lg:text-3xl font-light max-w-2xl mx-auto transition-all duration-700"
-                    style={{
-                      color: '#FFFFFF',
-                      textShadow: '0 1px 8px rgba(0,0,0,0.25)',
-                      backgroundColor: 'rgba(0,0,0,0.2)',
-                      backdropFilter: 'blur(4px)',
-                      padding: '0.75rem 2rem',
-                      borderRadius: '2rem',
-                      display: 'inline-block',
-                      letterSpacing: '0.01em'
-                    }}
-                  >
-                    {carouselSlides[currentSlide].subtitle}
-                  </p>
-                </div>
-
-                <div className="pt-4">
-                  <Link to="/products">
-                    <button 
-                      className="group relative overflow-hidden px-8 py-4 md:px-10 md:py-5 rounded-full text-base md:text-lg font-medium transition-all duration-300 transform hover:scale-105 shadow-2xl hover:shadow-xl"
-                      style={{
-                        background: 'linear-gradient(135deg, #FFFFFF 0%, #F5F5F5 100%)',
-                        color: '#800020',
-                        border: 'none'
-                      }}
-                    >
-                      <span className="relative z-10 flex items-center gap-2">
-                        {carouselSlides[currentSlide].cta || "Shop Now"}
-                        <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
-                      </span>
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300"></div>
-                    </button>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              <Link to="/products">
-                <button className="bg-white text-[#800020] px-10 py-5 rounded-xl text-xl font-medium hover:bg-gray-100 transition-all shadow-2xl transform hover:-translate-y-1">
-                  Explore Collection
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    {carouselSlides[currentSlide].cta || "Shop Now"}
+                    <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300"></div>
                 </button>
               </Link>
-            )}
+            </div>
           </div>
-        </div>
-
-        {carouselSlides.length > 0 && (
-          <div className="absolute bottom-8 left-0 right-0 flex justify-center space-x-3 z-20">
-            {carouselSlides.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setCurrentSlide(i)}
-                className={`transition-all duration-300 rounded-full ${
-                  i === currentSlide
-                    ? "w-10 h-2.5 bg-white shadow-lg"
-                    : "w-2.5 h-2.5 bg-white/50 hover:bg-white/80 hover:scale-110"
-                }`}
-              />
-            ))}
-          </div>
-        )}
-
-        {carouselSlides.length > 1 && (
-          <>
-            <button
-              className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 backdrop-blur-sm rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center transition-all duration-300 z-20 hover:scale-110"
-              onClick={() => setCurrentSlide((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)}
-            >
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+        ) : (
+          <Link to="/products">
+            <button className="bg-white text-[#800020] px-8 py-3 rounded-lg text-base font-medium hover:bg-gray-100 transition-all shadow-2xl transform hover:-translate-y-1">
+              Explore Collection
             </button>
-
-            <button
-              className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 backdrop-blur-sm rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center transition-all duration-300 z-20 hover:scale-110"
-              onClick={() => setCurrentSlide((prev) => (prev + 1) % carouselSlides.length)}
-            >
-              <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </>
+          </Link>
         )}
-      </section>
+      </div>
+    </div>
+  </div>
+
+  {/* Carousel indicators */}
+  {carouselSlides.length > 0 && (
+    <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-3 z-20">
+      {carouselSlides.map((_, i) => (
+        <button
+          key={i}
+          onClick={() => setCurrentSlide(i)}
+          className={`transition-all duration-300 rounded-full ${
+            i === currentSlide
+              ? "w-10 h-2.5 bg-white shadow-lg"
+              : "w-2.5 h-2.5 bg-white/50 hover:bg-white/80 hover:scale-110"
+          }`}
+        />
+      ))}
+    </div>
+  )}
+
+  {/* Navigation arrows */}
+  {carouselSlides.length > 1 && (
+    <>
+      <button
+        className="absolute left-4 md:left-8 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 backdrop-blur-sm rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center transition-all duration-300 z-20 hover:scale-110"
+        onClick={() => setCurrentSlide((prev) => (prev - 1 + carouselSlides.length) % carouselSlides.length)}
+      >
+        <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+
+      <button
+        className="absolute right-4 md:right-8 top-1/2 -translate-y-1/2 text-white bg-black/30 hover:bg-black/50 backdrop-blur-sm rounded-full w-10 h-10 md:w-12 md:h-12 flex items-center justify-center transition-all duration-300 z-20 hover:scale-110"
+        onClick={() => setCurrentSlide((prev) => (prev + 1) % carouselSlides.length)}
+      >
+        <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    </>
+  )}
+</section>
 
       {/* Elegance Woven with Tradition Section */}
       <section className="relative py-20 md:py-32 overflow-hidden">
@@ -699,259 +706,584 @@ const Home = () => {
           </div>
         </div>
       </section>
+            {/* Free Shipping & EMI Premium Banner - Ultra Attractive */}
+      <section className="relative py-16 md:py-20 overflow-hidden">
+        {/* Animated Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1a0a0a] via-[#800020] to-[#2a0a0a]">
+          {/* Animated particle dots */}
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute inset-0" style={{
+              backgroundImage: `radial-gradient(circle at 2px 2px, rgba(255,215,0,0.4) 1.5px, transparent 1.5px)`,
+              backgroundSize: '40px 40px'
+            }}></div>
+          </div>
+          {/* Animated gradient orbs */}
+          <div className="absolute top-0 -left-40 w-80 h-80 bg-[#FFD700]/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-0 -right-40 w-80 h-80 bg-[#FFA500]/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-[#800020]/50 rounded-full blur-3xl"></div>
+          {/* Shimmer overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -translate-x-full animate-[shimmer_3s_infinite]"></div>
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10">
+          {/* Main Heading with Animation */}
+          <div className="text-center mb-12 animate-[fadeInUp_0.8s_ease-out]">
+            <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-5 py-2 rounded-full border border-white/20 mb-6">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </span>
+              <span className="text-white/90 text-sm font-medium tracking-wide"> EXCLUSIVE CUSTOMER BENEFITS </span>
+            </div>
+            
+            {/* Main Paragraph */}
+            <div className="max-w-4xl mx-auto">
+              <h2 className="text-3xl md:text-5xl font-serif font-bold text-white mb-6 leading-tight">
+                Shop with 
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#FFD700] to-[#FFA500]"> Complete Peace of Mind</span>
+              </h2>
+              <p className="text-white/90 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto backdrop-blur-sm bg-white/5 rounded-2xl p-6 md:p-8 border border-white/10">
+                Experience the joy of shopping with <span className="font-bold text-[#FFD700]">FREE shipping</span> on orders above ₹10,000 
+                and flexible <span className="font-bold text-[#FFD700]">EMI options</span>. 
+                Every sarees comes with our promise of quality, authenticity, and 100% secure delivery.
+              </p>
+            </div>
+          </div>
+
+          {/* Premium Benefits Cards - 3D Flip Effect */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-6xl mx-auto">
+            
+            {/* Card 1: Free Shipping */}
+            <div className="group perspective-1000">
+              <div className="relative preserve-3d transition-all duration-500 group-hover:rotate-y-180 cursor-pointer">
+                {/* Front of card */}
+                <div className="relative bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl backface-hidden transform transition-all duration-300 hover:scale-105">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#FFD700]/20 to-transparent rounded-full blur-2xl"></div>
+                  <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-[#FFA500]/20 to-transparent rounded-full blur-2xl"></div>
+                  
+                  {/* Animated Icon */}
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 bg-[#FFD700]/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center shadow-2xl transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
+                      <svg className="w-10 h-10 text-[#800020]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 13l4 4L19 7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 12v6a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h6" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <h3 className="text-2xl font-bold text-white text-center mb-3">Free Shipping</h3>
+                  <div className="text-center mb-4">
+                    {/* <span className="text-4xl font-bold text-[#FFD700]">₹10,000+</span> */}
+                  </div>
+                  <p className="text-white/70 text-center text-sm">Eligible orders</p>
+                  
+                  <div className="mt-6 flex justify-center">
+                    <div className="flex items-center gap-1 text-white/50 text-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                      <span>Pan India Delivery</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Back of card (on hover) */}
+                <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700] to-[#FFA500] rounded-3xl p-8 backface-hidden rotate-y-180 flex flex-col items-center justify-center text-center">
+                  <svg className="w-12 h-12 text-[#800020] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  <p className="text-[#800020] font-semibold">No hidden charges</p>
+                  {/* <p className="text-[#800020]/80 text-sm mt-2">Free returns within 7 days</p> */}
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: EMI Option */}
+            <div className="group perspective-1000">
+              <div className="relative preserve-3d transition-all duration-500 group-hover:rotate-y-180 cursor-pointer">
+                <div className="relative bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl backface-hidden transform transition-all duration-300 hover:scale-105">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#FFD700]/20 to-transparent rounded-full blur-2xl"></div>
+                  
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 bg-[#FFD700]/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center shadow-2xl transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
+                      <svg className="w-10 h-10 text-[#800020]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <h3 className="text-2xl font-bold text-white text-center mb-3">Easy EMI</h3>
+                  <div className="text-center mb-4">
+                    {/* <span className="text-4xl font-bold text-[#FFD700]">₹500<span className="text-xl">/month</span></span> */}
+                  </div>
+                  <p className="text-white/70 text-center text-sm">Starting at</p>
+                  
+                  <div className="mt-6 flex justify-center gap-2">
+                    <div className="flex items-center gap-1 text-white/50 text-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                      <span>Zero Down Payment</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700] to-[#FFA500] rounded-3xl p-8 backface-hidden rotate-y-180 flex flex-col items-center justify-center text-center">
+                  <svg className="w-12 h-12 text-[#800020] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <p className="text-[#800020] font-semibold">Available on all major cards</p>
+                  {/* <p className="text-[#800020]/80 text-sm mt-2">3, 6, 9, 12 months tenure</p> */}
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Secure Checkout */}
+            <div className="group perspective-1000">
+              <div className="relative preserve-3d transition-all duration-500 group-hover:rotate-y-180 cursor-pointer">
+                <div className="relative bg-gradient-to-br from-white/15 to-white/5 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl backface-hidden transform transition-all duration-300 hover:scale-105">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#FFD700]/20 to-transparent rounded-full blur-2xl"></div>
+                  
+                  <div className="relative mb-6">
+                    <div className="absolute inset-0 bg-[#FFD700]/20 rounded-full blur-xl animate-pulse"></div>
+                    <div className="relative w-20 h-20 mx-auto rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] flex items-center justify-center shadow-2xl transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
+                      <svg className="w-10 h-10 text-[#800020]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <h3 className="text-2xl font-bold text-white text-center mb-3">Secure Checkout</h3>
+                  <div className="text-center mb-4">
+                    {/* <span className="text-4xl font-bold text-[#FFD700]">100%</span> */}
+                  </div>
+                  <p className="text-white/70 text-center text-sm">Protected</p>
+                  
+                  <div className="mt-6 flex justify-center gap-2">
+                    <div className="flex items-center gap-1 text-white/50 text-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-green-400"></span>
+                      <span>SSL Encrypted</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700] to-[#FFA500] rounded-3xl p-8 backface-hidden rotate-y-180 flex flex-col items-center justify-center text-center">
+                  <svg className="w-12 h-12 text-[#800020] mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                  <p className="text-[#800020] font-semibold">Multiple payment options</p>
+                  <p className="text-[#800020]/80 text-sm mt-2">Cards, UPI, NetBanking, COD</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Trust Badges Row */}
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-6 md:gap-10 animate-[fadeInUp_1s_ease-out]">
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+              <svg className="w-5 h-5 text-[#FFD700]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+              <span className="text-white/80 text-sm">Trusted by 10,000+ customers</span>
+            </div>
+            {/* <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+              <svg className="w-5 h-5 text-[#FFD700]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z"/>
+              </svg>
+              <span className="text-white/80 text-sm">30 Days Return Policy</span>
+            </div> */}
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full border border-white/20">
+              <svg className="w-5 h-5 text-[#FFD700]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+              <span className="text-white/80 text-sm">24/7 Customer Support</span>
+            </div>
+          </div>
+
+          {/* Call to Action */}
+          {/* <div className="text-center mt-10">
+            <button className="group relative overflow-hidden bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-[#800020] px-8 py-4 rounded-full font-bold text-lg shadow-2xl hover:shadow-xl transform transition-all duration-300 hover:scale-105">
+              <span className="relative z-10 flex items-center gap-2">
+                Start Shopping Now
+                <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                </svg>
+              </span>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#FFA500] to-[#FFD700] transform translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+            </button>
+          </div> */}
+
+          {/* T&C Note */}
+          <div className="text-center mt-6">
+            <p className="text-white/40 text-xs">*Terms and conditions apply.</p>
+          </div>
+        </div>
+      </section>
 
       {/* Budget Wise Collection Section */}
       <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
-              Shop by Budget
-              <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
-            </h2>
-            <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg">Find the perfect saree that fits your budget</p>
-          </div>
+  <div className="container mx-auto px-4">
+    <div className="text-center mb-16">
+      <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
+        Shop by Budget
+        <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
+      </h2>
+      <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg font-light">
+        Find the perfect saree that fits your budget
+      </p>
+    </div>
 
-          <div className="flex flex-wrap justify-center gap-4 mb-12">
-            {[
-              { label: "Under ₹2,000", value: "under2000" },
-              { label: "₹2,000 - ₹5,000", value: "mid2000to5000" },
-              { label: "₹5,000 - ₹10,000", value: "mid5000to10000" },
-              { label: "Premium Collection", value: "premium" }
-            ].map((budget) => (
-              <button 
-                key={budget.value} 
-                onClick={() => setSelectedBudget(budget.value)} 
-                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 transform hover:scale-105 flex items-center gap-2 ${
-                  selectedBudget === budget.value 
-                    ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white shadow-lg' 
-                    : 'bg-white text-[#800020] border-2 border-[#800020] hover:bg-[#800020]/10'
-                }`}
-              >
-                <span>{budget.label}</span>
-              </button>
-            ))}
-          </div>
+    {/* Budget Filter Buttons - Styled like View All button but smaller */}
+    <div className="flex flex-wrap justify-center gap-4 mb-12">
+      {[
+        { label: "Under ₹2,000", value: "under2000" },
+        { label: "₹2,000 - ₹5,000", value: "mid2000to5000" },
+        { label: "₹5,000 - ₹10,000", value: "mid5000to10000" },
+        { label: "Premium Collection", value: "premium" },
+      ].map((budget) => (
+        <button
+          key={budget.value}
+          onClick={() => setSelectedBudget(budget.value)}
+          className={`group relative px-6 py-2.5 font-semibold transition-all duration-300 rounded-lg overflow-hidden ${
+            selectedBudget === budget.value
+              ? "text-white"
+              : "text-[#800020] border-2 border-[#800020] hover:bg-[#800020]/5"
+          }`}
+        >
+          <span className="relative z-10 flex items-center gap-2">
+            {budget.label}
+          </span>
+          {selectedBudget === budget.value && (
+            <span className="absolute inset-0 bg-gradient-to-r from-[#800020] to-[#A0002A]"></span>
+          )}
+          {selectedBudget !== budget.value && (
+            <span className="absolute inset-0 border-2 border-[#800020] rounded-lg"></span>
+          )}
+        </button>
+      ))}
+    </div>
 
-          {budgetLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {Array(3).fill().map((_, i) => <div key={i} className="bg-white rounded-2xl h-[450px] animate-pulse shadow-xl" />)}
-            </div>
-          ) : budgetProducts.length === 0 ? (
-            <div className="text-center py-16 bg-white rounded-2xl shadow-lg">
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">No products found</h3>
-              <p className="text-gray-600">No products available in this budget range</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {budgetProducts.map((product) => {
-                const { inStock, hasOffer, hasAdminOffer, hasNormalDiscount, displayPrice, originalPrice, discountPercentage, offerName } = getProductOfferInfo(product);
+    {budgetLoading ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+        {Array(3)
+          .fill()
+          .map((_, i) => (
+            <div key={i} className="bg-white rounded-2xl h-[500px] animate-pulse shadow-xl" />
+          ))}
+      </div>
+    ) : budgetProducts.length === 0 ? (
+      <div className="text-center py-16 bg-white/50 rounded-2xl">
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">No products found</h3>
+        <p className="text-gray-600">No products available in this budget range</p>
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+        {budgetProducts.map((product) => {
+          const {
+            inStock,
+            hasOffer,
+            hasAdminOffer,
+            hasNormalDiscount,
+            displayPrice,
+            originalPrice,
+            discountPercentage,
+            offerName,
+          } = getProductOfferInfo(product);
 
-                return (
-                  <div key={product.id || product._id} className={`group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 ${hasAdminOffer ? 'shadow-[0_0_15px_rgba(128,0,32,0.3)]' : ''}`}>
-                    {hasAdminOffer && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#800020]/5 via-[#A0002A]/5 to-[#800020]/5 rounded-2xl"></div>
-                    )}
-
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#800020] via-[#A0002A] to-[#800020] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl p-[2px] -z-10"></div>
-                    <div className="relative overflow-hidden bg-gradient-to-br from-[#F8EDE3] to-[#F5E6D3]">
-                      {hasAdminOffer && (
-                        <div className="absolute top-4 left-4 z-20">
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-lg blur-sm opacity-60"></div>
-                            <div className="relative bg-gradient-to-r from-[#800020] to-[#A0002A] text-[#FFD700] px-4 py-2 rounded-lg text-sm font-bold tracking-wider shadow-lg flex items-center gap-2 border border-[#FFD700]/30">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                              </svg>
-                              {offerName}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {hasNormalDiscount && (
-                        <div className="absolute top-4 left-4 z-20">
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-lg blur-sm opacity-50"></div>
-                            <div className="relative bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-[#800020] px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-1">
-                              {`${discountPercentage}% OFF`}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <button onClick={() => handleAddToWishlist(product)} className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur-sm p-2.5 rounded-full shadow-lg hover:bg-[#800020] hover:text-white transition-all duration-300 transform hover:scale-110" title="Add to Wishlist">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                      </button>
-                      <div className="h-80 overflow-hidden relative">
-                        <img src={product.images?.[0]} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" decoding="async" loading="lazy" onError={handleImageError} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          return (
+            <div key={product._id || product.id} className="group">
+              {/* Minimalist Card - matching Latest Collection style */}
+              <div className="relative">
+                {/* Image Section */}
+                <div className="relative overflow-hidden bg-[#F5F0EB] rounded-2xl shadow-sm group-hover:shadow-xl transition-shadow duration-500">
+                  {/* Discount Indicator */}
+                  {(hasAdminOffer || hasNormalDiscount) && (
+                    <div className="absolute top-0 left-0 z-20">
+                      <div
+                        className={`px-4 py-1.5 text-xs font-semibold tracking-wider ${
+                          hasAdminOffer
+                            ? "bg-gradient-to-r from-[#800020] to-[#A0002A] text-white"
+                            : "bg-black/90 text-white"
+                        }`}
+                      >
+                        {hasAdminOffer ? ` ${offerName}` : ` ${discountPercentage}% OFF`}
                       </div>
                     </div>
-                    <div className="p-6 relative bg-white">
-                      <h3 className="text-xl font-cinzel font-bold text-gray-800 mb-3 group-hover:text-[#800020] transition-colors duration-300 line-clamp-2">{product.name}</h3>
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-2 font-light leading-relaxed">{product.description || 'Exquisitely crafted saree blending tradition with contemporary elegance'}</p>
+                  )}
 
-                      <div className="flex items-baseline gap-3 mb-5">
-                        <span className={`text-2xl font-bold ${hasAdminOffer ? 'text-[#800020]' : 'text-[#800020]'}`}>
-                          {formatPrice(displayPrice)}
+                  {/* Wishlist Icon */}
+                  <button
+                    onClick={() => handleAddToWishlist(product)}
+                    className="absolute top-4 right-4 z-20 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-[#800020] group/wishlist transition-all duration-300 shadow-md hover:shadow-lg"
+                    title="Add to Wishlist"
+                  >
+                    <svg
+                      className="w-4.5 h-4.5 text-gray-700 group-hover/wishlist:text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                  </button>
+
+                  {/* Product Image */}
+                  <Link to={`/viewdetails/${product.id || product._id}`}>
+                    <div className="aspect-[3/4] overflow-hidden">
+                      <img
+                        src={product.images?.[0]}
+                        alt={product.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        decoding="async"
+                        loading="lazy"
+                        onError={handleImageError}
+                      />
+                    </div>
+                    {/* Quick View Overlay */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+                      <span className="bg-white/95 text-[#800020] px-5 py-2 rounded-full text-sm font-semibold transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                        Quick View
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+
+                {/* Product Info */}
+                <div className="mt-6 text-left">
+                  {/* Stock Status */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      {inStock ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                          </span>
+                          In Stock
                         </span>
-                        {hasOffer && originalPrice && originalPrice > displayPrice && (
-                          <span className="text-gray-400 text-sm line-through">{formatPrice(originalPrice)}</span>
-                        )}
-                      </div>
-                      <Link to={`/viewdetails/${product.id || product._id}`}>
-                        <button className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-300 transform ${inStock ? (hasAdminOffer ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:shadow-lg hover:scale-105 active:scale-95 border border-[#FFD700]/30' : 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:shadow-lg hover:scale-105 active:scale-95') : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`} disabled={!inStock}>
-                          {inStock ? (
-                            <span className="flex items-center justify-center gap-2">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              {hasAdminOffer ? 'View Offer →' : 'Quick View'}
-                            </span>
-                          ) : 'Out of Stock'}
-                        </button>
-                      </Link>
-                    </div>
-                    <div className="absolute inset-0 rounded-2xl pointer-events-none">
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-[#800020]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full">
+                          <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                          Out of Stock
+                        </span>
+                      )}
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          )}
 
-          <div className="text-center mt-12">
-            <button onClick={() => navigate(`/products-by-budget?budget=${selectedBudget}`)} className="group relative overflow-hidden bg-gradient-to-r from-[#800020] to-[#A0002A] text-white px-8 py-3 rounded-xl text-base font-medium transition-all duration-300 hover:shadow-lg transform hover:scale-105">
-              <span className="relative z-10 flex items-center justify-center gap-2">
-                Explore {selectedBudget === 'under2000' && 'Under ₹2,000'}
-                {selectedBudget === 'mid2000to5000' && '₹2,000 - ₹5,000'}
-                {selectedBudget === 'mid5000to10000' && '₹5,000 - ₹10,000'}
-                {selectedBudget === 'premium' && 'Premium'} Collection
-                <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              </span>
-            </button>
-          </div>
-        </div>
-      </section>
+                  {/* Product Name */}
+                  <Link to={`/viewdetails/${product.id || product._id}`}>
+                    <h3 className="text-xl md:text-2xl font-serif font-semibold text-gray-800 mb-2 hover:text-[#800020] transition-colors line-clamp-2 leading-tight">
+                      {product.name}
+                    </h3>
+                  </Link>
+
+                  {/* Price Section */}
+                  <div className="mb-5">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-2xl md:text-3xl font-bold text-[#800020]">
+                        {formatPrice(displayPrice)}
+                      </span>
+                      {hasOffer && originalPrice && originalPrice > displayPrice && (
+                        <span className="text-gray-400 text-base line-through">
+                          {formatPrice(originalPrice)}
+                        </span>
+                      )}
+                      {hasNormalDiscount && discountPercentage > 0 && (
+                        <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                          Save {discountPercentage}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    )}
+
+    {/* View All Button for Selected Budget */}
+    <div className="text-center mt-16">
+      <button
+        onClick={() => navigate(`/products-by-budget?budget=${selectedBudget}`)}
+        className="group relative px-10 py-3.5 text-[#800020] border-2 border-[#800020] hover:bg-[#800020] hover:text-white transition-all duration-300 font-semibold uppercase tracking-wider rounded-lg overflow-hidden"
+      >
+        <span className="relative z-10 flex items-center gap-2">
+          Explore Complete Collection
+          <svg
+            className="w-4 h-4 transform group-hover:translate-x-1 transition-transform"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M14 5l7 7m0 0l-7 7m7-7H3"
+            />
+          </svg>
+        </span>
+        <span className="absolute inset-0 bg-gradient-to-r from-[#800020] to-[#A0002A] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
+      </button>
+    </div>
+  </div>
+</section>
 
       {/* Latest Collection Section */}
       <section className="py-20 bg-gradient-to-b from-[#F9F3F3] to-[#F7F0E8]">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
-              Latest Collection
-              <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
-            </h2>
-            <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg font-light">Discover our newest arrivals, crafted with passion and precision</p>
-          </div>
+  <div className="container mx-auto px-4">
+    <div className="text-center mb-16">
+      <h2 className="text-3xl md:text-4xl font-serif font-bold text-[#1C2526] mb-4 relative inline-block">
+        Latest Collection
+        <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-24 h-1 bg-gradient-to-r from-[#800020] to-[#A0002A] rounded-full"></span>
+      </h2>
+      <p className="text-[#1C2526] max-w-2xl mx-auto mt-6 text-lg">Discover our newest arrivals, crafted with passion and precision</p>
+    </div>
 
-          {homepageProducts.length === 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {Array(3).fill().map((_, i) => <div key={i} className="bg-white rounded-2xl h-[500px] animate-pulse shadow-xl" />)}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {homepageProducts.map((product) => {
-                const { inStock, hasOffer, hasAdminOffer, hasNormalDiscount, displayPrice, originalPrice, discountPercentage, offerName } = getProductOfferInfo(product);
+    {homepageProducts.length === 0 ? (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {Array(3).fill().map((_, i) => <div key={i} className="bg-white rounded-2xl h-[500px] animate-pulse shadow-xl" />)}
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+        {homepageProducts.map((product) => {
+          const { inStock, hasOffer, hasAdminOffer, hasNormalDiscount, displayPrice, originalPrice, discountPercentage, offerName } = getProductOfferInfo(product);
 
-                return (
-                  <div key={product._id || product.id} className={`group relative bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 transform hover:-translate-y-2 ${hasAdminOffer ? 'shadow-[0_0_15px_rgba(128,0,32,0.3)]' : ''}`}>
-                    {hasAdminOffer && (
-                      <div className="absolute inset-0 bg-gradient-to-br from-[#800020]/5 via-[#A0002A]/5 to-[#800020]/5 rounded-2xl"></div>
-                    )}
-
-                    <div className="absolute inset-0 bg-gradient-to-r from-[#800020] via-[#A0002A] to-[#800020] opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl p-[2px] -z-10"></div>
-                    <div className="relative overflow-hidden bg-gradient-to-br from-[#F8EDE3] to-[#F5E6D3]">
-                      {hasAdminOffer && (
-                        <div className="absolute top-4 left-4 z-20">
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-lg blur-sm opacity-60"></div>
-                            <div className="relative bg-gradient-to-r from-[#800020] to-[#A0002A] text-[#FFD700] px-4 py-2 rounded-lg text-sm font-bold tracking-wider shadow-lg flex items-center gap-2 border border-[#FFD700]/30">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                              </svg>
-                              {offerName}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      {hasNormalDiscount && (
-                        <div className="absolute top-4 left-4 z-20">
-                          <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-[#FFD700] to-[#FFA500] rounded-lg blur-sm opacity-50"></div>
-                            <div className="relative bg-gradient-to-r from-[#FFD700] to-[#FFA500] text-[#800020] px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg flex items-center gap-1">
-                              {`${discountPercentage}% OFF`}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <button onClick={() => handleAddToWishlist(product)} className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-lg hover:bg-[#800020] hover:text-white transition-all duration-300 transform hover:scale-110" title="Add to Wishlist">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                        </svg>
-                      </button>
-                      <div className="h-96 overflow-hidden relative">
-                        <img src={product.images?.[0]} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" decoding="async" loading="lazy" onError={handleImageError} />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+          return (
+            <div key={product._id || product.id} className="group">
+              {/* Minimalist Card */}
+              <div className="relative">
+                {/* Image Section */}
+                <div className="relative overflow-hidden bg-[#F5F0EB] rounded-2xl shadow-sm group-hover:shadow-xl transition-shadow duration-500">
+                  {/* Discount Indicator - Improved */}
+                  {(hasAdminOffer || hasNormalDiscount) && (
+                    <div className="absolute top-0 left-0 z-20">
+                      <div className={`px-4 py-1.5 text-xs font-semibold tracking-wider ${
+                        hasAdminOffer 
+                          ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white' 
+                          : 'bg-black/90 text-white'
+                      }`}>
+                        {hasAdminOffer ? ` ${offerName}` : ` ${discountPercentage}% OFF`}
                       </div>
                     </div>
-                    <div className="p-6 relative bg-white">
-                      <h3 className="text-xl font-cinzel font-bold text-gray-800 mb-3 group-hover:text-[#800020] transition-colors duration-300 line-clamp-2">{product.name}</h3>
-                      <p className="text-gray-600 text-sm mb-4 line-clamp-2 font-light leading-relaxed">{product.description || 'Exquisitely crafted saree blending tradition with contemporary elegance'}</p>
+                  )}
 
-                      <div className="flex items-baseline gap-3 mb-5">
-                        <span className={`text-2xl font-bold ${hasAdminOffer ? 'text-[#800020]' : 'text-[#800020]'}`}>
-                          {formatPrice(displayPrice)}
+                  {/* Wishlist Icon - Improved */}
+                  <button 
+                    onClick={() => handleAddToWishlist(product)} 
+                    className="absolute top-4 right-4 z-20 w-7 h-7 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-[#800020] group/wishlist transition-all duration-300 shadow-md hover:shadow-lg"
+                    title="Add to Wishlist"
+                  >
+                    <svg className="w-4.5 h-4.5 text-gray-700 group-hover/wishlist:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                    </svg>
+                  </button>
+
+                  {/* Product Image */}
+                  <Link to={`/viewdetails/${product.id || product._id}`}>
+                    <div className="aspect-[3/4] overflow-hidden">
+                      <img 
+                        src={product.images?.[0]} 
+                        alt={product.name} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+                        decoding="async" 
+                        loading="lazy" 
+                        onError={handleImageError} 
+                      />
+                    </div>
+                    {/* Quick View Overlay */}
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-center justify-center">
+                      <span className="bg-white/95 text-[#800020] px-5 py-2 rounded-full text-sm font-semibold transform translate-y-4 group-hover:translate-y-0 transition-all duration-300">
+                        Quick View
+                      </span>
+                    </div>
+                  </Link>
+                </div>
+
+                {/* Product Info - Enhanced Typography */}
+                <div className="mt-6 text-left">
+                  {/* Stock Status & Badges */}
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      {inStock ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full">
+                          <span className="relative flex h-1.5 w-1.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                          </span>
+                          In Stock
                         </span>
-                        {hasOffer && originalPrice && originalPrice > displayPrice && (
-                          <span className="text-gray-400 text-sm line-through">{formatPrice(originalPrice)}</span>
-                        )}
-                      </div>
-                      <Link to={`/viewdetails/${product.id || product._id}`}>
-                        <button className={`w-full py-3.5 rounded-xl font-semibold transition-all duration-300 transform ${inStock ? (hasAdminOffer ? 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:shadow-lg hover:scale-105 active:scale-95 border border-[#FFD700]/30' : 'bg-gradient-to-r from-[#800020] to-[#A0002A] text-white hover:shadow-lg hover:scale-105 active:scale-95') : 'bg-gray-300 text-gray-600 cursor-not-allowed'}`} disabled={!inStock}>
-                          {inStock ? (
-                            <span className="flex items-center justify-center gap-2">
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                              </svg>
-                              {hasAdminOffer ? 'View Offer →' : 'Quick View'}
-                            </span>
-                          ) : 'Out of Stock'}
-                        </button>
-                      </Link>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 text-xs font-medium text-red-700 bg-red-50 px-2.5 py-1 rounded-full">
+                          <span className="h-1.5 w-1.5 rounded-full bg-red-500"></span>
+                          Out of Stock
+                        </span>
+                      )}
                     </div>
-                    <div className="absolute inset-0 rounded-2xl pointer-events-none">
-                      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-transparent via-[#800020]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    </div>
+                    
                   </div>
-                );
-              })}
+
+                  {/* Product Name - Larger & Bolder */}
+                  <Link to={`/viewdetails/${product.id || product._id}`}>
+                    <h3 className="text-xl md:text-2xl font-serif font-semibold text-gray-800 mb-2 hover:text-[#800020] transition-colors line-clamp-2 leading-tight">
+                      {product.name}
+                    </h3>
+                  </Link>
+
+                  {/* Product Description - Improved */}
+                  <p className="text-gray-500 text-sm mb-4 line-clamp-2 leading-relaxed">
+                    {product.description || 'Exquisitely crafted pure silk saree featuring intricate zari work, perfect for weddings and festive occasions.'}
+                  </p>
+
+                  {/* Price Section - Enhanced */}
+                  <div className="mb-5">
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="text-2xl md:text-3xl font-bold text-[#800020]">
+                        {formatPrice(displayPrice)}
+                      </span>
+                      {hasOffer && originalPrice && originalPrice > displayPrice && (
+                        <span className="text-gray-400 text-base line-through">
+                          {formatPrice(originalPrice)}
+                        </span>
+                      )}
+                      {hasNormalDiscount && discountPercentage > 0 && (
+                        <span className="bg-green-100 text-green-700 text-xs font-semibold px-2 py-0.5 rounded-full">
+                          Save {discountPercentage}%
+                        </span>
+                      )}
+                    </div>
+                    
+                  </div>
+                  
+                </div>
+              </div>
             </div>
-          )}
-          <div className="text-center mt-16">
-            <Link to="/products">
-              <button className="relative overflow-hidden group bg-transparent border-2 border-[#800020] text-[#800020] px-10 py-4 rounded-xl text-lg font-cinzel font-semibold hover:text-white transition-all duration-300 shadow-md hover:shadow-xl">
-                <span className="absolute inset-0 bg-gradient-to-r from-[#800020] to-[#A0002A] transform -translate-x-full group-hover:translate-x-0 transition-transform duration-300 z-0"></span>
-                <span className="relative z-10 flex items-center justify-center gap-2">
-                  Explore Complete Collection
-                  <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                  </svg>
-                </span>
-              </button>
-            </Link>
-          </div>
-        </div>
-      </section>
+          );
+        })}
+      </div>
+    )}
+    
+    {/* View All Button - Enhanced */}
+    <div className="text-center mt-16">
+      <Link to="/products">
+        <button className="group relative px-10 py-3.5 text-[#800020] border-2 border-[#800020] hover:bg-[#800020] hover:text-white transition-all duration-300 font-semibold uppercase tracking-wider rounded-lg overflow-hidden">
+          <span className="relative z-10 flex items-center gap-2">
+            Explore Complete Collection
+            <svg className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </span>
+          <span className="absolute inset-0 bg-gradient-to-r from-[#800020] to-[#A0002A] transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left"></span>
+        </button>
+      </Link>
+    </div>
+  </div>
+</section>
 
       {/* Special Offers Section */}
       <section className="py-24 relative overflow-hidden bg-gradient-to-br from-[#800020] via-[#6B001A] to-[#4A0012]">

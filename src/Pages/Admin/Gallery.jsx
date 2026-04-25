@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import Sidebar from '../../Components/SideBar';
 import GalleryApi from '../../Services/GalleryApi';
 import categoryApi from '../../Services/CategoryApi';
+import BottomBar from './BottomBar';
 
 const Gallery = () => {
   const [carouselSlides, setCarouselSlides] = useState([]);
@@ -435,6 +436,8 @@ const handleAddCollection = async () => {
                 </div>
               </div>
 
+              <BottomBar/>
+
               {/* Main Image Gallery Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div className="flex justify-between items-center mb-6">
@@ -570,7 +573,7 @@ const handleAddCollection = async () => {
                           </div>
                           <div className="p-4">
                             <h3 className="font-semibold text-gray-800 text-lg mb-2">{collection.name}</h3>
-                            <p className="text-gray-600 text-sm mb-3 line-clamp-2">{collection.description}</p>
+                            {/* <p className="text-gray-600 text-sm mb-3 line-clamp-2">{collection.description}</p> */}
                             <div className="flex items-center justify-between text-sm">
                               <div className="space-y-1">
                                 <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs font-medium">

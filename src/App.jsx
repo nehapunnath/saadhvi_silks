@@ -26,6 +26,8 @@ import AdminAbout from './Pages/Admin/AdminAbout'
 import AdminContact from './Pages/Admin/AdminContact'
 import CategoryProducts from './Pages/CategoryProducts'
 import BudgetProducts from './Pages/BudgetProducts'
+import CollectionPage from './Pages/CollectionPage'
+import WhatsAppButton from './Components/WhatsappButton'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -35,6 +37,9 @@ function App() {
 
   // Hide Header & Footer for login and all admin routes
   const hideHeaderFooter =
+    location.pathname === '/login' || location.pathname.startsWith('/admin');
+
+    const hideWhatsApp = 
     location.pathname === '/login' || location.pathname.startsWith('/admin');
 
 
@@ -50,6 +55,8 @@ function App() {
         <Route path='/category/:categoryName' element={<CategoryProducts/>} />
         <Route path="/products-by-budget" element={<BudgetProducts/>} />
         <Route path='/viewdetails/:id' element={<ViewDetails />} />
+        <Route path="/collection/:id" element={<CollectionPage/>} />
+
         <Route path='/cart' element={<Cart />} />
         <Route path='/wishlist' element={<Wishlist />} />
         <Route path='/login' element={<Login />} />
@@ -87,6 +94,7 @@ function App() {
         }}
       />
       {!hideHeaderFooter && <Footer />}
+       {!hideWhatsApp && <WhatsAppButton />}
     </>
   )
 }
