@@ -138,3 +138,10 @@
 .group:hover .group-hover\:rotate-12 {
   transform: rotate(12deg);
 }
+
+/* Add to your global CSS or style tag */
+/* @media (min-width: 475px) {
+  .xs\:grid-cols-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+} */
